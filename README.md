@@ -3,10 +3,6 @@ The compiler is written in Go, and emits assembly code for X86_64 architecture.
 
 The B programming language was developed by Ken Thompson and Dennis Ritchie at Bell Labs in 1969 and was later replaced by C.
 
-Directory c-prototype/ contains sources of a similar compiler, but written in C.
-The Go implementation in the root directory is a complete rewrite that retains all functionality.
-See c-prototype/README.md for details about the B language.
-
 ## Building
 
 To build the compiler:
@@ -49,5 +45,5 @@ The compiler supports the full B language including:
 
 Try the example program:
 ```bash
-./blang -o hello.s c-prototype/hello.b
+./blang -o hello.s hello.b
 ```
