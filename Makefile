@@ -1,9 +1,12 @@
 PROG    = blang
 SRC     = main.go
 
-.PHONY: all install clean
+.PHONY: all install clean run test
 
 all: ${PROG}
+
+test:
+	go test -v
 
 run:
 	go run . test.b
