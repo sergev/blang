@@ -6,13 +6,14 @@ SRC     = main.go
 all: ${PROG}
 
 run:
-	go run .
+	go run . test.b
+	wc a.s
 
 install: all
 	install -m 555 ${PROG} /usr/local/bin/${PROG}
 
 clean:
-	rm -f ${PROG}
+	rm -f ${PROG} *.s
 
 ${PROG}: ${SRC}
 	go build
