@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
 )
 
@@ -13,39 +12,13 @@ const (
 	ColorBoldWhite = "\033[1m\033[37m"
 )
 
-// MaxFnCallArgs is the maximum number of function call arguments supported
-const MaxFnCallArgs = 6
-
-// ArgRegisters for x86_64 function calls
-var ArgRegisters = []string{
-	"%rdi",
-	"%rsi",
-	"%rdx",
-	"%rcx",
-	"%r8",
-	"%r9",
-}
-
 // CompilerArgs holds the compiler state
 type CompilerArgs struct {
-	Arg0           string   // name of the executable
-	OutputFile     string   // output file
-	InputFiles     []string // input files
-	NumInputFiles  int      // number of input files
-	WordSize       int      // size of the B data type
-	SaveTemps      bool     // should temporary files get deleted?
-	Locals         *List    // local variables
-	StackOffset    uint64   // local variable offset
-	Extrns         *List    // extrn variables
-	Strings        *List    // string table
-	ConditionalCnt uint64   // counter for conditional labels
-	StmtCnt        uint64   // counter for statement labels
-}
-
-// StackVar represents a stack variable
-type StackVar struct {
-	Name   string
-	Offset uint64
+	Arg0       string   // name of the executable
+	OutputFile string   // output file
+	InputFiles []string // input files
+	WordSize   int      // size of the B data type (8 for x86_64)
+	SaveTemps  bool     // should temporary files get deleted?
 }
 
 // NewCompilerArgs creates a new CompilerArgs with default values
@@ -54,10 +27,7 @@ func NewCompilerArgs(arg0 string, inputFiles []string) *CompilerArgs {
 		Arg0:       arg0,
 		OutputFile: "a.ll",
 		InputFiles: inputFiles,
-		WordSize:   8, // x86_64 architecture
-		Locals:     NewList(),
-		Extrns:     NewList(),
-		Strings:    NewList(),
+		WordSize:   8, // x86_64 word size
 	}
 }
 
@@ -65,27 +35,6 @@ func NewCompilerArgs(arg0 string, inputFiles []string) *CompilerArgs {
 func Eprintf(arg0 string, format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, "%s%s: %serror: %s", ColorBoldWhite, arg0, ColorBoldRed, ColorReset)
 	fmt.Fprintf(os.Stderr, format, args...)
-}
-
-// FindIdentifier searches for an identifier in locals and extrns
-// Returns offset and whether it's an extern
-func (args *CompilerArgs) FindIdentifier(name string) (int64, bool, bool) {
-	// Search in locals
-	for i := 0; i < args.Locals.Size; i++ {
-		v := args.Locals.Data[i].(*StackVar)
-		if v.Name == name {
-			return int64(v.Offset), false, true
-		}
-	}
-
-	// Search in externs
-	for i := 0; i < args.Extrns.Size; i++ {
-		if args.Extrns.Data[i].(string) == name {
-			return int64(i), true, true
-		}
-	}
-
-	return -1, false, false
 }
 
 // Compile processes the input files and generates LLVM IR
@@ -124,94 +73,4 @@ func Compile(args *CompilerArgs) error {
 
 	_, err = outFile.WriteString(llvmCompiler.GetModule().String())
 	return err
-}
-
-// CmpOperator represents comparison operators
-type CmpOperator int
-
-const (
-	CmpLT CmpOperator = iota // less-than
-	CmpLE                    // less-than-equal
-	CmpGT                    // greater-than
-	CmpGE                    // greater-than-equal
-	CmpEQ                    // equality
-	CmpNE                    // non-equality
-)
-
-// CmpInstruction maps comparison operators to x86_64 set instructions
-var CmpInstruction = []string{
-	"setl",
-	"setle",
-	"setg",
-	"setge",
-	"sete",
-	"setne",
-}
-
-// BinaryOperator represents binary operators
-type BinaryOperator int
-
-const (
-	BinAdd BinaryOperator = iota // +
-	BinSub                       // -
-	BinMul                       // *
-	BinDiv                       // /
-	BinMod                       // %
-	BinShl                       // <<
-	BinSar                       // >>
-	BinAnd                       // &
-	BinOr                        // |
-)
-
-// BinaryCode maps binary operators to x86_64 assembly code
-var BinaryCode = []string{
-	// +
-	"  pop %rdi\n" +
-		"  add %rdi, %rax\n",
-
-	// -
-	"  mov %rax, %rdi\n" +
-		"  pop %rax\n" +
-		"  sub %rdi, %rax\n",
-
-	// *
-	"  pop %rdi\n" +
-		"  imul %rdi, %rax\n",
-
-	// /
-	"  mov %rax, %rdi\n" +
-		"  pop %rax\n" +
-		"  cqo\n" +
-		"  idiv %rdi\n",
-
-	// %
-	"  mov %rax, %rdi\n" +
-		"  pop %rax\n" +
-		"  cqo\n" +
-		"  idiv %rdi\n" +
-		"  mov %rdx, %rax\n",
-
-	// <<
-	"  mov %rax, %rcx\n" +
-		"  pop %rax\n" +
-		"  shl %cl, %rax\n",
-
-	// >>
-	"  mov %rax, %rcx\n" +
-		"  pop %rax\n" +
-		"  sar %cl, %rax\n",
-
-	// &
-	"  pop %rdi\n" +
-		"  and %rdi, %rax\n",
-
-	// |
-	"  pop %rdi\n" +
-		"  or %rdi, %rax\n",
-}
-
-// Writer interface for code generation
-type Writer interface {
-	io.Writer
-	WriteString(s string) (int, error)
 }

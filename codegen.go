@@ -1,707 +1,318 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"io"
-	"unicode"
+
+	"github.com/llir/llvm/ir"
+	"github.com/llir/llvm/ir/constant"
+	"github.com/llir/llvm/ir/types"
+	"github.com/llir/llvm/ir/value"
 )
 
-// parseExpression parses an expression with the given precedence level
-func parseExpression(l *Lexer, out *bytes.Buffer, level int) error {
-	leftIsLvalue, err := parseTerm(l, out)
-	if err != nil {
-		return err
-	}
+// LLVMCompiler holds the LLVM compilation state
+type LLVMCompiler struct {
+	args      *CompilerArgs
+	module    *ir.Module
+	builder   *ir.Block
+	currentFn *ir.Func
+	locals    map[string]value.Value // local variables (alloca)
+	globals   map[string]value.Value // global variables
+	functions map[string]*ir.Func    // functions
+	strings   []*ir.Global           // string constants
+	labelID   int                    // counter for labels
+	labels    map[string]*ir.Block   // named labels for goto
+}
 
-	for {
-		if err := l.Whitespace(); err != nil {
-			return err
-		}
-
-		c, err := l.ReadChar()
-		if err != nil {
-			if err == io.EOF {
-				if leftIsLvalue {
-					fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-				}
-				return nil
-			}
-			return err
-		}
-
-		// Ternary operator (lowest precedence)
-		if level >= 13 && c == '?' {
-			condID := l.args.ConditionalCnt
-			l.args.ConditionalCnt++
-
-			if leftIsLvalue {
-				fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-				leftIsLvalue = false
-			}
-			fmt.Fprintf(out, "  cmp $0, %%rax\n  je .L.cond.else.%d\n", condID)
-			if err := parseExpression(l, out, 12); err != nil {
-				return err
-			}
-			if err := l.Whitespace(); err != nil {
-				return err
-			}
-			c2, err := l.ReadChar()
-			if err != nil || c2 != ':' {
-				return errorf("unexpected character, expect ':' between conditional branches")
-			}
-			fmt.Fprintf(out, "  jmp .L.cond.end.%d\n.L.cond.else.%d:\n", condID, condID)
-			if err := parseExpression(l, out, 13); err != nil {
-				return err
-			}
-			fmt.Fprintf(out, ".L.cond.end.%d:\n", condID)
-			return nil
-		}
-
-		// Binary operators
-		handled := false
-
-		// Addition (precedence 4)
-		if level >= 4 && c == '+' {
-			if leftIsLvalue {
-				fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-				leftIsLvalue = false
-			}
-			if err := binaryExpr(l, out, BinAdd, 3); err != nil {
-				return err
-			}
-			handled = true
-		}
-
-		// Subtraction (precedence 4)
-		if level >= 4 && c == '-' && !handled {
-			if leftIsLvalue {
-				fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-				leftIsLvalue = false
-			}
-			if err := binaryExpr(l, out, BinSub, 3); err != nil {
-				return err
-			}
-			handled = true
-		}
-
-		// Multiplication (precedence 3)
-		if level >= 3 && c == '*' && !handled {
-			if leftIsLvalue {
-				fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-				leftIsLvalue = false
-			}
-			if err := binaryExpr(l, out, BinMul, 2); err != nil {
-				return err
-			}
-			handled = true
-		}
-
-		// Division (precedence 3)
-		if level >= 3 && c == '/' && !handled {
-			if leftIsLvalue {
-				fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-				leftIsLvalue = false
-			}
-			if err := binaryExpr(l, out, BinDiv, 2); err != nil {
-				return err
-			}
-			handled = true
-		}
-
-		// Modulo (precedence 3)
-		if level >= 3 && c == '%' && !handled {
-			if leftIsLvalue {
-				fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-				leftIsLvalue = false
-			}
-			if err := binaryExpr(l, out, BinMod, 2); err != nil {
-				return err
-			}
-			handled = true
-		}
-
-		// Shift and comparison operators starting with '<'
-		if c == '<' && !handled {
-			c2, err := l.ReadChar()
-			if err != nil && err != io.EOF {
-				return err
-			}
-
-			if level >= 5 && c2 == '<' {
-				// Shift-left
-				if leftIsLvalue {
-					fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-					leftIsLvalue = false
-				}
-				if err := binaryExpr(l, out, BinShl, 4); err != nil {
-					return err
-				}
-				handled = true
-			} else if level >= 6 && c2 == '=' {
-				// Less-than-equal
-				if leftIsLvalue {
-					fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-					leftIsLvalue = false
-				}
-				if err := cmpExpr(l, out, CmpLE, 5); err != nil {
-					return err
-				}
-				handled = true
-			} else if level >= 6 {
-				// Less-than
-				if err == nil {
-					l.UnreadChar(c2)
-				}
-				if leftIsLvalue {
-					fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-					leftIsLvalue = false
-				}
-				if err := cmpExpr(l, out, CmpLT, 5); err != nil {
-					return err
-				}
-				handled = true
-			} else {
-				if err == nil {
-					l.UnreadChar(c2)
-				}
-			}
-		}
-
-		// Shift and comparison operators starting with '>'
-		if c == '>' && !handled {
-			c2, err := l.ReadChar()
-			if err != nil && err != io.EOF {
-				return err
-			}
-
-			if level >= 5 && c2 == '>' {
-				// Shift-right
-				if leftIsLvalue {
-					fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-					leftIsLvalue = false
-				}
-				if err := binaryExpr(l, out, BinSar, 4); err != nil {
-					return err
-				}
-				handled = true
-			} else if level >= 6 && c2 == '=' {
-				// Greater-than-equal
-				if leftIsLvalue {
-					fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-					leftIsLvalue = false
-				}
-				if err := cmpExpr(l, out, CmpGE, 5); err != nil {
-					return err
-				}
-				handled = true
-			} else if level >= 6 {
-				// Greater-than
-				if err == nil {
-					l.UnreadChar(c2)
-				}
-				if leftIsLvalue {
-					fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-					leftIsLvalue = false
-				}
-				if err := cmpExpr(l, out, CmpGT, 5); err != nil {
-					return err
-				}
-				handled = true
-			} else {
-				if err == nil {
-					l.UnreadChar(c2)
-				}
-			}
-		}
-
-		// Inequality operator
-		if level >= 7 && c == '!' && !handled {
-			c2, err := l.ReadChar()
-			if err != nil || c2 != '=' {
-				return errorf("unknown operator '!%c'\n", c2)
-			}
-			if leftIsLvalue {
-				fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-				leftIsLvalue = false
-			}
-			if err := cmpExpr(l, out, CmpNE, 6); err != nil {
-				return err
-			}
-			handled = true
-		}
-
-		// Bitwise AND
-		if level >= 8 && c == '&' && !handled {
-			if leftIsLvalue {
-				fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-				leftIsLvalue = false
-			}
-			if err := binaryExpr(l, out, BinAnd, 7); err != nil {
-				return err
-			}
-			handled = true
-		}
-
-		// Bitwise OR
-		if level >= 10 && c == '|' && !handled {
-			if leftIsLvalue {
-				fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-				leftIsLvalue = false
-			}
-			if err := binaryExpr(l, out, BinOr, 9); err != nil {
-				return err
-			}
-			handled = true
-		}
-
-		// Assignment operators
-		if c == '=' && !handled {
-			c2, err := l.ReadChar()
-			if err != nil && err != io.EOF {
-				return err
-			}
-
-			if level >= 7 && c2 == '=' {
-				// Check for === (third =)
-				c3, err3 := l.ReadChar()
-				if err3 == nil {
-					l.UnreadChar(c3)
-				}
-				if err3 != nil || c3 != '=' {
-					// Equality operator ==
-					if leftIsLvalue {
-						fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-						leftIsLvalue = false
-					}
-					if err := cmpExpr(l, out, CmpEQ, 6); err != nil {
-						return err
-					}
-					handled = true
-				}
-			}
-
-			if level >= 14 && !handled {
-				// Assignment operator
-				if !leftIsLvalue {
-					return errorf("left operand of assignment has to be an lvalue")
-				}
-				fmt.Fprintf(out, "  push %%rax\n  mov (%%rax), %%rax\n")
-				if err := assignExpr(l, out, c2, 14); err != nil {
-					return err
-				}
-				fmt.Fprintf(out, "  pop %%rdi\n  mov %%rax, (%%rdi)\n")
-				leftIsLvalue = false
-				handled = true
-			} else if !handled {
-				if err == nil {
-					l.UnreadChar(c2)
-				}
-			}
-		}
-
-		if !handled {
-			// No more operations at this level
-			l.UnreadChar(c)
-			if leftIsLvalue {
-				fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-			}
-			return nil
-		}
+// NewLLVMCompiler creates a new LLVM compiler
+func NewLLVMCompiler(args *CompilerArgs) *LLVMCompiler {
+	return &LLVMCompiler{
+		args:      args,
+		module:    ir.NewModule(),
+		locals:    make(map[string]value.Value),
+		globals:   make(map[string]value.Value),
+		functions: make(map[string]*ir.Func),
+		strings:   make([]*ir.Global, 0),
 	}
 }
 
-// parseTerm parses a term (primary expression with unary operators)
-func parseTerm(l *Lexer, out *bytes.Buffer) (bool, error) {
-	if err := l.Whitespace(); err != nil {
-		return false, err
-	}
-
-	c, err := l.ReadChar()
-	if err != nil {
-		if err == io.EOF {
-			return false, errorf("unexpected end of file, expect expression")
-		}
-		return false, err
-	}
-
-	isLvalue := false
-
-	switch {
-	case c == '\'':
-		// Character literal
-		value, err := l.Character()
-		if err != nil {
-			return false, err
-		}
-		if value != 0 {
-			fmt.Fprintf(out, "  mov $%d, %%rax\n", value)
-		} else {
-			fmt.Fprintf(out, "  xor %%rax, %%rax\n")
-		}
-
-	case c == '"':
-		// String literal
-		str, err := l.String()
-		if err != nil {
-			return false, err
-		}
-		l.args.Strings.Push(str)
-		fmt.Fprintf(out, "  lea .string.%d(%%rip), %%rax\n", l.args.Strings.Size-1)
-
-	case c == '(':
-		// Parentheses
-		if err := parseExpression(l, out, 15); err != nil {
-			return false, err
-		}
-		if err := l.ExpectChar(')', "expect ')' after '(<expr>', got '%c'"); err != nil {
-			return false, err
-		}
-
-	case c == '!':
-		// Not operator
-		lval, err := parseTerm(l, out)
-		if err != nil {
-			return false, err
-		}
-		if lval {
-			fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-		}
-		fmt.Fprintf(out, "  cmp $0, %%rax\n  sete %%al\n  movzx %%al, %%rax\n")
-
-	case c == '-':
-		// Negation or prefix decrement
-		c2, err := l.ReadChar()
-		if err != nil && err != io.EOF {
-			return false, err
-		}
-
-		if c2 == '-' {
-			// Prefix decrement
-			lval, err := parseTerm(l, out)
-			if err != nil {
-				return false, err
-			}
-			if !lval {
-				return false, errorf("expected lvalue after '--'")
-			}
-			fmt.Fprintf(out, "  mov (%%rax), %%rdi\n  sub $1, %%rdi\n  mov %%rdi, (%%rax)\n")
-			isLvalue = true
-		} else {
-			// Negation
-			if err == nil {
-				l.UnreadChar(c2)
-			}
-			lval, err := parseTerm(l, out)
-			if err != nil {
-				return false, err
-			}
-			if lval {
-				fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-			}
-			fmt.Fprintf(out, "  neg %%rax\n")
-		}
-
-	case c == '+':
-		// Prefix increment
-		c2, err := l.ReadChar()
-		if err != nil || c2 != '+' {
-			return false, errorf("unexpected character '%c', expect '+'\n", c2)
-		}
-		lval, err := parseTerm(l, out)
-		if err != nil {
-			return false, err
-		}
-		if !lval {
-			return false, errorf("expected lvalue after '++'")
-		}
-		fmt.Fprintf(out, "  mov (%%rax), %%rdi\n  add $1, %%rdi\n  mov %%rdi, (%%rax)\n")
-		isLvalue = true
-
-	case c == '*':
-		// Indirection operator
-		lval, err := parseTerm(l, out)
-		if err != nil {
-			return false, err
-		}
-		if lval {
-			fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
-		}
-		isLvalue = true
-
-	case c == '&':
-		// Address operator
-		lval, err := parseTerm(l, out)
-		if err != nil {
-			return false, err
-		}
-		if !lval {
-			return false, errorf("expected lvalue after '&'")
-		}
-
-	case unicode.IsDigit(c):
-		// Integer literal
-		l.UnreadChar(c)
-		value, err := l.Number()
-		if err != nil {
-			return false, err
-		}
-		if value != 0 {
-			fmt.Fprintf(out, "  mov $%d, %%rax\n", value)
-		} else {
-			fmt.Fprintf(out, "  xor %%rax, %%rax\n")
-		}
-
-	case unicode.IsLetter(c):
-		// Identifier
-		l.UnreadChar(c)
-		name, err := l.Identifier()
-		if err != nil {
-			return false, err
-		}
-
-		offset, isExtrn, found := l.args.FindIdentifier(name)
-
-		if !found {
-			// Unknown identifier - check if it's a function call
-			if err := l.Whitespace(); err != nil {
-				return false, err
-			}
-			c, err := l.ReadChar()
-			if err == nil && c == '(' {
-				// Add to externs
-				l.UnreadChar(c)
-				l.args.Extrns.Push(name)
-				isExtrn = true
-			} else {
-				return false, errorf("undefined identifier '%s'\n", name)
-			}
-		}
-
-		if isExtrn {
-			fmt.Fprintf(out, "  lea %s(%%rip), %%rax\n", name)
-		} else {
-			fmt.Fprintf(out, "  lea -%d(%%rbp), %%rax\n", (offset+2)*int64(l.args.WordSize))
-		}
-
-		isLvalue = true
-		isLvalue, err = parsePostfix(l, out, isLvalue)
-		if err != nil {
-			return false, err
-		}
-
-	default:
-		return false, errorf("unexpected character '%c', expect expression\n", c)
-	}
-
-	return isLvalue, nil
+// GetModule returns the LLVM module
+func (c *LLVMCompiler) GetModule() *ir.Module {
+	return c.module
 }
 
-// parsePostfix handles postfix operations ([], (), ++, --)
-func parsePostfix(l *Lexer, out *bytes.Buffer, isLvalue bool) (bool, error) {
-	for {
-		c, err := l.ReadChar()
-		if err != nil {
-			if err == io.EOF {
-				return isLvalue, nil
-			}
-			return false, err
+// WordType returns the B word type (i64)
+func (c *LLVMCompiler) WordType() *types.IntType {
+	return types.I64
+}
+
+// WordPtrType returns pointer to B word type
+func (c *LLVMCompiler) WordPtrType() *types.PointerType {
+	return types.NewPointer(c.WordType())
+}
+
+// DeclareGlobal declares a global variable
+func (c *LLVMCompiler) DeclareGlobal(name string, init constant.Constant) *ir.Global {
+	if init == nil {
+		init = constant.NewInt(c.WordType(), 0)
+	}
+	global := c.module.NewGlobalDef(name, init)
+	c.globals[name] = global
+	return global
+}
+
+// DeclareGlobalArray declares a global array (vector)
+// In B, arrays work as follows:
+//   - name[N] creates N+1 words
+//   - First word contains address of second word (pointer to data)
+//   - Accessing name gives you the address of the first word
+//   - Accessing name[i] loads the pointer and indexes into it
+func (c *LLVMCompiler) DeclareGlobalArray(name string, size int64, init []constant.Constant) *ir.Global {
+	arraySize := size + 1 // +1 for the pointer storage
+	elemType := c.WordType()
+	arrayType := types.NewArray(uint64(arraySize), elemType)
+
+	// Initialize data elements
+	var initVals []constant.Constant
+
+	// First element: will be initialized with pointer to second element
+	// We use a special constant expression: getelementptr to get address of element [1]
+	// For now, use 0 and fix it with a global constructor or leave for linker
+	// Actually, LLVM allows constant expressions for this
+	initVals = append(initVals, constant.NewInt(elemType, 0)) // Placeholder, will be fixed below
+
+	for i := int64(0); i < size; i++ {
+		if init != nil && i < int64(len(init)) {
+			initVals = append(initVals, init[i])
+		} else {
+			initVals = append(initVals, constant.NewInt(elemType, 0))
 		}
+	}
 
-		switch c {
-		case '[':
-			// Index operator
-			fmt.Fprintf(out, "  push (%%rax)\n")
-			if err := parseExpression(l, out, 15); err != nil {
-				return false, err
-			}
-			fmt.Fprintf(out, "  pop %%rdi\n  shl $3, %%rax\n  add %%rdi, %%rax\n")
+	global := c.module.NewGlobalDef(name, constant.NewArray(arrayType, initVals...))
 
-			if err := l.ExpectChar(']', "unexpected token, expect closing ']' after index expression"); err != nil {
-				return false, err
-			}
-			isLvalue = true
+	// Now fix the first element to point to the second element
+	// Use constant GEP expression to get address of element [1]
+	dataPtr := constant.NewGetElementPtr(arrayType, global,
+		constant.NewInt(types.I64, 0),
+		constant.NewInt(types.I64, 1))
+	ptrAsInt := constant.NewPtrToInt(dataPtr, elemType)
 
-		case '(':
-			// Function call
-			fmt.Fprintf(out, "  push %%rax\n")
+	// Update the global initialization
+	initVals[0] = ptrAsInt
+	global.Init = constant.NewArray(arrayType, initVals...)
 
-			numArgs := 0
-			for {
-				c, err := l.ReadChar()
-				if err != nil {
-					return false, err
-				}
-				if c == ')' {
-					break
-				}
-				l.UnreadChar(c)
+	c.globals[name] = global
+	return global
+}
 
-				if err := parseExpression(l, out, 15); err != nil {
-					return false, err
-				}
+// DeclareFunction declares a function
+func (c *LLVMCompiler) DeclareFunction(name string, paramNames []string) *ir.Func {
+	// All B functions take i64 parameters and return i64
+	params := make([]*ir.Param, len(paramNames))
+	for i, pname := range paramNames {
+		params[i] = ir.NewParam(pname, c.WordType())
+	}
 
-				numArgs++
-				if numArgs > MaxFnCallArgs {
-					return false, errorf("only %d call arguments are currently supported\n", MaxFnCallArgs)
-				}
-				fmt.Fprintf(out, "  push %%rax\n")
+	fn := c.module.NewFunc(name, c.WordType(), params...)
+	c.functions[name] = fn
+	return fn
+}
 
-				if err := l.Whitespace(); err != nil {
-					return false, err
-				}
+// GetOrDeclareFunction gets an existing function or declares it as external
+//
+// B language semantics:
+//   - Undefined identifier used as function: auto-declare as external function
+//   - 'extrn name' then 'name(...)': name is a function pointer variable (indirect call)
+//
+// Examples:
+//
+//	printf("hello");         → auto-declares printf as external function (direct call)
+//	extrn printf; printf(); → printf is a variable holding function pointer (indirect call)
+func (c *LLVMCompiler) GetOrDeclareFunction(name string) *ir.Func {
+	if fn, ok := c.functions[name]; ok {
+		return fn
+	}
 
-				c, err = l.ReadChar()
-				if err != nil {
-					return false, err
-				}
-				if c == ')' {
-					break
-				}
-				if c != ',' {
-					return false, errorf("unexpected character '%c', expect closing ')' after call expression\n", c)
-				}
-			}
+	// Check if it was declared as extrn (exists in globals)
+	// If so, DO NOT remove it from globals - it's a function pointer variable
+	// Return nil to signal caller should handle it as indirect call
+	if _, ok := c.globals[name]; ok {
+		// It's an extrn variable (function pointer) - keep it in globals
+		return nil
+	}
 
-			// Pop arguments into registers
-			for numArgs > 0 {
-				numArgs--
-				fmt.Fprintf(out, "  pop %s\n", ArgRegisters[numArgs])
-			}
+	// Not in globals, not in functions → auto-declare as external variadic function
+	// This handles undefined names used as functions (like write(), printf())
+	fn := c.module.NewFunc(name, c.WordType())
+	fn.Sig.Variadic = true
+	c.functions[name] = fn
+	return fn
+}
 
-			fmt.Fprintf(out, "  pop %%r10\n  call *%%r10\n")
-			isLvalue = false
-
-		case '+':
-			// Postfix increment
-			c2, err := l.ReadChar()
-			if err != nil || c2 != '+' {
-				if err == nil {
-					l.UnreadChar(c2)
-				}
-				l.UnreadChar(c)
-				return isLvalue, nil
-			}
-			fmt.Fprintf(out, "  mov (%%rax), %%rcx\n  addq $1, (%%rax)\n  mov %%rcx, %%rax\n")
-			isLvalue = false
-
-		case '-':
-			// Postfix decrement
-			c2, err := l.ReadChar()
-			if err != nil || c2 != '-' {
-				if err == nil {
-					l.UnreadChar(c2)
-				}
-				l.UnreadChar(c)
-				return isLvalue, nil
-			}
-			fmt.Fprintf(out, "  mov (%%rax), %%rcx\n  subq $1, (%%rax)\n  mov %%rcx, %%rax\n")
-			isLvalue = false
-
-		default:
-			l.UnreadChar(c)
-			return isLvalue, nil
-		}
+// StartFunction starts building a function body
+func (c *LLVMCompiler) StartFunction(fn *ir.Func) {
+	c.currentFn = fn
+	c.locals = make(map[string]value.Value)
+	c.labels = make(map[string]*ir.Block)
+	c.builder = fn.NewBlock("entry")
+	
+	// Allocate space for parameters
+	for _, param := range fn.Params {
+		alloca := c.builder.NewAlloca(c.WordType())
+		c.builder.NewStore(param, alloca)
+		c.locals[param.Name()] = alloca
 	}
 }
 
-// binaryExpr generates code for a binary operation
-func binaryExpr(l *Lexer, out *bytes.Buffer, op BinaryOperator, level int) error {
-	fmt.Fprintf(out, "  push %%rax\n")
-	if err := parseExpression(l, out, level); err != nil {
-		return err
+// EndFunction finalizes a function
+func (c *LLVMCompiler) EndFunction() {
+	// If the current block doesn't have a terminator, add a default return
+	if c.builder != nil && c.builder.Term == nil {
+		c.builder.NewRet(constant.NewInt(c.WordType(), 0))
 	}
-	fmt.Fprintf(out, "%s", BinaryCode[op])
+	c.currentFn = nil
+	c.builder = nil
+	c.locals = make(map[string]value.Value)
+	c.labels = make(map[string]*ir.Block)
+}
+
+// DeclareLocal allocates a local variable
+func (c *LLVMCompiler) DeclareLocal(name string) value.Value {
+	alloca := c.builder.NewAlloca(c.WordType())
+	c.locals[name] = alloca
+	return alloca
+}
+
+// DeclareLocalArray allocates a local array
+// In B, arrays work as follows:
+//   - array[N] allocates N+1 words
+//   - First word contains pointer to second word (where data starts)
+//   - This allows array[-1] to get the original pointer
+func (c *LLVMCompiler) DeclareLocalArray(name string, size int64) value.Value {
+	arraySize := size + 1 // +1 for pointer storage in first element
+	arrayType := types.NewArray(uint64(arraySize), c.WordType())
+	alloca := c.builder.NewAlloca(arrayType)
+
+	// Get pointer to first data element (skip the pointer storage slot)
+	// This is element [0][1] in the array
+	firstElemPtr := c.builder.NewGetElementPtr(arrayType, alloca,
+		constant.NewInt(types.I32, 0),
+		constant.NewInt(types.I32, 1))
+
+	// Convert to i64 and store in the first slot [0][0]
+	ptrAsInt := c.builder.NewPtrToInt(firstElemPtr, c.WordType())
+	firstSlotPtr := c.builder.NewGetElementPtr(arrayType, alloca,
+		constant.NewInt(types.I32, 0),
+		constant.NewInt(types.I32, 0))
+	c.builder.NewStore(ptrAsInt, firstSlotPtr)
+
+	// Store the array base address (to first slot which now contains the data pointer)
+	c.locals[name] = firstSlotPtr
+	return firstSlotPtr
+}
+
+// LoadValue loads a value (handles both locals and globals)
+func (c *LLVMCompiler) LoadValue(name string) (value.Value, error) {
+	// Check locals first
+	if val, ok := c.locals[name]; ok {
+		return c.builder.NewLoad(c.WordType(), val), nil
+	}
+
+	// Check globals
+	if val, ok := c.globals[name]; ok {
+		return c.builder.NewLoad(c.WordType(), val), nil
+	}
+
+	// Check if it's a function (return as pointer)
+	if fn, ok := c.functions[name]; ok {
+		return fn, nil
+	}
+
+	// Not found - will be declared later if it's a function call
+	return nil, fmt.Errorf("undefined identifier '%s'", name)
+}
+
+// GetAddress gets the address of a variable (for lvalue operations)
+// Returns nil if not found (will be handled as function call)
+func (c *LLVMCompiler) GetAddress(name string) (value.Value, bool) {
+	// Check locals first
+	if val, ok := c.locals[name]; ok {
+		return val, true
+	}
+
+	// Check functions before globals
+	// This allows extrn-declared names to become functions if called
+	if fn, ok := c.functions[name]; ok {
+		return fn, true
+	}
+
+	// Check globals
+	if val, ok := c.globals[name]; ok {
+		return val, true
+	}
+
+	return nil, false
+}
+
+// StoreValue stores a value to a variable
+func (c *LLVMCompiler) StoreValue(name string, val value.Value) error {
+	addr, found := c.GetAddress(name)
+	if !found {
+		return fmt.Errorf("undefined identifier '%s'", name)
+	}
+	c.builder.NewStore(val, addr)
 	return nil
 }
 
-// cmpExpr generates code for a comparison operation
-func cmpExpr(l *Lexer, out *bytes.Buffer, op CmpOperator, level int) error {
-	fmt.Fprintf(out, "  push %%rax\n")
-	if err := parseExpression(l, out, level); err != nil {
-		return err
+// CreateStringConstant creates a global string constant
+func (c *LLVMCompiler) CreateStringConstant(str string) *ir.Global {
+	// Create a byte array for the string
+	strBytes := []byte(str)
+	strBytes = append(strBytes, 0) // null terminator
+
+	// Create constant array
+	charType := types.I8
+	arrayType := types.NewArray(uint64(len(strBytes)), charType)
+
+	var bytes []constant.Constant
+	for _, b := range strBytes {
+		bytes = append(bytes, constant.NewInt(charType, int64(b)))
 	}
-	fmt.Fprintf(out,
-		"  pop %%rdi\n"+
-			"  cmp %%rax, %%rdi\n"+
-			"  %s %%al\n"+
-			"  movzb %%al, %%rax\n",
-		CmpInstruction[op],
-	)
-	return nil
+
+	strConst := constant.NewArray(arrayType, bytes...)
+	global := c.module.NewGlobalDef(fmt.Sprintf(".str.%d", len(c.strings)), strConst)
+	global.Immutable = true
+	c.strings = append(c.strings, global)
+
+	return global
 }
 
-// assignExpr handles assignment operations (=, =+, =-, etc.)
-func assignExpr(l *Lexer, out *bytes.Buffer, c rune, level int) error {
-	switch c {
-	case '+':
-		return binaryExpr(l, out, BinAdd, level)
-	case '*':
-		return binaryExpr(l, out, BinMul, level)
-	case '-':
-		return binaryExpr(l, out, BinSub, level)
-	case '/':
-		return binaryExpr(l, out, BinDiv, level)
-	case '%':
-		return binaryExpr(l, out, BinMod, level)
-
-	case '<':
-		c2, err := l.ReadChar()
-		if err != nil {
-			return err
-		}
-		if c2 == '<' {
-			// Shift-left
-			return binaryExpr(l, out, BinShl, level)
-		} else if c2 == '=' {
-			// Less-than-equal
-			return cmpExpr(l, out, CmpLE, level)
-		} else {
-			// Less-than
-			l.UnreadChar(c2)
-			return cmpExpr(l, out, CmpLT, level)
-		}
-
-	case '>':
-		c2, err := l.ReadChar()
-		if err != nil {
-			return err
-		}
-		if c2 == '>' {
-			// Shift-right
-			return binaryExpr(l, out, BinSar, level)
-		} else if c2 == '=' {
-			// Greater-than-equal
-			return cmpExpr(l, out, CmpGE, level)
-		} else {
-			// Greater-than
-			l.UnreadChar(c2)
-			return cmpExpr(l, out, CmpGT, level)
-		}
-
-	case '!':
-		c2, err := l.ReadChar()
-		if err != nil || c2 != '=' {
-			return errorf("unknown operator '!%c'\n", c2)
-		}
-		return cmpExpr(l, out, CmpNE, level)
-
-	case '=':
-		c2, err := l.ReadChar()
-		if err != nil || c2 != '=' {
-			return errorf("unknown operator '=%c'\n", c2)
-		}
-		return cmpExpr(l, out, CmpEQ, level)
-
-	case '&':
-		return binaryExpr(l, out, BinAnd, level)
-
-	case '|':
-		return binaryExpr(l, out, BinOr, level)
-
-	default:
-		// Plain assignment
-		l.UnreadChar(c)
-		return parseExpression(l, out, level)
+// NewBlock creates a new basic block
+func (c *LLVMCompiler) NewBlock(name string) *ir.Block {
+	if name == "" {
+		name = fmt.Sprintf("bb%d", c.labelID)
+		c.labelID++
 	}
+	block := c.currentFn.NewBlock(name)
+	return block
+}
+
+// SetInsertPoint sets the current insertion point
+func (c *LLVMCompiler) SetInsertPoint(block *ir.Block) {
+	c.builder = block
+}
+
+// GetInsertBlock returns the current insertion block
+func (c *LLVMCompiler) GetInsertBlock() *ir.Block {
+	return c.builder
+}
+
+// GetOrCreateLabel gets an existing label block or creates a new one
+func (c *LLVMCompiler) GetOrCreateLabel(name string) *ir.Block {
+	if block, ok := c.labels[name]; ok {
+		return block
+	}
+	block := c.currentFn.NewBlock(name)
+	c.labels[name] = block
+	return block
 }

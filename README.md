@@ -52,7 +52,6 @@ The project includes comprehensive unit tests covering:
 - **Compilation tests**: Full end-to-end compilation of various B programs
 - **Error handling tests**: 8 different error scenarios (undefined variables, unclosed comments, etc.)
 - **Lexer tests**: Tokenization, identifiers, numbers, strings, characters, comments
-- **List tests**: Dynamic list data structure operations
 
 Run all tests:
 ```bash

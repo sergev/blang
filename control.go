@@ -56,8 +56,8 @@ func parseSwitchLLVM(l *Lexer, c *LLVMCompiler) error {
 
 	// Parse the switch body (contains case statements)
 	c.SetInsertPoint(stmtsBlock)
-	caseList := NewList()
-	if err := parseStatementLLVMWithSwitch(l, c, int64(switchID), caseList); err != nil {
+	var caseList []int64
+	if err := parseStatementLLVMWithSwitch(l, c, int64(switchID), &caseList); err != nil {
 		return err
 	}
 
@@ -68,13 +68,12 @@ func parseSwitchLLVM(l *Lexer, c *LLVMCompiler) error {
 
 	// Build the switch instruction in the comparison block
 	c.SetInsertPoint(cmpBlock)
-	if caseList.Size > 0 {
+	if len(caseList) > 0 {
 		// Create switch instruction
 		sw := c.builder.NewSwitch(switchVal, endBlock)
 
 		// Add all cases
-		for i := 0; i < caseList.Size; i++ {
-			caseVal := caseList.Data[i].(int64)
+		for _, caseVal := range caseList {
 			caseBlock := c.GetOrCreateLabel(fmt.Sprintf("case.%d.%d", switchID, caseVal))
 			sw.Cases = append(sw.Cases, ir.NewCase(constant.NewInt(c.WordType(), caseVal), caseBlock))
 		}
@@ -89,7 +88,7 @@ func parseSwitchLLVM(l *Lexer, c *LLVMCompiler) error {
 }
 
 // parseCaseLLVM parses case statements
-func parseCaseLLVM(l *Lexer, c *LLVMCompiler, switchID int64, cases *List) error {
+func parseCaseLLVM(l *Lexer, c *LLVMCompiler, switchID int64, cases *[]int64) error {
 	if switchID < 0 {
 		return fmt.Errorf("unexpected 'case' outside of 'switch' statements")
 	}
@@ -131,7 +130,7 @@ func parseCaseLLVM(l *Lexer, c *LLVMCompiler, switchID int64, cases *List) error
 	}
 
 	// Add to case list
-	cases.Push(value)
+	*cases = append(*cases, value)
 
 	// Create label for this case
 	caseBlock := c.GetOrCreateLabel(fmt.Sprintf("case.%d.%d", switchID, value))

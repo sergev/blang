@@ -1,5 +1,5 @@
 PROG    = blang
-SRC     = codegen.go compiler.go lexer.go list.go llvm_codegen.go llvm_expr.go llvm_parser.go main.go parser.go
+SRC     = compiler.go lexer.go llvm_codegen.go llvm_expr.go llvm_parser.go main.go
 
 .PHONY: all install clean test
 
