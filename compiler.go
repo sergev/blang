@@ -52,7 +52,7 @@ type StackVar struct {
 func NewCompilerArgs(arg0 string, inputFiles []string) *CompilerArgs {
 	return &CompilerArgs{
 		Arg0:       arg0,
-		OutputFile: "a.s",
+		OutputFile: "a.ll",
 		InputFiles: inputFiles,
 		WordSize:   8, // x86_64 architecture
 		Locals:     NewList(),

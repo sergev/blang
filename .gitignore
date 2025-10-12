@@ -1,2 +1,4 @@
 blang
 *.o
+*.ll
+hello
