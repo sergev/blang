@@ -857,6 +857,149 @@ address = 0, 8, 16
 	}
 }
 
+// TestFunctions tests various function features (from oldtests/func_test.cpp)
+func TestFunctions(t *testing.T) {
+	// Check if clang is available
+	if _, err := os.Stat("libb.o"); err != nil {
+		t.Skip("libb.o not found, run 'make' first")
+	}
+
+	tests := []struct {
+		name       string
+		code       string
+		wantStdout string
+	}{
+		{
+			name: "function_definitions",
+			code: `a() {}
+			b();
+			c() label:;
+			d() label: goto label;
+			e() return;
+			f(x) return(x);
+			g(x) x;
+			h(x) if(x) 123;
+			i(x) if(x) 123; else 456;
+			j(x) while(x);
+			k(x) switch(x);
+			l(x) switch(x) case 1:;
+			m() extrn x;
+			n() auto x;
+
+			main() {
+				printf("before a()*n");
+				a();    printf("after a(), before b()*n");
+				b();    printf("after b(), before c()*n");
+				c();    printf("after c(), before e()*n");
+				e();    printf("after e(), before f()*n");
+				f(42);  printf("after f(), before g()*n");
+				g(42);  printf("after g(), before h()*n");
+				h(42);  printf("after h(), before i()*n");
+				i(42);  printf("after i(), before j()*n");
+				j(0);   printf("after j(), before k()*n");
+				k(42);  printf("after k(), before l()*n");
+				l(42);  printf("after l(), before m()*n");
+				m();    printf("after m(), before n()*n");
+				n();    printf("after n()*n");
+			}`,
+			wantStdout: `before a()
+after a(), before b()
+after b(), before c()
+after c(), before e()
+after e(), before f()
+after f(), before g()
+after g(), before h()
+after h(), before i()
+after i(), before j()
+after j(), before k()
+after k(), before l()
+after l(), before m()
+after m(), before n()
+after n()
+`,
+		},
+		{
+			name: "function_arguments",
+			code: `func(a, b, c)
+			{
+				printf("a = %d, b = '%c', c = *"%s*"*n", a, b, c);
+			}
+
+			main() {
+				func(123, 'foo', "bar");
+			}`,
+			wantStdout: `a = 123, b = 'foo', c = "bar"
+`,
+		},
+		{
+			name: "function_ternary_operator",
+			code: `choose(a, b, c)
+			{
+				return (a ? b : c);
+			}
+
+			main() {
+				printf("%d*n", choose(1, 123, 456));
+				printf("%d*n", choose(0, 123, 456));
+			}`,
+			wantStdout: `123
+456
+`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Skip ternary operator test as it's not yet implemented
+			if tt.name == "function_ternary_operator" {
+				t.Skip("Ternary operator (? :) not yet implemented")
+			}
+
+			tmpDir := t.TempDir()
+			inputFile := filepath.Join(tmpDir, "test.b")
+			llFile := filepath.Join(tmpDir, "test.ll")
+			exeFile := filepath.Join(tmpDir, "test")
+
+			// Write test code to file
+			err := os.WriteFile(inputFile, []byte(tt.code), 0644)
+			if err != nil {
+				t.Fatalf("Failed to write test file: %v", err)
+			}
+
+			// Step 1: Compile B program to LLVM IR
+			args := NewCompilerArgs("blang", []string{inputFile})
+			args.OutputFile = llFile
+
+			err = Compile(args)
+			if err != nil {
+				t.Fatalf("Compile failed: %v", err)
+			}
+
+			// Step 2: Link with libb.o using clang
+			linkCmd := exec.Command("clang", llFile, "libb.o", "-o", exeFile)
+			linkOutput, err := linkCmd.CombinedOutput()
+			if err != nil {
+				t.Fatalf("Linking failed: %v\nOutput: %s", err, linkOutput)
+			}
+
+			// Step 3: Run the executable
+			runCmd := exec.Command(exeFile)
+			stdout, err := runCmd.Output()
+			if err != nil {
+				if _, ok := err.(*exec.ExitError); !ok {
+					t.Fatalf("Failed to run executable: %v", err)
+				}
+			}
+
+			// Check stdout
+			gotStdout := string(stdout)
+			if gotStdout != tt.wantStdout {
+				t.Errorf("Stdout mismatch:\nGot:\n%s\nWant:\n%s", gotStdout, tt.wantStdout)
+			}
+		})
+	}
+}
+
 // TestCompoundAssignments tests compound assignment operators (from oldtests/assignment_test.cpp)
 // NOTE: These tests are currently skipped because compound assignments are not yet implemented
 func TestCompoundAssignments(t *testing.T) {

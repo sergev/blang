@@ -7,6 +7,7 @@ import (
 
 	"github.com/llir/llvm/ir/constant"
 	"github.com/llir/llvm/ir/enum"
+	"github.com/llir/llvm/ir/types"
 	"github.com/llir/llvm/ir/value"
 )
 
@@ -222,8 +223,12 @@ func parseIvalConstLLVM(l *Lexer, c *LLVMCompiler) (constant.Constant, error) {
 			return nil, err
 		}
 		global := c.CreateStringConstant(str)
+		// Get pointer to first element of string constant using GEP
+		gep := constant.NewGetElementPtr(global.ContentType, global,
+			constant.NewInt(types.I32, 0),
+			constant.NewInt(types.I32, 0))
 		// Convert string pointer to i64 for array storage
-		return constant.NewPtrToInt(global, c.WordType()), nil
+		return constant.NewPtrToInt(gep, c.WordType()), nil
 	} else if ch == '-' {
 		val, err := l.Number()
 		if err != nil {
@@ -549,7 +554,8 @@ func parseExtrnLLVM(l *Lexer, c *LLVMCompiler) error {
 		if _, exists := c.globals[name]; !exists {
 			if _, exists := c.functions[name]; !exists {
 				// Declare as external global variable (i64) - may be replaced later
-				global := c.module.NewGlobal(name, c.WordType())
+				// Initialize to 0 for proper LLVM IR
+				global := c.module.NewGlobalDef(name, constant.NewInt(c.WordType(), 0))
 				c.globals[name] = global
 			}
 		}

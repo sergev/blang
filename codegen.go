@@ -5,6 +5,7 @@ import (
 
 	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/constant"
+	"github.com/llir/llvm/ir/enum"
 	"github.com/llir/llvm/ir/types"
 	"github.com/llir/llvm/ir/value"
 )
@@ -52,10 +53,13 @@ func (c *LLVMCompiler) WordPtrType() *types.PointerType {
 
 // DeclareGlobal declares a global variable
 func (c *LLVMCompiler) DeclareGlobal(name string, init constant.Constant) *ir.Global {
+	var global *ir.Global
 	if init == nil {
-		init = constant.NewInt(c.WordType(), 0)
+		// If no initializer, create zero-initialized global
+		global = c.module.NewGlobalDef(name, constant.NewInt(c.WordType(), 0))
+	} else {
+		global = c.module.NewGlobalDef(name, init)
 	}
-	global := c.module.NewGlobalDef(name, init)
 	c.globals[name] = global
 	return global
 }
@@ -282,11 +286,11 @@ func (c *LLVMCompiler) StoreValue(name string, val value.Value) error {
 
 // CreateStringConstant creates a global string constant
 func (c *LLVMCompiler) CreateStringConstant(str string) *ir.Global {
-	// Create a byte array for the string
+	// Create null-terminated string constant
+	// CharArrayFromString doesn't include null terminator, so we need to add it manually
 	strBytes := []byte(str)
 	strBytes = append(strBytes, 0) // null terminator
 
-	// Create constant array
 	charType := types.I8
 	arrayType := types.NewArray(uint64(len(strBytes)), charType)
 
@@ -296,7 +300,10 @@ func (c *LLVMCompiler) CreateStringConstant(str string) *ir.Global {
 	}
 
 	strConst := constant.NewArray(arrayType, bytes...)
+
 	global := c.module.NewGlobalDef(fmt.Sprintf(".str.%d", len(c.strings)), strConst)
+	global.Linkage = enum.LinkagePrivate
+	global.UnnamedAddr = enum.UnnamedAddrUnnamedAddr
 	global.Immutable = true
 	c.strings = append(c.strings, global)
 
