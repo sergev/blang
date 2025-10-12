@@ -6,7 +6,6 @@ import (
 )
 
 func TestLexerIdentifier(t *testing.T) {
-	t.Skip("Disabled during LLVM backend migration")
 	tests := []struct {
 		input string
 		want  string
@@ -36,7 +35,6 @@ func TestLexerIdentifier(t *testing.T) {
 }
 
 func TestLexerNumber(t *testing.T) {
-	t.Skip("Disabled during LLVM backend migration")
 	tests := []struct {
 		input string
 		want  int64
@@ -66,7 +64,6 @@ func TestLexerNumber(t *testing.T) {
 }
 
 func TestLexerString(t *testing.T) {
-	t.Skip("Disabled during LLVM backend migration")
 	tests := []struct {
 		name  string
 		input string
@@ -99,7 +96,6 @@ func TestLexerString(t *testing.T) {
 }
 
 func TestLexerCharacter(t *testing.T) {
-	t.Skip("Disabled during LLVM backend migration")
 	tests := []struct {
 		name  string
 		input string
@@ -131,7 +127,6 @@ func TestLexerCharacter(t *testing.T) {
 }
 
 func TestLexerWhitespace(t *testing.T) {
-	t.Skip("Disabled during LLVM backend migration")
 	tests := []struct {
 		name  string
 		input string
@@ -166,7 +161,6 @@ func TestLexerWhitespace(t *testing.T) {
 }
 
 func TestLexerComment(t *testing.T) {
-	t.Skip("Disabled during LLVM backend migration")
 	tests := []struct {
 		name  string
 		input string
