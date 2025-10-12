@@ -117,10 +117,18 @@ Try the example programs:
 ✅ **Variables** - Complete (local `auto`, global, `extrn`)
 ✅ **String Literals** - Complete
 ✅ **Array Indexing** - Working (access elements with `array[i]`)
-⏳ **Compound Assignment** - Pending (`=+`, `=-`, etc. - use `x = x + 5` instead)
-⏳ **Switch/Case** - Pending
-⏳ **Goto** - Pending
+⏳ **Compound Assignment** - Pending (`=+`, `=-`, etc. - use `x = x + 5` instead)  
+⏳ **Indirect Function Calls** - Pending (extrn function pointers - use direct calls for now)  
+⏳ **Switch/Case** - Pending  
+⏳ **Goto** - Pending  
 ⏳ **Unit Tests** - Temporarily disabled during migration
+
+### Important Notes
+
+**Function Calls:**
+- ✅ `printf("hello")` - Undefined function, auto-declared as external (works!)
+- ⏳ `extrn printf; printf("hello")` - Function pointer variable, indirect call (pending)
+- 💡 **Recommendation**: Use direct function calls (no `extrn` for functions)
 
 ### Verified Working Programs:
 
@@ -136,17 +144,20 @@ All test programs compile to LLVM IR and produce correct results:
 ### Linking with Runtime Library
 
 ```bash
+# First time: compile the B runtime library
+cd libb && clang -c -ffreestanding libb.c -o libb.o && cd ..
+
 # Compile B program to LLVM IR
 ./blang -o program.ll program.b
 
-# Compile B runtime library
-clang -c -ffreestanding libb/libb.c -o libb.o
-
-# Link and create executable
-clang -nostdlib program.ll libb.o -o program
+# Link and create executable  
+clang program.ll libb/libb.o -o program
 
 # Run
 ./program
 ```
 
-The B runtime library (`libb/libb.c`) provides standard B functions like `write()`, `read()`, `printf()`, etc.
+**Important**: The B runtime library (`libb/libb.c`) provides standard B functions:
+- **`write(c)`** - For multi-character constants like `write('Hi!*n')`
+- **`printf(fmt, ...)`** - For string pointers like `printf("Hello %s", name)`
+- See `TESTING.md` for more details

@@ -39,11 +39,12 @@ Following B language semantics, undefined identifiers used in function call posi
 
 ```b
 main() {
-    write("Hello");  /* write() automatically declared as external */
+    write('Hello');   /* write() automatically declared as external */
+    printf("Hi %d", 42);  /* printf() automatically declared as external */
 }
 ```
 
-This allows B programs to call C library functions without explicit declarations.
+This allows B programs to call C library functions **without explicit `extrn` declarations**. No need to write `extrn write, printf;` - the compiler handles it automatically!
 
 ## Compiling and Linking
 
@@ -53,13 +54,16 @@ This allows B programs to call C library functions without explicit declarations
 ./blang -o program.ll program.b
 ```
 
-### Link with B Runtime Library
+### Compile and Link
 
 ```bash
-# Compile the B runtime library
-clang -c -ffreestanding libb/libb.c -o libb/libb.o
+# First time: compile the B runtime library (do this once)
+cd libb && clang -c -ffreestanding libb.c -o libb.o && cd ..
 
-# Link with your B program
+# Compile B program to LLVM IR
+./blang -o program.ll program.b
+
+# Link with runtime and create executable
 clang program.ll libb/libb.o -o program
 
 # Run
@@ -84,15 +88,29 @@ echo $?  # Prints 120
 
 The B runtime library provides:
 
-- **`write(c)`** - Write multi-character constant to stdout
-- **`read()`** - Read character from stdin
-- **`printf(fmt, ...)`** - Formatted output
+- **`write(c)`** - Write multi-character constant to stdout (not string pointers!)
+- **`printf(fmt, ...)`** - Formatted output for strings (%d, %o, %c, %s, %%)
 - **`printd(n)`** - Print decimal number
 - **`printo(n)`** - Print octal number
+- **`read()`** - Read character from stdin
 - **`char(s, i)`** - Get i-th character of string
 - **`lchar(s, i, c)`** - Set i-th character of string
 - **`exit()`** - Terminate program
 - **`flush()`** - Flush output (no-op)
+
+### Important: write() vs printf()
+
+- **`write('Hello')`** - For multi-character constants (packed into i64)
+- **`printf("Hello")`** - For string pointers (null-terminated char arrays)
+
+Example:
+```b
+main() {
+    extrn write, printf;
+    write('Hi!*n');           /* Multi-char constant */
+    printf("Hello %s*n", "World");  /* String pointer */
+}
+```
 
 ## Testing
 

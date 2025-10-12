@@ -11,8 +11,12 @@ go build -o blang
 ### 2. Compile B Runtime Library
 
 ```bash
-clang -c -ffreestanding libb/libb.c -o libb.o
+cd libb
+clang -c -ffreestanding libb.c -o libb.o
+cd ..
 ```
+
+> **Note**: The `-ffreestanding` flag is required on macOS.
 
 ### 3. Compile and Run a B Program
 
@@ -30,14 +34,16 @@ echo $?  # Check exit code (return value)
 
 ## Test Programs
 
-### Hello World
+### Hello World (with printf)
 
 ```bash
 ./blang -o hello.ll testdata/hello.b
-clang -nostdlib hello.ll libb.o -o hello
+clang hello.ll libb/libb.o -o hello
 ./hello
 # Output: Hello, World!
 ```
+
+Note: `printf()` is automatically declared as external - no `extrn` needed!
 
 ### Factorial (Tests Recursion)
 

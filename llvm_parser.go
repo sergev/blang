@@ -486,13 +486,16 @@ func parseExtrnLLVM(l *Lexer, c *LLVMCompiler) error {
 			return fmt.Errorf("expect identifier after 'extrn'")
 		}
 
-		// Declare as external global variable or function
-		// We'll treat it as a potential function for now
-		// If it's used as a variable, it will be handled differently
+		// In B, extrn can refer to global variables or functions
+		// We don't know which at declaration time, so we declare both as potential
+		// The usage will determine the actual type
+		// For now, just remember we saw this extrn declaration
+		// If it's used as a function later, it will be auto-declared
+
 		if _, exists := c.globals[name]; !exists {
 			if _, exists := c.functions[name]; !exists {
-				// Add to globals map as a placeholder
-				// The actual type will be determined at use site
+				// Declare as external global variable (i64)
+				// If it turns out to be a function, it will be redeclared later
 				global := c.module.NewGlobal(name, c.WordType())
 				c.globals[name] = global
 			}

@@ -499,15 +499,19 @@ func parsePostfixLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
 			isLvalue = true
 
 		case '(':
-			// Function call
-			if isLvalue {
-				val = c.builder.NewLoad(c.WordType(), val)
-				isLvalue = false
-			}
+			// Function call - handle both direct and indirect calls
+			var fn value.Value
 
-			// val should be a function or function pointer
-			// For now, we handle it as getting the function by name
-			// This is a simplification - proper implementation would handle function pointers
+			if isLvalue {
+				// It's a function pointer variable (from extrn declaration)
+				// Load the function pointer value for indirect call
+				fn = c.builder.NewLoad(c.WordType(), val)
+				// Convert to function pointer type for indirect call
+				// For now, we'll use inttoptr and call through a cast
+			} else {
+				// Direct function call
+				fn = val
+			}
 
 			var args []value.Value
 			for {
@@ -541,15 +545,21 @@ func parsePostfixLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
 				}
 			}
 
-			// Try to convert val to function
-			// This is a workaround - proper implementation needed
-			if fn, ok := val.(*ir.Func); ok {
-				result := c.builder.NewCall(fn, args...)
-				val = result
-				isLvalue = false
+			// Perform the call
+			var result value.Value
+			if fnDirect, ok := fn.(*ir.Func); ok {
+				// Direct call to known function
+				result = c.builder.NewCall(fnDirect, args...)
 			} else {
-				return nil, false, fmt.Errorf("cannot call non-function value")
+				// Indirect call through function pointer
+				// fn is an i64 value containing the function address
+				// We need to cast it to function pointer type and call
+				// For simplicity, we'll create a generic function type
+				// This is a limitation - proper implementation would need better type tracking
+				return nil, false, fmt.Errorf("indirect function calls through pointers not yet fully supported - use direct function names")
 			}
+			val = result
+			isLvalue = false
 
 		case '+':
 			// Postfix increment
@@ -663,28 +673,45 @@ func parsePrimaryLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
 			return nil, false, err
 		}
 
-		// Try to get address first (for lvalue)
+		// Peek ahead to see if this is a function call
+		if err := l.Whitespace(); err != nil {
+			return nil, false, err
+		}
+		nextCh, err := l.ReadChar()
+		isCall := (err == nil && nextCh == '(')
+		if err == nil {
+			l.UnreadChar(nextCh)
+		}
+
+		// If it's a call, handle both direct and indirect calls
+		if isCall {
+			// Check if it's already a declared function
+			if fn, ok := c.functions[name]; ok {
+				return fn, false, nil
+			}
+
+			// Check if it's an extrn variable (function pointer)
+			if ptr, ok := c.globals[name]; ok {
+				// It's a function pointer variable - return the loaded value
+				// The caller (postfix handler) will do an indirect call
+				return ptr, true, nil // Return as lvalue so it gets loaded
+			}
+
+			// Not found anywhere - auto-declare as external function
+			fn := c.GetOrDeclareFunction(name)
+			if fn == nil {
+				return nil, false, fmt.Errorf("cannot declare function '%s'", name)
+			}
+			return fn, false, nil
+		}
+
+		// Not a call - get the variable address
 		addr, found := c.GetAddress(name)
 		if !found {
-			// Check if it's followed by '(' - if so, it's an external function
-			if err := l.Whitespace(); err != nil {
-				return nil, false, err
-			}
-			ch, err := l.ReadChar()
-			if err == nil {
-				if ch == '(' {
-					// Declare as external function
-					l.UnreadChar(ch)
-					fn := c.GetOrDeclareFunction(name)
-					return fn, false, nil
-				}
-				l.UnreadChar(ch)
-			}
-			// Not a function call - it's an undefined variable
 			return nil, false, fmt.Errorf("undefined identifier '%s'", name)
 		}
 
-		// Check if it's a function
+		// Check if it's a function (shouldn't be called without ())
 		if fn, ok := addr.(*ir.Func); ok {
 			return fn, false, nil
 		}

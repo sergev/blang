@@ -1,4 +1,4 @@
-/* Simple hello world program */
+/* Hello world using multi-character write() */
 
 main() {
     write('Hello, W');

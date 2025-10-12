@@ -99,12 +99,30 @@ func (c *LLVMCompiler) DeclareFunction(name string, paramNames []string) *ir.Fun
 }
 
 // GetOrDeclareFunction gets an existing function or declares it as external
+//
+// B language semantics:
+//   - Undefined identifier used as function: auto-declare as external function
+//   - 'extrn name' then 'name(...)': name is a function pointer variable (indirect call)
+//
+// Examples:
+//
+//	printf("hello");         → auto-declares printf as external function (direct call)
+//	extrn printf; printf(); → printf is a variable holding function pointer (indirect call)
 func (c *LLVMCompiler) GetOrDeclareFunction(name string) *ir.Func {
 	if fn, ok := c.functions[name]; ok {
 		return fn
 	}
 
-	// Declare as variadic external function (like printf)
+	// Check if it was declared as extrn (exists in globals)
+	// If so, DO NOT remove it from globals - it's a function pointer variable
+	// Return nil to signal caller should handle it as indirect call
+	if _, ok := c.globals[name]; ok {
+		// It's an extrn variable (function pointer) - keep it in globals
+		return nil
+	}
+
+	// Not in globals, not in functions → auto-declare as external variadic function
+	// This handles undefined names used as functions (like write(), printf())
 	fn := c.module.NewFunc(name, c.WordType())
 	fn.Sig.Variadic = true
 	c.functions[name] = fn
@@ -188,14 +206,15 @@ func (c *LLVMCompiler) GetAddress(name string) (value.Value, bool) {
 		return val, true
 	}
 
+	// Check functions before globals
+	// This allows extrn-declared names to become functions if called
+	if fn, ok := c.functions[name]; ok {
+		return fn, true
+	}
+
 	// Check globals
 	if val, ok := c.globals[name]; ok {
 		return val, true
-	}
-
-	// Check functions
-	if fn, ok := c.functions[name]; ok {
-		return fn, true
 	}
 
 	return nil, false
