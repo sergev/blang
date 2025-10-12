@@ -11,9 +11,7 @@ go build -o blang
 ### 2. Compile B Runtime Library
 
 ```bash
-cd libb
-clang -c -ffreestanding libb.c -o libb.o
-cd ..
+clang -c -ffreestanding libb/libb.c -o libb.o
 ```
 
 > **Note**: The `-ffreestanding` flag is required on macOS.
@@ -25,7 +23,7 @@ cd ..
 ./blang -o program.ll program.b
 
 # Link with runtime and create executable
-clang -nostdlib program.ll libb.o -o program
+clang program.ll libb.o -o program
 
 # Run
 ./program
@@ -38,7 +36,7 @@ echo $?  # Check exit code (return value)
 
 ```bash
 ./blang -o hello.ll testdata/hello.b
-clang hello.ll libb/libb.o -o hello
+clang hello.ll libb.o -o hello
 ./hello
 # Output: Hello, World!
 ```
@@ -49,7 +47,7 @@ Note: `printf()` is automatically declared as external - no `extrn` needed!
 
 ```bash
 ./blang -o factorial.ll testdata/loops.b
-clang -nostdlib factorial.ll libb.o -o factorial
+clang factorial.ll libb.o -o factorial
 ./factorial
 echo $?
 # Exit code: 120 (which is 5!)
@@ -59,7 +57,7 @@ echo $?
 
 ```bash
 ./blang -o arith.ll testdata/arithmetic.b
-clang -nostdlib arith.ll libb.o -o arith
+clang arith.ll libb.o -o arith
 ./arith
 echo $?
 # Exit code: 50
@@ -69,7 +67,7 @@ echo $?
 
 ```bash
 ./blang -o cond.ll testdata/conditionals.b
-clang -nostdlib cond.ll libb.o -o cond
+clang cond.ll libb.o -o cond
 ./cond
 echo $?
 # Exit code: 35

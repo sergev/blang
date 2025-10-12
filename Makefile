@@ -12,7 +12,7 @@ install: all
 	install -m 555 ${PROG} /usr/local/bin/${PROG}
 
 clean:
-	rm -f ${PROG} *.ll
+	rm -f ${PROG} *.o *.ll
 
 ${PROG}: ${SRC}
 	go build

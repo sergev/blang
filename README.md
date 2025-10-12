@@ -157,13 +157,13 @@ All test programs compile to LLVM IR and execute correctly:
 
 ```bash
 # First time: compile the B runtime library
-cd libb && clang -c -ffreestanding libb.c -o libb.o && cd ..
+clang -c -ffreestanding libb/libb.c -o libb.o
 
 # Compile B program to LLVM IR
 ./blang -o program.ll program.b
 
 # Link and create executable  
-clang program.ll libb/libb.o -o program
+clang program.ll libb.o -o program
 
 # Run
 ./program

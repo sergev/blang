@@ -58,13 +58,13 @@ This allows B programs to call C library functions **without explicit `extrn` de
 
 ```bash
 # First time: compile the B runtime library (do this once)
-cd libb && clang -c -ffreestanding libb.c -o libb.o && cd ..
+clang -c -ffreestanding libb/libb.c -o libb.o
 
 # Compile B program to LLVM IR
 ./blang -o program.ll program.b
 
 # Link with runtime and create executable
-clang program.ll libb/libb.o -o program
+clang program.ll libb.o -o program
 
 # Run
 ./program
@@ -77,7 +77,7 @@ clang program.ll libb/libb.o -o program
 ./blang -o factorial.ll testdata/loops.b
 
 # Link with runtime
-clang factorial.ll libb/libb.o -o factorial
+clang factorial.ll libb.o -o factorial
 
 # Run (calculates 5! = 120)
 ./factorial
