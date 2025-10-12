@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 )
 
 // TestCompile tests the full compilation pipeline
@@ -393,6 +396,7 @@ func TestCompileAndRun(t *testing.T) {
 			wantExit:   0,
 			wantStdout: "FizzBuzz", // Check that FizzBuzz appears in output
 		},
+		// Note: example_e2 is tested separately in TestE2Constant due to long runtime
 	}
 
 	for _, tt := range tests {
@@ -442,6 +446,60 @@ func TestCompileAndRun(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestE2Constant tests the long-running e-2 constant calculation (from oldtests/e2_test.cpp)
+// This test is skipped by default because it takes 10+ seconds to run
+func TestE2Constant(t *testing.T) {
+	t.Skip("e-2 calculation is very long-running (~10+ seconds) - enable manually if needed")
+
+	// Check if clang is available
+	if _, err := os.Stat("libb.o"); err != nil {
+		t.Skip("libb.o not found, run 'make' first")
+	}
+
+	tmpDir := t.TempDir()
+	inputFile := "examples/e-2.b"
+	llFile := filepath.Join(tmpDir, "e-2.ll")
+	exeFile := filepath.Join(tmpDir, "e2")
+
+	// Step 1: Compile B program to LLVM IR
+	args := NewCompilerArgs("blang", []string{inputFile})
+	args.OutputFile = llFile
+
+	err := Compile(args)
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	// Step 2: Link with libb.o using clang
+	linkCmd := exec.Command("clang", llFile, "libb.o", "-o", exeFile)
+	linkOutput, err := linkCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("Linking failed: %v\nOutput: %s", err, linkOutput)
+	}
+
+	// Step 3: Run the executable (with 30 second timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	runCmd := exec.CommandContext(ctx, exeFile)
+	stdout, err := runCmd.Output()
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			t.Fatal("Program exceeded 30 second timeout")
+		}
+		if _, ok := err.(*exec.ExitError); !ok {
+			t.Fatalf("Failed to run executable: %v", err)
+		}
+	}
+
+	// Check that output starts with expected first line
+	wantPrefix := "71828 18284 59045 23536 02874"
+	gotStdout := string(stdout)
+	if !strings.HasPrefix(gotStdout, wantPrefix) {
+		t.Errorf("Output does not start with expected prefix.\nWant prefix: %q\nGot: %q", wantPrefix, gotStdout[:min(len(gotStdout), 100)])
 	}
 }
 

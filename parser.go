@@ -60,6 +60,20 @@ func ParseDeclarationsLLVM(l *Lexer, c *LLVMCompiler) error {
 
 // parseGlobalLLVM parses a global variable
 func parseGlobalLLVM(l *Lexer, c *LLVMCompiler, name string) error {
+	// If this name was already declared as extrn (as external reference),
+	// remove it so we can declare it properly
+	if existing, exists := c.globals[name]; exists {
+		// Remove from globals map
+		delete(c.globals, name)
+		// Remove from module's globals list
+		for i, g := range c.module.Globals {
+			if g == existing {
+				c.module.Globals = append(c.module.Globals[:i], c.module.Globals[i+1:]...)
+				break
+			}
+		}
+	}
+
 	ch, err := l.ReadChar()
 	if err != nil {
 		return err
@@ -93,6 +107,20 @@ func parseGlobalLLVM(l *Lexer, c *LLVMCompiler, name string) error {
 
 // parseVectorLLVM parses a global array
 func parseVectorLLVM(l *Lexer, c *LLVMCompiler, name string) error {
+	// If this name was already declared as extrn (as a scalar global),
+	// remove it so we can declare it as an array
+	if existing, exists := c.globals[name]; exists {
+		// Remove from globals map
+		delete(c.globals, name)
+		// Remove from module's globals list
+		for i, g := range c.module.Globals {
+			if g == existing {
+				c.module.Globals = append(c.module.Globals[:i], c.module.Globals[i+1:]...)
+				break
+			}
+		}
+	}
+
 	var nwords int64 = 0
 
 	if err := l.Whitespace(); err != nil {
@@ -508,16 +536,18 @@ func parseExtrnLLVM(l *Lexer, c *LLVMCompiler) error {
 			return fmt.Errorf("expect identifier after 'extrn'")
 		}
 
-		// In B, extrn can refer to global variables or functions
-		// We don't know which at declaration time, so we declare both as potential
-		// The usage will determine the actual type
-		// For now, just remember we saw this extrn declaration
-		// If it's used as a function later, it will be auto-declared
+		// In B, extrn declares a reference to an external name (variable or function)
+		// We create a forward reference as an external global (uninitialized)
+		// If a definition appears later in the file, it will replace this
+		//
+		// Examples:
+		//   extrn printf;  printf("hello");  → printf will be auto-declared as function
+		//   extrn n; ... n 2000;             → n defined later will replace this
+		//   extrn v; ... v[2000];            → v defined later will replace this
 
 		if _, exists := c.globals[name]; !exists {
 			if _, exists := c.functions[name]; !exists {
-				// Declare as external global variable (i64)
-				// If it turns out to be a function, it will be redeclared later
+				// Declare as external global variable (i64) - may be replaced later
 				global := c.module.NewGlobal(name, c.WordType())
 				c.globals[name] = global
 			}
