@@ -107,6 +107,20 @@ func (c *LLVMCompiler) DeclareGlobalArray(name string, size int64, init []consta
 
 // DeclareFunction declares a function
 func (c *LLVMCompiler) DeclareFunction(name string, paramNames []string) *ir.Func {
+	// Check if function was already auto-declared (as variadic external)
+	if existingFn, ok := c.functions[name]; ok {
+		// Function was already declared (e.g., forward reference)
+		// We need to replace it with the actual definition
+		// Remove the old declaration from the module
+		for i, f := range c.module.Funcs {
+			if f == existingFn {
+				// Remove from module's function list
+				c.module.Funcs = append(c.module.Funcs[:i], c.module.Funcs[i+1:]...)
+				break
+			}
+		}
+	}
+
 	// All B functions take i64 parameters and return i64
 	params := make([]*ir.Param, len(paramNames))
 	for i, pname := range paramNames {
@@ -155,7 +169,7 @@ func (c *LLVMCompiler) StartFunction(fn *ir.Func) {
 	c.locals = make(map[string]value.Value)
 	c.labels = make(map[string]*ir.Block)
 	c.builder = fn.NewBlock("entry")
-	
+
 	// Allocate space for parameters
 	for _, param := range fn.Params {
 		alloca := c.builder.NewAlloca(c.WordType())
@@ -176,9 +190,11 @@ func (c *LLVMCompiler) EndFunction() {
 	c.labels = make(map[string]*ir.Block)
 }
 
-// DeclareLocal allocates a local variable
+// DeclareLocal allocates a local variable and initializes it to 0
 func (c *LLVMCompiler) DeclareLocal(name string) value.Value {
 	alloca := c.builder.NewAlloca(c.WordType())
+	// Initialize local variables to 0 (B language semantics)
+	c.builder.NewStore(constant.NewInt(c.WordType(), 0), alloca)
 	c.locals[name] = alloca
 	return alloca
 }

@@ -559,10 +559,12 @@ func parseIfLLVM(l *Lexer, c *LLVMCompiler) error {
 		return err
 	}
 
-	// Create blocks
-	thenBlock := c.NewBlock("if.then")
-	elseBlock := c.NewBlock("if.else")
-	endBlock := c.NewBlock("if.end")
+	// Create blocks with unique IDs to avoid label conflicts in nested if-else
+	ifID := c.labelID
+	c.labelID++
+	thenBlock := c.NewBlock(fmt.Sprintf("if.%d.then", ifID))
+	elseBlock := c.NewBlock(fmt.Sprintf("if.%d.else", ifID))
+	endBlock := c.NewBlock(fmt.Sprintf("if.%d.end", ifID))
 
 	// Compare condition to zero
 	zero := constant.NewInt(c.WordType(), 0)

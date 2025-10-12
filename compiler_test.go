@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -171,6 +172,110 @@ func hasSubstring(s, substr string) bool {
 	return false
 }
 
+// TestLibbFunctions tests runtime library functions (from oldtests/libb_test.cpp)
+func TestLibbFunctions(t *testing.T) {
+	// Check if clang is available
+	if _, err := os.Stat("libb.o"); err != nil {
+		t.Skip("libb.o not found, run 'make' first")
+	}
+
+	tests := []struct {
+		name       string
+		code       string
+		wantStdout string
+	}{
+		{
+			name: "write",
+			code: `main() {
+				write('Hello,');
+				write(' World');
+				write('!*n');
+			}`,
+			wantStdout: "Hello, World!\n",
+		},
+		{
+			name: "printf_basic",
+			code: `main() {
+				printf("Hello, World!*n");
+			}`,
+			wantStdout: "Hello, World!\n",
+		},
+		{
+			name: "printf_formats",
+			code: `main() {
+				printf("format %%d: %d %d*n", 123, -123);
+				printf("format %%o: %o %o*n", 234, -234);
+			}`,
+			wantStdout: "format %d: 123 -123\nformat %o: 352 -352\n",
+		},
+		{
+			name: "printf_char",
+			code: `main() {
+				printf("format %%c: %c %c*n", 'foo', 'bar');
+			}`,
+			wantStdout: "format %c: foo bar\n",
+		},
+		{
+			name: "char_function",
+			code: `main() {
+				write(char("fubar", 2));
+				write(char("fubar", 4));
+				write(char("fubar", 1));
+				write(char("fubar", 0));
+				write(char("fubar", 3));
+				write('*n');
+			}`,
+			wantStdout: "brufa\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			inputFile := filepath.Join(tmpDir, "test.b")
+			llFile := filepath.Join(tmpDir, "test.ll")
+			exeFile := filepath.Join(tmpDir, "test")
+
+			// Write test code to file
+			err := os.WriteFile(inputFile, []byte(tt.code), 0644)
+			if err != nil {
+				t.Fatalf("Failed to write test file: %v", err)
+			}
+
+			// Step 1: Compile B program to LLVM IR
+			args := NewCompilerArgs("blang", []string{inputFile})
+			args.OutputFile = llFile
+
+			err = Compile(args)
+			if err != nil {
+				t.Fatalf("Compile failed: %v", err)
+			}
+
+			// Step 2: Link with libb.o using clang
+			linkCmd := exec.Command("clang", llFile, "libb.o", "-o", exeFile)
+			linkOutput, err := linkCmd.CombinedOutput()
+			if err != nil {
+				t.Fatalf("Linking failed: %v\nOutput: %s", err, linkOutput)
+			}
+
+			// Step 3: Run the executable
+			runCmd := exec.Command(exeFile)
+			stdout, err := runCmd.Output()
+			if err != nil {
+				if _, ok := err.(*exec.ExitError); !ok {
+					t.Fatalf("Failed to run executable: %v", err)
+				}
+			}
+
+			// Check stdout
+			gotStdout := string(stdout)
+			if gotStdout != tt.wantStdout {
+				t.Errorf("Stdout = %q, want %q", gotStdout, tt.wantStdout)
+			}
+		})
+	}
+}
+
 // TestCompileMultipleFiles tests compiling multiple B files
 func TestCompileMultipleFiles(t *testing.T) {
 	tmpDir := t.TempDir()
@@ -216,6 +321,127 @@ func TestCompileMultipleFiles(t *testing.T) {
 	}
 	if !hasSubstring(outputStr, "@main") {
 		t.Error("Output doesn't contain main function")
+	}
+}
+
+// TestCompileAndRun tests the full pipeline: compile, link, and execute
+func TestCompileAndRun(t *testing.T) {
+	// Check if clang is available
+	if _, err := os.Stat("libb.o"); err != nil {
+		t.Skip("libb.o not found, run 'make' first")
+	}
+
+	tests := []struct {
+		name       string
+		inputFile  string
+		wantExit   int
+		wantStdout string
+	}{
+		// Basic testdata programs
+		{
+			name:       "hello",
+			inputFile:  "testdata/hello.b",
+			wantExit:   0,
+			wantStdout: "Hello, World!",
+		},
+		{
+			name:       "arithmetic",
+			inputFile:  "testdata/arithmetic.b",
+			wantExit:   50,
+			wantStdout: "",
+		},
+		{
+			name:       "loops",
+			inputFile:  "testdata/loops.b",
+			wantExit:   120, // factorial(5) = 120
+			wantStdout: "",
+		},
+		{
+			name:       "switch",
+			inputFile:  "testdata/switch.b",
+			wantExit:   30,
+			wantStdout: "",
+		},
+		{
+			name:       "goto",
+			inputFile:  "testdata/goto.b",
+			wantExit:   42,
+			wantStdout: "",
+		},
+		// Examples directory (from oldtests)
+		{
+			name:       "example_hello_write",
+			inputFile:  "examples/hello.b",
+			wantExit:   0,
+			wantStdout: "Hello, World!\n",
+		},
+		{
+			name:       "example_hello_printf",
+			inputFile:  "examples/helloworld.b",
+			wantExit:   0,
+			wantStdout: "Hello, World!\n",
+		},
+		{
+			name:       "example_fibonacci",
+			inputFile:  "examples/fibonacci.b",
+			wantExit:   0,
+			wantStdout: "55\n",
+		},
+		{
+			name:       "example_fizzbuzz",
+			inputFile:  "examples/fizzbuzz.b",
+			wantExit:   0,
+			wantStdout: "FizzBuzz", // Check that FizzBuzz appears in output
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			llFile := filepath.Join(tmpDir, tt.name+".ll")
+			exeFile := filepath.Join(tmpDir, tt.name)
+
+			// Step 1: Compile B program to LLVM IR
+			args := NewCompilerArgs("blang", []string{tt.inputFile})
+			args.OutputFile = llFile
+
+			err := Compile(args)
+			if err != nil {
+				t.Fatalf("Compile(%s) failed: %v", tt.inputFile, err)
+			}
+
+			// Step 2: Link with libb.o using clang
+			linkCmd := exec.Command("clang", llFile, "libb.o", "-o", exeFile)
+			linkOutput, err := linkCmd.CombinedOutput()
+			if err != nil {
+				t.Fatalf("Linking failed: %v\nOutput: %s", err, linkOutput)
+			}
+
+			// Step 3: Run the executable
+			runCmd := exec.Command(exeFile)
+			stdout, err := runCmd.Output()
+			exitCode := 0
+			if err != nil {
+				if exitErr, ok := err.(*exec.ExitError); ok {
+					exitCode = exitErr.ExitCode()
+				} else {
+					t.Fatalf("Failed to run executable: %v", err)
+				}
+			}
+
+			// Check exit code
+			if exitCode != tt.wantExit {
+				t.Errorf("Exit code = %d, want %d", exitCode, tt.wantExit)
+			}
+
+			// Check stdout if expected
+			if tt.wantStdout != "" {
+				gotStdout := string(stdout)
+				if !hasSubstring(gotStdout, tt.wantStdout) {
+					t.Errorf("Stdout = %q, want substring %q", gotStdout, tt.wantStdout)
+				}
+			}
+		})
 	}
 }
 
