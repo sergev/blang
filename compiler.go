@@ -12,8 +12,8 @@ const (
 	ColorBoldWhite = "\033[1m\033[37m"
 )
 
-// CompilerArgs holds the compiler state
-type CompilerArgs struct {
+// CompileOptions holds the compiler state
+type CompileOptions struct {
 	Arg0       string   // name of the executable
 	OutputFile string   // output file
 	InputFiles []string // input files
@@ -21,9 +21,9 @@ type CompilerArgs struct {
 	SaveTemps  bool     // should temporary files get deleted?
 }
 
-// NewCompilerArgs creates a new CompilerArgs with default values
-func NewCompilerArgs(arg0 string, inputFiles []string) *CompilerArgs {
-	return &CompilerArgs{
+// NewCompilerArgs creates a new CompileOptions with default values
+func NewCompilerArgs(arg0 string, inputFiles []string) *CompileOptions {
+	return &CompileOptions{
 		Arg0:       arg0,
 		OutputFile: "a.ll",
 		InputFiles: inputFiles,
@@ -38,9 +38,9 @@ func Eprintf(arg0 string, format string, args ...interface{}) {
 }
 
 // Compile processes the input files and generates LLVM IR
-func Compile(args *CompilerArgs) error {
-	// Create LLVM compiler
-	llvmCompiler := NewLLVMCompiler(args)
+func Compile(args *CompileOptions) error {
+	// Create the compiler structure
+	compiler := NewCompiler(args)
 
 	// Open every provided `.b` file and generate LLVM IR for it
 	for _, inputFile := range args.InputFiles {
@@ -55,7 +55,7 @@ func Compile(args *CompilerArgs) error {
 		}
 
 		lexer := NewLexer(args, file)
-		err = ParseDeclarationsLLVM(lexer, llvmCompiler)
+		err = ParseDeclarations(lexer, compiler)
 		if err != nil {
 			file.Close()
 			return err
@@ -71,6 +71,6 @@ func Compile(args *CompilerArgs) error {
 	}
 	defer outFile.Close()
 
-	_, err = outFile.WriteString(llvmCompiler.GetModule().String())
+	_, err = outFile.WriteString(compiler.GetModule().String())
 	return err
 }

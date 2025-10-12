@@ -8,13 +8,13 @@ import (
 
 // Lexer handles tokenization and input reading
 type Lexer struct {
-	args   *CompilerArgs
+	args   *CompileOptions
 	reader io.RuneReader
 	buffer []rune // pushback buffer for unread characters
 }
 
 // NewLexer creates a new lexer
-func NewLexer(args *CompilerArgs, reader io.Reader) *Lexer {
+func NewLexer(args *CompileOptions, reader io.Reader) *Lexer {
 	return &Lexer{
 		args:   args,
 		reader: &runeReaderAdapter{reader},

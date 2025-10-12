@@ -10,9 +10,9 @@ import (
 	"github.com/llir/llvm/ir/value"
 )
 
-// LLVMCompiler holds the LLVM compilation state
-type LLVMCompiler struct {
-	args      *CompilerArgs
+// Compiler holds the LLVM compilation state
+type Compiler struct {
+	args      *CompileOptions
 	module    *ir.Module
 	builder   *ir.Block
 	currentFn *ir.Func
@@ -24,9 +24,9 @@ type LLVMCompiler struct {
 	labels    map[string]*ir.Block   // named labels for goto
 }
 
-// NewLLVMCompiler creates a new LLVM compiler
-func NewLLVMCompiler(args *CompilerArgs) *LLVMCompiler {
-	return &LLVMCompiler{
+// NewCompiler creates a new compiler structure
+func NewCompiler(args *CompileOptions) *Compiler {
+	return &Compiler{
 		args:      args,
 		module:    ir.NewModule(),
 		locals:    make(map[string]value.Value),
@@ -37,22 +37,22 @@ func NewLLVMCompiler(args *CompilerArgs) *LLVMCompiler {
 }
 
 // GetModule returns the LLVM module
-func (c *LLVMCompiler) GetModule() *ir.Module {
+func (c *Compiler) GetModule() *ir.Module {
 	return c.module
 }
 
 // WordType returns the B word type (i64)
-func (c *LLVMCompiler) WordType() *types.IntType {
+func (c *Compiler) WordType() *types.IntType {
 	return types.I64
 }
 
 // WordPtrType returns pointer to B word type
-func (c *LLVMCompiler) WordPtrType() *types.PointerType {
+func (c *Compiler) WordPtrType() *types.PointerType {
 	return types.NewPointer(c.WordType())
 }
 
 // DeclareGlobal declares a global variable
-func (c *LLVMCompiler) DeclareGlobal(name string, init constant.Constant) *ir.Global {
+func (c *Compiler) DeclareGlobal(name string, init constant.Constant) *ir.Global {
 	var global *ir.Global
 	if init == nil {
 		// If no initializer, create zero-initialized global
@@ -70,7 +70,7 @@ func (c *LLVMCompiler) DeclareGlobal(name string, init constant.Constant) *ir.Gl
 //   - First word contains address of second word (pointer to data)
 //   - Accessing name gives you the address of the first word
 //   - Accessing name[i] loads the pointer and indexes into it
-func (c *LLVMCompiler) DeclareGlobalArray(name string, size int64, init []constant.Constant) *ir.Global {
+func (c *Compiler) DeclareGlobalArray(name string, size int64, init []constant.Constant) *ir.Global {
 	arraySize := size + 1 // +1 for the pointer storage
 	elemType := c.WordType()
 	arrayType := types.NewArray(uint64(arraySize), elemType)
@@ -110,7 +110,7 @@ func (c *LLVMCompiler) DeclareGlobalArray(name string, size int64, init []consta
 }
 
 // DeclareFunction declares a function
-func (c *LLVMCompiler) DeclareFunction(name string, paramNames []string) *ir.Func {
+func (c *Compiler) DeclareFunction(name string, paramNames []string) *ir.Func {
 	// Check if function was already auto-declared (as variadic external)
 	if existingFn, ok := c.functions[name]; ok {
 		// Function was already declared (e.g., forward reference)
@@ -146,7 +146,7 @@ func (c *LLVMCompiler) DeclareFunction(name string, paramNames []string) *ir.Fun
 //
 //	printf("hello");         → auto-declares printf as external function (direct call)
 //	extrn printf; printf(); → printf is a variable holding function pointer (indirect call)
-func (c *LLVMCompiler) GetOrDeclareFunction(name string) *ir.Func {
+func (c *Compiler) GetOrDeclareFunction(name string) *ir.Func {
 	if fn, ok := c.functions[name]; ok {
 		return fn
 	}
@@ -168,7 +168,7 @@ func (c *LLVMCompiler) GetOrDeclareFunction(name string) *ir.Func {
 }
 
 // StartFunction starts building a function body
-func (c *LLVMCompiler) StartFunction(fn *ir.Func) {
+func (c *Compiler) StartFunction(fn *ir.Func) {
 	c.currentFn = fn
 	c.locals = make(map[string]value.Value)
 	c.labels = make(map[string]*ir.Block)
@@ -183,7 +183,7 @@ func (c *LLVMCompiler) StartFunction(fn *ir.Func) {
 }
 
 // EndFunction finalizes a function
-func (c *LLVMCompiler) EndFunction() {
+func (c *Compiler) EndFunction() {
 	// If the current block doesn't have a terminator, add a default return
 	if c.builder != nil && c.builder.Term == nil {
 		c.builder.NewRet(constant.NewInt(c.WordType(), 0))
@@ -195,7 +195,7 @@ func (c *LLVMCompiler) EndFunction() {
 }
 
 // DeclareLocal allocates a local variable and initializes it to 0
-func (c *LLVMCompiler) DeclareLocal(name string) value.Value {
+func (c *Compiler) DeclareLocal(name string) value.Value {
 	alloca := c.builder.NewAlloca(c.WordType())
 	// Initialize local variables to 0 (B language semantics)
 	c.builder.NewStore(constant.NewInt(c.WordType(), 0), alloca)
@@ -208,7 +208,7 @@ func (c *LLVMCompiler) DeclareLocal(name string) value.Value {
 //   - array[N] allocates N+1 words
 //   - First word contains pointer to second word (where data starts)
 //   - This allows array[-1] to get the original pointer
-func (c *LLVMCompiler) DeclareLocalArray(name string, size int64) value.Value {
+func (c *Compiler) DeclareLocalArray(name string, size int64) value.Value {
 	arraySize := size + 1 // +1 for pointer storage in first element
 	arrayType := types.NewArray(uint64(arraySize), c.WordType())
 	alloca := c.builder.NewAlloca(arrayType)
@@ -232,7 +232,7 @@ func (c *LLVMCompiler) DeclareLocalArray(name string, size int64) value.Value {
 }
 
 // LoadValue loads a value (handles both locals and globals)
-func (c *LLVMCompiler) LoadValue(name string) (value.Value, error) {
+func (c *Compiler) LoadValue(name string) (value.Value, error) {
 	// Check locals first
 	if val, ok := c.locals[name]; ok {
 		return c.builder.NewLoad(c.WordType(), val), nil
@@ -254,7 +254,7 @@ func (c *LLVMCompiler) LoadValue(name string) (value.Value, error) {
 
 // GetAddress gets the address of a variable (for lvalue operations)
 // Returns nil if not found (will be handled as function call)
-func (c *LLVMCompiler) GetAddress(name string) (value.Value, bool) {
+func (c *Compiler) GetAddress(name string) (value.Value, bool) {
 	// Check locals first
 	if val, ok := c.locals[name]; ok {
 		return val, true
@@ -275,7 +275,7 @@ func (c *LLVMCompiler) GetAddress(name string) (value.Value, bool) {
 }
 
 // StoreValue stores a value to a variable
-func (c *LLVMCompiler) StoreValue(name string, val value.Value) error {
+func (c *Compiler) StoreValue(name string, val value.Value) error {
 	addr, found := c.GetAddress(name)
 	if !found {
 		return fmt.Errorf("undefined identifier '%s'", name)
@@ -285,7 +285,7 @@ func (c *LLVMCompiler) StoreValue(name string, val value.Value) error {
 }
 
 // CreateStringConstant creates a global string constant
-func (c *LLVMCompiler) CreateStringConstant(str string) *ir.Global {
+func (c *Compiler) CreateStringConstant(str string) *ir.Global {
 	// Create null-terminated string constant
 	// CharArrayFromString doesn't include null terminator, so we need to add it manually
 	strBytes := []byte(str)
@@ -311,7 +311,7 @@ func (c *LLVMCompiler) CreateStringConstant(str string) *ir.Global {
 }
 
 // NewBlock creates a new basic block
-func (c *LLVMCompiler) NewBlock(name string) *ir.Block {
+func (c *Compiler) NewBlock(name string) *ir.Block {
 	if name == "" {
 		name = fmt.Sprintf("bb%d", c.labelID)
 		c.labelID++
@@ -321,17 +321,17 @@ func (c *LLVMCompiler) NewBlock(name string) *ir.Block {
 }
 
 // SetInsertPoint sets the current insertion point
-func (c *LLVMCompiler) SetInsertPoint(block *ir.Block) {
+func (c *Compiler) SetInsertPoint(block *ir.Block) {
 	c.builder = block
 }
 
 // GetInsertBlock returns the current insertion block
-func (c *LLVMCompiler) GetInsertBlock() *ir.Block {
+func (c *Compiler) GetInsertBlock() *ir.Block {
 	return c.builder
 }
 
 // GetOrCreateLabel gets an existing label block or creates a new one
-func (c *LLVMCompiler) GetOrCreateLabel(name string) *ir.Block {
+func (c *Compiler) GetOrCreateLabel(name string) *ir.Block {
 	if block, ok := c.labels[name]; ok {
 		return block
 	}

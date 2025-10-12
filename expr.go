@@ -12,10 +12,10 @@ import (
 	"github.com/llir/llvm/ir/value"
 )
 
-// parseExpressionLLVMWithLevel parses expressions with precedence level
-func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.Value, error) {
+// parseExpressionWithLevel parses expressions with precedence level
+func parseExpressionWithLevel(l *Lexer, c *Compiler, level int) (value.Value, error) {
 	// Parse left side (term with unary operators)
-	left, isLvalue, err := parseUnaryLLVM(l, c)
+	left, isLvalue, err := parseUnary(l, c)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 
 			// Then branch
 			c.SetInsertPoint(thenBlock)
-			thenVal, err := parseExpressionLLVMWithLevel(l, c, 12)
+			thenVal, err := parseExpressionWithLevel(l, c, 12)
 			if err != nil {
 				return nil, err
 			}
@@ -74,7 +74,7 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 
 			// Else branch
 			c.SetInsertPoint(elseBlock)
-			elseVal, err := parseExpressionLLVMWithLevel(l, c, 13)
+			elseVal, err := parseExpressionWithLevel(l, c, 13)
 			if err != nil {
 				return nil, err
 			}
@@ -97,7 +97,7 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 					isLvalue = false
 				}
 				if level >= 7 {
-					right, err := parseExpressionLLVMWithLevel(l, c, 6)
+					right, err := parseExpressionWithLevel(l, c, 6)
 					if err != nil {
 						return nil, err
 					}
@@ -125,7 +125,7 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 			}
 
 			// Simple assignment
-			right, err := parseExpressionLLVMWithLevel(l, c, 14)
+			right, err := parseExpressionWithLevel(l, c, 14)
 			if err != nil {
 				return nil, err
 			}
@@ -142,7 +142,7 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 				left = c.builder.NewLoad(c.WordType(), left)
 				isLvalue = false
 			}
-			right, err := parseExpressionLLVMWithLevel(l, c, 9)
+			right, err := parseExpressionWithLevel(l, c, 9)
 			if err != nil {
 				return nil, err
 			}
@@ -157,7 +157,7 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 				left = c.builder.NewLoad(c.WordType(), left)
 				isLvalue = false
 			}
-			right, err := parseExpressionLLVMWithLevel(l, c, 7)
+			right, err := parseExpressionWithLevel(l, c, 7)
 			if err != nil {
 				return nil, err
 			}
@@ -176,7 +176,7 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 				left = c.builder.NewLoad(c.WordType(), left)
 				isLvalue = false
 			}
-			right, err := parseExpressionLLVMWithLevel(l, c, 6)
+			right, err := parseExpressionWithLevel(l, c, 6)
 			if err != nil {
 				return nil, err
 			}
@@ -200,7 +200,7 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 				if err2 == nil && ch2 == '<' {
 					// Left shift (level 5)
 					if level >= 5 {
-						right, err = parseExpressionLLVMWithLevel(l, c, 4)
+						right, err = parseExpressionWithLevel(l, c, 4)
 						if err != nil {
 							return nil, err
 						}
@@ -210,7 +210,7 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 					}
 				} else if err2 == nil && ch2 == '=' {
 					// Less than or equal
-					right, err = parseExpressionLLVMWithLevel(l, c, 5)
+					right, err = parseExpressionWithLevel(l, c, 5)
 					if err != nil {
 						return nil, err
 					}
@@ -223,7 +223,7 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 					if err2 == nil {
 						l.UnreadChar(ch2)
 					}
-					right, err = parseExpressionLLVMWithLevel(l, c, 5)
+					right, err = parseExpressionWithLevel(l, c, 5)
 					if err != nil {
 						return nil, err
 					}
@@ -236,7 +236,7 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 				if err2 == nil && ch2 == '>' {
 					// Right shift (level 5)
 					if level >= 5 {
-						right, err = parseExpressionLLVMWithLevel(l, c, 4)
+						right, err = parseExpressionWithLevel(l, c, 4)
 						if err != nil {
 							return nil, err
 						}
@@ -246,7 +246,7 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 					}
 				} else if err2 == nil && ch2 == '=' {
 					// Greater than or equal
-					right, err = parseExpressionLLVMWithLevel(l, c, 5)
+					right, err = parseExpressionWithLevel(l, c, 5)
 					if err != nil {
 						return nil, err
 					}
@@ -259,7 +259,7 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 					if err2 == nil {
 						l.UnreadChar(ch2)
 					}
-					right, err = parseExpressionLLVMWithLevel(l, c, 5)
+					right, err = parseExpressionWithLevel(l, c, 5)
 					if err != nil {
 						return nil, err
 					}
@@ -289,7 +289,7 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 				left = c.builder.NewLoad(c.WordType(), left)
 				isLvalue = false
 			}
-			right, err := parseExpressionLLVMWithLevel(l, c, 3)
+			right, err := parseExpressionWithLevel(l, c, 3)
 			if err != nil {
 				return nil, err
 			}
@@ -312,7 +312,7 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 				left = c.builder.NewLoad(c.WordType(), left)
 				isLvalue = false
 			}
-			right, err := parseExpressionLLVMWithLevel(l, c, 2)
+			right, err := parseExpressionWithLevel(l, c, 2)
 			if err != nil {
 				return nil, err
 			}
@@ -342,8 +342,8 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 	return left, nil
 }
 
-// parseUnaryLLVM parses unary operators and primary expressions
-func parseUnaryLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
+// parseUnary parses unary operators and primary expressions
+func parseUnary(l *Lexer, c *Compiler) (value.Value, bool, error) {
 	if err := l.Whitespace(); err != nil {
 		return nil, false, err
 	}
@@ -359,7 +359,7 @@ func parseUnaryLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
 	switch ch {
 	case '!':
 		// Logical NOT
-		val, isLvalue, err := parseUnaryLLVM(l, c)
+		val, isLvalue, err := parseUnary(l, c)
 		if err != nil {
 			return nil, false, err
 		}
@@ -377,7 +377,7 @@ func parseUnaryLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
 		ch2, err2 := l.ReadChar()
 		if err2 == nil && ch2 == '-' {
 			// Prefix decrement
-			val, isLvalue, err := parseUnaryLLVM(l, c)
+			val, isLvalue, err := parseUnary(l, c)
 			if err != nil {
 				return nil, false, err
 			}
@@ -395,7 +395,7 @@ func parseUnaryLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
 		}
 
 		// Negation
-		val, isLvalue, err := parseUnaryLLVM(l, c)
+		val, isLvalue, err := parseUnary(l, c)
 		if err != nil {
 			return nil, false, err
 		}
@@ -412,7 +412,7 @@ func parseUnaryLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
 		if err2 != nil || ch2 != '+' {
 			return nil, false, fmt.Errorf("unexpected character '%c', expect '+'", ch2)
 		}
-		val, isLvalue, err := parseUnaryLLVM(l, c)
+		val, isLvalue, err := parseUnary(l, c)
 		if err != nil {
 			return nil, false, err
 		}
@@ -427,7 +427,7 @@ func parseUnaryLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
 
 	case '*':
 		// Indirection (dereference)
-		val, isLvalue, err := parseUnaryLLVM(l, c)
+		val, isLvalue, err := parseUnary(l, c)
 		if err != nil {
 			return nil, false, err
 		}
@@ -441,7 +441,7 @@ func parseUnaryLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
 
 	case '&':
 		// Address-of
-		val, isLvalue, err := parseUnaryLLVM(l, c)
+		val, isLvalue, err := parseUnary(l, c)
 		if err != nil {
 			return nil, false, err
 		}
@@ -454,13 +454,13 @@ func parseUnaryLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
 
 	default:
 		l.UnreadChar(ch)
-		return parsePostfixLLVM(l, c)
+		return parsePostfix(l, c)
 	}
 }
 
-// parsePostfixLLVM handles postfix operators and primary expressions
-func parsePostfixLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
-	val, isLvalue, err := parsePrimaryLLVM(l, c)
+// parsePostfix handles postfix operators and primary expressions
+func parsePostfix(l *Lexer, c *Compiler) (value.Value, bool, error) {
+	val, isLvalue, err := parsePrimary(l, c)
 	if err != nil {
 		return nil, false, err
 	}
@@ -492,7 +492,7 @@ func parsePostfixLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
 			ptr := c.builder.NewIntToPtr(val, c.WordPtrType())
 
 			// Parse index
-			index, err := parseExpressionLLVMWithLevel(l, c, 15)
+			index, err := parseExpressionWithLevel(l, c, 15)
 			if err != nil {
 				return nil, false, err
 			}
@@ -532,7 +532,7 @@ func parsePostfixLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
 				}
 				l.UnreadChar(ch)
 
-				arg, err := parseExpressionLLVMWithLevel(l, c, 15)
+				arg, err := parseExpressionWithLevel(l, c, 15)
 				if err != nil {
 					return nil, false, err
 				}
@@ -616,8 +616,8 @@ func parsePostfixLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
 	}
 }
 
-// parsePrimaryLLVM parses primary expressions (literals, identifiers, parentheses)
-func parsePrimaryLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
+// parsePrimary parses primary expressions (literals, identifiers, parentheses)
+func parsePrimary(l *Lexer, c *Compiler) (value.Value, bool, error) {
 	if err := l.Whitespace(); err != nil {
 		return nil, false, err
 	}
@@ -655,7 +655,7 @@ func parsePrimaryLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
 
 	case ch == '(':
 		// Parenthesized expression
-		val, err := parseExpressionLLVMWithLevel(l, c, 15)
+		val, err := parseExpressionWithLevel(l, c, 15)
 		if err != nil {
 			return nil, false, err
 		}

@@ -11,8 +11,8 @@ import (
 	"github.com/llir/llvm/ir/value"
 )
 
-// ParseDeclarationsLLVM parses top-level declarations and generates LLVM IR
-func ParseDeclarationsLLVM(l *Lexer, c *LLVMCompiler) error {
+// ParseDeclarations parses top-level declarations and generates LLVM IR
+func ParseDeclarations(l *Lexer, c *Compiler) error {
 	for {
 		name, err := l.Identifier()
 		if err != nil {
@@ -32,16 +32,16 @@ func ParseDeclarationsLLVM(l *Lexer, c *LLVMCompiler) error {
 
 		switch ch {
 		case '(':
-			if err := parseFunctionLLVM(l, c, name); err != nil {
+			if err := parseFunction(l, c, name); err != nil {
 				return err
 			}
 		case '[':
-			if err := parseVectorLLVM(l, c, name); err != nil {
+			if err := parseVector(l, c, name); err != nil {
 				return err
 			}
 		default:
 			l.UnreadChar(ch)
-			if err := parseGlobalLLVM(l, c, name); err != nil {
+			if err := parseGlobal(l, c, name); err != nil {
 				return err
 			}
 		}
@@ -59,8 +59,8 @@ func ParseDeclarationsLLVM(l *Lexer, c *LLVMCompiler) error {
 	return nil
 }
 
-// parseGlobalLLVM parses a global variable
-func parseGlobalLLVM(l *Lexer, c *LLVMCompiler, name string) error {
+// parseGlobal parses a global variable
+func parseGlobal(l *Lexer, c *Compiler, name string) error {
 	// If this name was already declared as extrn (as external reference),
 	// remove it so we can declare it properly
 	if existing, exists := c.globals[name]; exists {
@@ -83,7 +83,7 @@ func parseGlobalLLVM(l *Lexer, c *LLVMCompiler, name string) error {
 	if ch != ';' {
 		l.UnreadChar(ch)
 		// Parse initialization list
-		init, err := parseIvalConstLLVM(l, c)
+		init, err := parseIvalConst(l, c)
 		if err != nil {
 			return err
 		}
@@ -106,8 +106,8 @@ func parseGlobalLLVM(l *Lexer, c *LLVMCompiler, name string) error {
 	return nil
 }
 
-// parseVectorLLVM parses a global array
-func parseVectorLLVM(l *Lexer, c *LLVMCompiler, name string) error {
+// parseVector parses a global array
+func parseVector(l *Lexer, c *Compiler, name string) error {
 	// If this name was already declared as extrn (as a scalar global),
 	// remove it so we can declare it as an array
 	if existing, exists := c.globals[name]; exists {
@@ -165,7 +165,7 @@ func parseVectorLLVM(l *Lexer, c *LLVMCompiler, name string) error {
 			if err := l.Whitespace(); err != nil {
 				return err
 			}
-			val, err := parseIvalConstLLVM(l, c)
+			val, err := parseIvalConst(l, c)
 			if err != nil {
 				return err
 			}
@@ -195,8 +195,8 @@ func parseVectorLLVM(l *Lexer, c *LLVMCompiler, name string) error {
 	return nil
 }
 
-// parseIvalConstLLVM parses a constant initialization value
-func parseIvalConstLLVM(l *Lexer, c *LLVMCompiler) (constant.Constant, error) {
+// parseIvalConst parses a constant initialization value
+func parseIvalConst(l *Lexer, c *Compiler) (constant.Constant, error) {
 	ch, err := l.ReadChar()
 	if err != nil {
 		return nil, err
@@ -245,8 +245,8 @@ func parseIvalConstLLVM(l *Lexer, c *LLVMCompiler) (constant.Constant, error) {
 	}
 }
 
-// parseFunctionLLVM parses a function definition
-func parseFunctionLLVM(l *Lexer, c *LLVMCompiler, name string) error {
+// parseFunction parses a function definition
+func parseFunction(l *Lexer, c *Compiler, name string) error {
 	ch, err := l.ReadChar()
 	if err != nil {
 		return err
@@ -255,7 +255,7 @@ func parseFunctionLLVM(l *Lexer, c *LLVMCompiler, name string) error {
 	var paramNames []string
 	if ch != ')' {
 		l.UnreadChar(ch)
-		paramNames, err = parseArgumentsLLVM(l)
+		paramNames, err = parseArguments(l)
 		if err != nil {
 			return err
 		}
@@ -264,7 +264,7 @@ func parseFunctionLLVM(l *Lexer, c *LLVMCompiler, name string) error {
 	fn := c.DeclareFunction(name, paramNames)
 	c.StartFunction(fn)
 
-	if err := parseStatementLLVMWithSwitch(l, c, -1, nil); err != nil {
+	if err := parseStatementWithSwitch(l, c, -1, nil); err != nil {
 		return err
 	}
 
@@ -272,8 +272,8 @@ func parseFunctionLLVM(l *Lexer, c *LLVMCompiler, name string) error {
 	return nil
 }
 
-// parseArgumentsLLVM parses function arguments
-func parseArgumentsLLVM(l *Lexer) ([]string, error) {
+// parseArguments parses function arguments
+func parseArguments(l *Lexer) ([]string, error) {
 	var params []string
 
 	for {
@@ -308,14 +308,14 @@ func parseArgumentsLLVM(l *Lexer) ([]string, error) {
 	}
 }
 
-// parseStatementLLVM parses a statement
+// parseStatement parses a statement
 // switchID: ID of enclosing switch statement (-1 if none)
 // cases: slice to accumulate case values for switch
-func parseStatementLLVM(l *Lexer, c *LLVMCompiler) error {
-	return parseStatementLLVMWithSwitch(l, c, -1, nil)
+func parseStatement(l *Lexer, c *Compiler) error {
+	return parseStatementWithSwitch(l, c, -1, nil)
 }
 
-func parseStatementLLVMWithSwitch(l *Lexer, c *LLVMCompiler, switchID int64, cases *[]int64) error {
+func parseStatementWithSwitch(l *Lexer, c *Compiler, switchID int64, cases *[]int64) error {
 	if err := l.Whitespace(); err != nil {
 		return err
 	}
@@ -340,7 +340,7 @@ func parseStatementLLVMWithSwitch(l *Lexer, c *LLVMCompiler, switchID int64, cas
 				break
 			}
 			l.UnreadChar(ch)
-			if err := parseStatementLLVMWithSwitch(l, c, switchID, cases); err != nil {
+			if err := parseStatementWithSwitch(l, c, switchID, cases); err != nil {
 				return err
 			}
 		}
@@ -351,11 +351,11 @@ func parseStatementLLVMWithSwitch(l *Lexer, c *LLVMCompiler, switchID int64, cas
 	default:
 		if unicode.IsLetter(ch) {
 			l.UnreadChar(ch)
-			return parseKeywordOrExpressionLLVMWithSwitch(l, c, switchID, cases)
+			return parseKeywordOrExpressionWithSwitch(l, c, switchID, cases)
 		} else {
 			l.UnreadChar(ch)
 			// Expression statement
-			_, err := parseExpressionLLVM(l, c)
+			_, err := parseExpression(l, c)
 			if err != nil {
 				return err
 			}
@@ -371,12 +371,12 @@ func parseStatementLLVMWithSwitch(l *Lexer, c *LLVMCompiler, switchID int64, cas
 	return nil
 }
 
-// parseKeywordOrExpressionLLVM handles keywords and expressions
-func parseKeywordOrExpressionLLVM(l *Lexer, c *LLVMCompiler) error {
-	return parseKeywordOrExpressionLLVMWithSwitch(l, c, -1, nil)
+// parseKeywordOrExpression handles keywords and expressions
+func parseKeywordOrExpression(l *Lexer, c *Compiler) error {
+	return parseKeywordOrExpressionWithSwitch(l, c, -1, nil)
 }
 
-func parseKeywordOrExpressionLLVMWithSwitch(l *Lexer, c *LLVMCompiler, switchID int64, cases *[]int64) error {
+func parseKeywordOrExpressionWithSwitch(l *Lexer, c *Compiler, switchID int64, cases *[]int64) error {
 	name, err := l.Identifier()
 	if err != nil {
 		return err
@@ -388,21 +388,21 @@ func parseKeywordOrExpressionLLVMWithSwitch(l *Lexer, c *LLVMCompiler, switchID 
 
 	switch name {
 	case "return":
-		return parseReturnLLVM(l, c)
+		return parseReturn(l, c)
 	case "auto":
-		return parseAutoLLVM(l, c)
+		return parseAuto(l, c)
 	case "extrn":
-		return parseExtrnLLVM(l, c)
+		return parseExtrn(l, c)
 	case "if":
-		return parseIfLLVM(l, c)
+		return parseIf(l, c)
 	case "while":
-		return parseWhileLLVM(l, c)
+		return parseWhile(l, c)
 	case "switch":
-		return parseSwitchLLVM(l, c)
+		return parseSwitch(l, c)
 	case "case":
-		return parseCaseLLVM(l, c, switchID, cases)
+		return parseCase(l, c, switchID, cases)
 	case "goto":
-		return parseGotoLLVM(l, c)
+		return parseGoto(l, c)
 	default:
 		// Check if it's a label
 		ch, err := l.ReadChar()
@@ -422,7 +422,7 @@ func parseKeywordOrExpressionLLVMWithSwitch(l *Lexer, c *LLVMCompiler, switchID 
 
 			// Set insertion point to the label block
 			c.SetInsertPoint(block)
-			return parseStatementLLVMWithSwitch(l, c, switchID, cases)
+			return parseStatementWithSwitch(l, c, switchID, cases)
 		}
 
 		// Otherwise it's an expression
@@ -430,7 +430,7 @@ func parseKeywordOrExpressionLLVMWithSwitch(l *Lexer, c *LLVMCompiler, switchID 
 		for i := len(name) - 1; i >= 0; i-- {
 			l.UnreadChar(rune(name[i]))
 		}
-		_, err = parseExpressionLLVM(l, c)
+		_, err = parseExpression(l, c)
 		if err != nil {
 			return err
 		}
@@ -445,8 +445,8 @@ func parseKeywordOrExpressionLLVMWithSwitch(l *Lexer, c *LLVMCompiler, switchID 
 	return nil
 }
 
-// parseReturnLLVM parses a return statement
-func parseReturnLLVM(l *Lexer, c *LLVMCompiler) error {
+// parseReturn parses a return statement
+func parseReturn(l *Lexer, c *Compiler) error {
 	ch, err := l.ReadChar()
 	if err != nil {
 		return err
@@ -456,7 +456,7 @@ func parseReturnLLVM(l *Lexer, c *LLVMCompiler) error {
 		if ch != '(' {
 			return fmt.Errorf("expect '(' or ';' after 'return'")
 		}
-		val, err := parseExpressionLLVM(l, c)
+		val, err := parseExpression(l, c)
 		if err != nil {
 			return err
 		}
@@ -480,8 +480,8 @@ func parseReturnLLVM(l *Lexer, c *LLVMCompiler) error {
 	return nil
 }
 
-// parseAutoLLVM parses auto variable declarations
-func parseAutoLLVM(l *Lexer, c *LLVMCompiler) error {
+// parseAuto parses auto variable declarations
+func parseAuto(l *Lexer, c *Compiler) error {
 	for {
 		name, err := l.Identifier()
 		if err != nil || name == "" {
@@ -534,8 +534,8 @@ func parseAutoLLVM(l *Lexer, c *LLVMCompiler) error {
 	return nil
 }
 
-// parseExtrnLLVM parses external declarations
-func parseExtrnLLVM(l *Lexer, c *LLVMCompiler) error {
+// parseExtrn parses external declarations
+func parseExtrn(l *Lexer, c *Compiler) error {
 	for {
 		name, err := l.Identifier()
 		if err != nil || name == "" {
@@ -578,13 +578,13 @@ func parseExtrnLLVM(l *Lexer, c *LLVMCompiler) error {
 	}
 }
 
-// parseIfLLVM parses if statements
-func parseIfLLVM(l *Lexer, c *LLVMCompiler) error {
+// parseIf parses if statements
+func parseIf(l *Lexer, c *Compiler) error {
 	if err := l.ExpectChar('(', "expect '(' after 'if'"); err != nil {
 		return err
 	}
 
-	cond, err := parseExpressionLLVM(l, c)
+	cond, err := parseExpression(l, c)
 	if err != nil {
 		return err
 	}
@@ -610,7 +610,7 @@ func parseIfLLVM(l *Lexer, c *LLVMCompiler) error {
 
 	// Generate then block
 	c.SetInsertPoint(thenBlock)
-	if err := parseStatementLLVM(l, c); err != nil {
+	if err := parseStatement(l, c); err != nil {
 		return err
 	}
 	if c.builder.Term == nil {
@@ -652,7 +652,7 @@ func parseIfLLVM(l *Lexer, c *LLVMCompiler) error {
 	}
 
 	if isElse {
-		if err := parseStatementLLVM(l, c); err != nil {
+		if err := parseStatement(l, c); err != nil {
 			return err
 		}
 	} else {
@@ -670,8 +670,8 @@ func parseIfLLVM(l *Lexer, c *LLVMCompiler) error {
 	return nil
 }
 
-// parseWhileLLVM parses while loops
-func parseWhileLLVM(l *Lexer, c *LLVMCompiler) error {
+// parseWhile parses while loops
+func parseWhile(l *Lexer, c *Compiler) error {
 	if err := l.ExpectChar('(', "expect '(' after 'while'"); err != nil {
 		return err
 	}
@@ -686,7 +686,7 @@ func parseWhileLLVM(l *Lexer, c *LLVMCompiler) error {
 	c.SetInsertPoint(condBlock)
 
 	// Evaluate condition
-	cond, err := parseExpressionLLVM(l, c)
+	cond, err := parseExpression(l, c)
 	if err != nil {
 		return err
 	}
@@ -705,7 +705,7 @@ func parseWhileLLVM(l *Lexer, c *LLVMCompiler) error {
 
 	// Generate body
 	c.SetInsertPoint(bodyBlock)
-	if err := parseStatementLLVM(l, c); err != nil {
+	if err := parseStatement(l, c); err != nil {
 		return err
 	}
 	if c.builder.Term == nil {
@@ -716,8 +716,8 @@ func parseWhileLLVM(l *Lexer, c *LLVMCompiler) error {
 	return nil
 }
 
-// parseExpressionLLVM parses an expression and returns the result value
+// parseExpression parses an expression and returns the result value
 // This is a wrapper that calls the comprehensive expression parser with full precedence support
-func parseExpressionLLVM(l *Lexer, c *LLVMCompiler) (value.Value, error) {
-	return parseExpressionLLVMWithLevel(l, c, 15)
+func parseExpression(l *Lexer, c *Compiler) (value.Value, error) {
+	return parseExpressionWithLevel(l, c, 15)
 }

@@ -8,8 +8,8 @@ import (
 	"github.com/llir/llvm/ir/constant"
 )
 
-// parseGotoLLVM parses goto statements
-func parseGotoLLVM(l *Lexer, c *LLVMCompiler) error {
+// parseGoto parses goto statements
+func parseGoto(l *Lexer, c *Compiler) error {
 	label, err := l.Identifier()
 	if err != nil || label == "" {
 		return fmt.Errorf("expect label name after 'goto'")
@@ -35,13 +35,13 @@ func parseGotoLLVM(l *Lexer, c *LLVMCompiler) error {
 	return l.ExpectChar(';', "expect ';' after 'goto' statement")
 }
 
-// parseSwitchLLVM parses switch statements
-func parseSwitchLLVM(l *Lexer, c *LLVMCompiler) error {
+// parseSwitch parses switch statements
+func parseSwitch(l *Lexer, c *Compiler) error {
 	switchID := c.labelID
 	c.labelID++
 
 	// Parse the switch expression
-	switchVal, err := parseExpressionLLVM(l, c)
+	switchVal, err := parseExpression(l, c)
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func parseSwitchLLVM(l *Lexer, c *LLVMCompiler) error {
 	// Parse the switch body (contains case statements)
 	c.SetInsertPoint(stmtsBlock)
 	var caseList []int64
-	if err := parseStatementLLVMWithSwitch(l, c, int64(switchID), &caseList); err != nil {
+	if err := parseStatementWithSwitch(l, c, int64(switchID), &caseList); err != nil {
 		return err
 	}
 
@@ -87,8 +87,8 @@ func parseSwitchLLVM(l *Lexer, c *LLVMCompiler) error {
 	return nil
 }
 
-// parseCaseLLVM parses case statements
-func parseCaseLLVM(l *Lexer, c *LLVMCompiler, switchID int64, cases *[]int64) error {
+// parseCase parses case statements
+func parseCase(l *Lexer, c *Compiler, switchID int64, cases *[]int64) error {
 	if switchID < 0 {
 		return fmt.Errorf("unexpected 'case' outside of 'switch' statements")
 	}
@@ -144,5 +144,5 @@ func parseCaseLLVM(l *Lexer, c *LLVMCompiler, switchID int64, cases *[]int64) er
 	c.SetInsertPoint(caseBlock)
 
 	// Parse the statement(s) following the case
-	return parseStatementLLVMWithSwitch(l, c, switchID, cases)
+	return parseStatementWithSwitch(l, c, switchID, cases)
 }
