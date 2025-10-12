@@ -20,7 +20,7 @@ func TestLexerIdentifier(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			args := NewCompilerArgs("test", nil)
+			args := NewCompileOptions("test", nil)
 			lexer := NewLexer(args, strings.NewReader(tt.input))
 
 			got, err := lexer.Identifier()
@@ -49,7 +49,7 @@ func TestLexerNumber(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			args := NewCompilerArgs("test", nil)
+			args := NewCompileOptions("test", nil)
 			lexer := NewLexer(args, strings.NewReader(tt.input))
 
 			got, err := lexer.Number()
@@ -78,7 +78,7 @@ func TestLexerString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			args := NewCompilerArgs("test", nil)
+			args := NewCompileOptions("test", nil)
 			lexer := NewLexer(args, strings.NewReader(tt.input))
 
 			// Skip the opening quote
@@ -109,7 +109,7 @@ func TestLexerCharacter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			args := NewCompilerArgs("test", nil)
+			args := NewCompileOptions("test", nil)
 			lexer := NewLexer(args, strings.NewReader(tt.input))
 
 			// Skip the opening quote
@@ -141,7 +141,7 @@ func TestLexerWhitespace(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			args := NewCompilerArgs("test", nil)
+			args := NewCompileOptions("test", nil)
 			lexer := NewLexer(args, strings.NewReader(tt.input))
 
 			err := lexer.Whitespace()
@@ -173,7 +173,7 @@ func TestLexerComment(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			args := NewCompilerArgs("test", nil)
+			args := NewCompileOptions("test", nil)
 			lexer := NewLexer(args, strings.NewReader(tt.input))
 
 			// Skip the opening /*

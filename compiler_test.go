@@ -17,7 +17,7 @@ func TestCompile(t *testing.T) {
 		inputFile string
 		wantFunc  string // Function name that should exist in output
 	}{
-		{"hello", "testdata/hello.b", "@main"},
+		{"hello", "examples/hello.b", "@main"},
 		{"arithmetic", "testdata/arithmetic.b", "@main"},
 		{"globals", "testdata/globals.b", "@main"},
 		{"conditionals", "testdata/conditionals.b", "@main"},
@@ -35,7 +35,7 @@ func TestCompile(t *testing.T) {
 			outputFile := filepath.Join(t.TempDir(), "output.ll")
 
 			// Compile the input
-			args := NewCompilerArgs("blang", []string{tt.inputFile})
+			args := NewCompileOptions("blang", []string{tt.inputFile})
 			args.OutputFile = outputFile
 
 			err := Compile(args)
@@ -141,7 +141,7 @@ func TestCompileErrors(t *testing.T) {
 			}
 
 			// Try to compile
-			args := NewCompilerArgs("blang", []string{inputFile})
+			args := NewCompileOptions("blang", []string{inputFile})
 			args.OutputFile = outputFile
 
 			err = Compile(args)
@@ -246,7 +246,7 @@ func TestLibbFunctions(t *testing.T) {
 			}
 
 			// Step 1: Compile B program to LLVM IR
-			args := NewCompilerArgs("blang", []string{inputFile})
+			args := NewCompileOptions("blang", []string{inputFile})
 			args.OutputFile = llFile
 
 			err = Compile(args)
@@ -299,7 +299,7 @@ func TestCompileMultipleFiles(t *testing.T) {
 
 	// Compile both files
 	outputFile := filepath.Join(tmpDir, "output.ll")
-	args := NewCompilerArgs("blang", []string{file1, file2})
+	args := NewCompileOptions("blang", []string{file1, file2})
 	args.OutputFile = outputFile
 
 	err = Compile(args)
@@ -340,10 +340,16 @@ func TestCompileAndRun(t *testing.T) {
 		wantExit   int
 		wantStdout string
 	}{
-		// Basic testdata programs
+		// Example programs
 		{
-			name:       "hello",
-			inputFile:  "testdata/hello.b",
+			name:       "hello_write",
+			inputFile:  "examples/hello.b",
+			wantExit:   0,
+			wantStdout: "Hello, World!",
+		},
+		{
+			name:       "hello_printf",
+			inputFile:  "examples/helloworld.b",
 			wantExit:   0,
 			wantStdout: "Hello, World!",
 		},
@@ -371,19 +377,6 @@ func TestCompileAndRun(t *testing.T) {
 			wantExit:   42,
 			wantStdout: "",
 		},
-		// Examples directory (from oldtests)
-		{
-			name:       "example_hello_write",
-			inputFile:  "examples/hello.b",
-			wantExit:   0,
-			wantStdout: "Hello, World!\n",
-		},
-		{
-			name:       "example_hello_printf",
-			inputFile:  "examples/helloworld.b",
-			wantExit:   0,
-			wantStdout: "Hello, World!\n",
-		},
 		{
 			name:       "example_fibonacci",
 			inputFile:  "examples/fibonacci.b",
@@ -406,7 +399,7 @@ func TestCompileAndRun(t *testing.T) {
 			exeFile := filepath.Join(tmpDir, tt.name)
 
 			// Step 1: Compile B program to LLVM IR
-			args := NewCompilerArgs("blang", []string{tt.inputFile})
+			args := NewCompileOptions("blang", []string{tt.inputFile})
 			args.OutputFile = llFile
 
 			err := Compile(args)
@@ -465,7 +458,7 @@ func TestE2Constant(t *testing.T) {
 	exeFile := filepath.Join(tmpDir, "e2")
 
 	// Step 1: Compile B program to LLVM IR
-	args := NewCompilerArgs("blang", []string{inputFile})
+	args := NewCompileOptions("blang", []string{inputFile})
 	args.OutputFile = llFile
 
 	err := Compile(args)
@@ -824,7 +817,7 @@ address = 0, 8, 16
 			}
 
 			// Step 1: Compile B program to LLVM IR
-			args := NewCompilerArgs("blang", []string{inputFile})
+			args := NewCompileOptions("blang", []string{inputFile})
 			args.OutputFile = llFile
 
 			err = Compile(args)
@@ -967,7 +960,7 @@ after n()
 			}
 
 			// Step 1: Compile B program to LLVM IR
-			args := NewCompilerArgs("blang", []string{inputFile})
+			args := NewCompileOptions("blang", []string{inputFile})
 			args.OutputFile = llFile
 
 			err = Compile(args)
@@ -1199,7 +1192,7 @@ func TestCompoundAssignments(t *testing.T) {
 			}
 
 			// Step 1: Compile B program to LLVM IR
-			args := NewCompilerArgs("blang", []string{inputFile})
+			args := NewCompileOptions("blang", []string{inputFile})
 			args.OutputFile = llFile
 
 			err = Compile(args)
@@ -1239,7 +1232,7 @@ func BenchmarkCompile(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		args := NewCompilerArgs("blang", []string{"testdata/arithmetic.b"})
+		args := NewCompileOptions("blang", []string{"testdata/arithmetic.b"})
 		args.OutputFile = outputFile
 		Compile(args)
 	}

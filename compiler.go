@@ -21,8 +21,8 @@ type CompileOptions struct {
 	SaveTemps  bool     // should temporary files get deleted?
 }
 
-// NewCompilerArgs creates a new CompileOptions with default values
-func NewCompilerArgs(arg0 string, inputFiles []string) *CompileOptions {
+// NewCompileOptions creates a new structure with default values
+func NewCompileOptions(arg0 string, inputFiles []string) *CompileOptions {
 	return &CompileOptions{
 		Arg0:       arg0,
 		OutputFile: "a.ll",

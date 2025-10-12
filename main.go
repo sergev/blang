@@ -63,7 +63,7 @@ func main() {
 	}
 
 	// Create compiler args
-	args := NewCompilerArgs("blang", files)
+	args := NewCompileOptions("blang", files)
 	args.SaveTemps = saveTemps
 	if output != "" {
 		args.OutputFile = output
