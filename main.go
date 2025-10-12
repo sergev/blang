@@ -62,15 +62,12 @@ func main() {
 		}
 	}
 
-	// Set default output file
-	if output == "" {
-		output = AAsm
-	}
-
 	// Create compiler args
 	args := NewCompilerArgs("blang", files)
-	args.OutputFile = output
 	args.SaveTemps = saveTemps
+	if output != "" {
+		args.OutputFile = output
+	}
 
 	// Compile
 	if err := Compile(args); err != nil {

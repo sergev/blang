@@ -7,18 +7,10 @@ import (
 )
 
 const (
-	// Output file names
-	AOut = "a.out"
-	AAsm = "a.s"
-	AObj = "a.o"
-
 	// ANSI color codes
 	ColorReset     = "\033[0m"
 	ColorBoldRed   = "\033[1m\033[31m"
 	ColorBoldWhite = "\033[1m\033[37m"
-
-	// x86_64 architecture
-	X8664WordSize = 8
 )
 
 // MaxFnCallArgs is the maximum number of function call arguments supported
@@ -60,9 +52,9 @@ type StackVar struct {
 func NewCompilerArgs(arg0 string, inputFiles []string) *CompilerArgs {
 	return &CompilerArgs{
 		Arg0:       arg0,
-		OutputFile: AAsm,
+		OutputFile: "a.s",
 		InputFiles: inputFiles,
-		WordSize:   X8664WordSize,
+		WordSize:   8, // x86_64 architecture
 		Locals:     NewList(),
 		Extrns:     NewList(),
 		Strings:    NewList(),
