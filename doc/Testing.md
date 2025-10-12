@@ -30,6 +30,38 @@ clang program.ll libb.o -o program
 echo $?  # Check exit code (return value)
 ```
 
+## Test Programs in testdata/
+
+The `testdata/` directory contains various B programs for testing:
+- `hello.b` - Simple hello world using write()
+- `hello_printf.b` - Hello world using printf()
+- `arithmetic.b` - Arithmetic operations and function calls
+- `globals.b` - Global variables and arrays
+- `conditionals.b` - if/else statements
+- `loops.b` - while loops and factorial
+- `strings.b` - String literals and array initialization
+- `operators.b` - Bitwise, comparison, and unary operators
+- `switch.b` - Switch/case statements
+- `goto.b` - goto and labels
+- `pointers.b` - Pointer operations
+- `arrays.b` - Array operations
+
+## Verified Working Programs
+
+All test programs compile to LLVM IR and execute correctly:
+
+| Program | Description | Expected Result |
+|---------|-------------|-----------------|
+| `hello.b` | printf with strings | ✅ Returns 0 |
+| `arithmetic.b` | All arithmetic operators | ✅ Returns 50 |
+| `conditionals.b` | if/else, max, abs functions | ✅ Returns 35 |
+| `loops.b` | While loop, factorial(5) | ✅ Returns 120 |
+| `arrays.b` | Array operations, sum function | ✅ Returns 150 |
+| `pointers.b` | Pointer ops, &, *, indexing | ✅ Returns 30 |
+| `globals.b` | Global variables & arrays | ✅ Returns 60 |
+| `switch.b` | Switch/case statements | ✅ Returns 30 |
+| `goto.b` | goto and labels | ✅ Returns 42 |
+
 ## Test Programs
 
 ### Hello World (with printf)

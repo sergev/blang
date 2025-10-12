@@ -2,7 +2,9 @@
 
 ## Overview
 
-The B compiler now generates LLVM IR instead of x86_64 assembly, providing portability across all LLVM-supported architectures.
+The B compiler generates LLVM IR instead of x86_64 assembly, providing portability across all LLVM-supported architectures.
+
+**Status:** Complete implementation with full B language support
 
 ## Implementation Details
 
@@ -45,6 +47,21 @@ main() {
 ```
 
 This allows B programs to call C library functions **without explicit `extrn` declarations**. No need to write `extrn write, printf;` - the compiler handles it automatically!
+
+### Function Call Semantics
+
+**Direct Function Calls (Recommended):**
+```b
+printf("hello");  /* Undefined function, auto-declared as external ✅ */
+```
+
+**Indirect Function Calls (Pending Implementation):**
+```b
+extrn printf;           /* Declares printf as function pointer variable */
+printf("hello");        /* Should call through pointer - NOT YET SUPPORTED ⏳ */
+```
+
+**Recommendation:** Use direct function calls (no `extrn` for functions) until indirect calls are implemented.
 
 ## Compiling and Linking
 
