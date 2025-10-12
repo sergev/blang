@@ -58,31 +58,60 @@ func TestCompile(t *testing.T) {
 }
 
 // TestCompileErrors tests that invalid B programs are rejected
-// Note: These tests are skipped because the compiler calls os.Exit()
-// on errors rather than returning an error. To properly test error handling,
-// we would need to refactor the error handling or run tests in subprocesses.
 func TestCompileErrors(t *testing.T) {
-	t.Skip("Error handling tests skipped - compiler calls os.Exit() on errors")
-
 	tests := []struct {
-		name    string
-		content string
-		wantErr bool
+		name        string
+		content     string
+		wantErr     bool
+		errContains string
 	}{
 		{
-			name:    "undefined_variable",
-			content: "main() { x = 10; }",
-			wantErr: true,
+			name:        "undefined_variable",
+			content:     "main() { x = 10; }",
+			wantErr:     true,
+			errContains: "undefined identifier",
 		},
 		{
-			name:    "unclosed_comment",
-			content: "/* unclosed comment\nmain() { }",
-			wantErr: true,
+			name:        "unclosed_comment",
+			content:     "/* unclosed comment\nmain() { }",
+			wantErr:     true,
+			errContains: "unclosed comment",
 		},
 		{
-			name:    "missing_semicolon",
-			content: "main() { auto x x = 10; }",
-			wantErr: true,
+			name:        "missing_semicolon",
+			content:     "main() { auto x x = 10; }",
+			wantErr:     true,
+			errContains: "expect",
+		},
+		{
+			name:        "unclosed_char_literal",
+			content:     "main() { auto c; c = 'abcdefghij; }",
+			wantErr:     true,
+			errContains: "unclosed char literal",
+		},
+		{
+			name:        "unterminated_string",
+			content:     `main() { write("hello); }`,
+			wantErr:     true,
+			errContains: "unterminated string",
+		},
+		{
+			name:        "undefined_escape",
+			content:     `main() { write("*x"); }`,
+			wantErr:     true,
+			errContains: "undefined escape character",
+		},
+		{
+			name:        "case_outside_switch",
+			content:     "main() { case 1: return(0); }",
+			wantErr:     true,
+			errContains: "case' outside of 'switch",
+		},
+		{
+			name:        "duplicate_identifier",
+			content:     "main() { auto x, x; }",
+			wantErr:     true,
+			errContains: "already defined",
 		},
 	}
 
@@ -106,8 +135,31 @@ func TestCompileErrors(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Compile() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
+			// Check error message contains expected substring
+			if tt.wantErr && err != nil && tt.errContains != "" {
+				errMsg := err.Error()
+				if !contains(errMsg, tt.errContains) {
+					t.Errorf("Expected error containing %q, got %q", tt.errContains, errMsg)
+				}
+			}
 		})
 	}
+}
+
+// contains checks if a string contains a substring (case-insensitive)
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) &&
+		(hasSubstring(s, substr)))
+}
+
+func hasSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }
 
 // TestCompileMultipleFiles tests compiling multiple B files

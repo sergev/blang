@@ -48,9 +48,10 @@ The compiler supports the full B language including:
 
 The project includes comprehensive unit tests covering:
 - **Compilation tests**: Full end-to-end compilation of various B programs
+- **Error handling tests**: 8 different error scenarios (undefined variables, unclosed comments, etc.)
 - **Lexer tests**: Tokenization, identifiers, numbers, strings, characters, comments
 - **List tests**: Dynamic list data structure operations
-- **Code coverage**: 56.3% of statements
+- **Code coverage**: 59.8% of statements
 
 Run all tests:
 ```bash

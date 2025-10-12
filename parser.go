@@ -7,6 +7,11 @@ import (
 	"unicode"
 )
 
+// errorf creates a formatted error
+func errorf(format string, args ...interface{}) error {
+	return fmt.Errorf(format, args...)
+}
+
 // ParseDeclarations parses top-level declarations
 func ParseDeclarations(l *Lexer) ([]byte, error) {
 	var out bytes.Buffer
@@ -25,7 +30,7 @@ func ParseDeclarations(l *Lexer) ([]byte, error) {
 		c, err := l.ReadChar()
 		if err != nil {
 			if err == io.EOF {
-				l.ExitWithError("unexpected end of file after declaration\n")
+				return nil, errorf("unexpected end of file after declaration")
 			}
 			return nil, err
 		}
@@ -51,7 +56,7 @@ func ParseDeclarations(l *Lexer) ([]byte, error) {
 	_, err := l.ReadChar()
 	if err != io.EOF {
 		if err == nil {
-			l.ExitWithError("expect identifier at top level\n")
+			return nil, errorf("expect identifier at top level")
 		}
 		return nil, err
 	}
@@ -98,7 +103,7 @@ func parseGlobal(l *Lexer, out *bytes.Buffer, name string) error {
 				break
 			}
 			if c != ',' {
-				l.ExitWithError("expect ';' at end of declaration\n")
+				return errorf("expect ';' at end of declaration")
 			}
 		}
 	} else {
@@ -125,7 +130,7 @@ func parseVector(l *Lexer, out *bytes.Buffer, name string) error {
 		l.UnreadChar(c)
 		nwords, err = l.Number()
 		if err != nil {
-			l.ExitWithError("unexpected end of file, expect vector size after '['\n")
+			return errorf("unexpected end of file, expect vector size after '['")
 		}
 
 		if err := l.Whitespace(); err != nil {
@@ -176,7 +181,7 @@ func parseVector(l *Lexer, out *bytes.Buffer, name string) error {
 				break
 			}
 			if c != ',' {
-				l.ExitWithError("expect ';' at end of declaration\n")
+				return errorf("expect ';' at end of declaration")
 			}
 		}
 	}
@@ -199,13 +204,13 @@ func parseIval(l *Lexer, out *bytes.Buffer) error {
 		l.UnreadChar(c)
 		name, err := l.Identifier()
 		if err != nil || name == "" {
-			l.ExitWithError("unexpected end of file, expect ival\n")
+			return errorf("unexpected end of file, expect ival")
 		}
 		fmt.Fprintf(out, "  .quad %s\n", name)
 	} else if c == '\'' {
 		value, err := l.Character()
 		if err != nil {
-			l.ExitWithError("unexpected end of file, expect ival\n")
+			return errorf("unexpected end of file, expect ival")
 		}
 		fmt.Fprintf(out, "  .quad %d\n", value)
 	} else if c == '"' {
@@ -218,14 +223,14 @@ func parseIval(l *Lexer, out *bytes.Buffer) error {
 	} else if c == '-' {
 		value, err := l.Number()
 		if err != nil {
-			l.ExitWithError("unexpected end of file, expect ival\n")
+			return errorf("unexpected end of file, expect ival")
 		}
 		fmt.Fprintf(out, "  .quad -%d\n", value)
 	} else {
 		l.UnreadChar(c)
 		value, err := l.Number()
 		if err != nil {
-			l.ExitWithError("unexpected end of file, expect ival\n")
+			return errorf("unexpected end of file, expect ival")
 		}
 		fmt.Fprintf(out, "  .quad %d\n", value)
 	}
@@ -294,7 +299,7 @@ func parseArguments(l *Lexer, out *bytes.Buffer) error {
 
 		name, err := l.Identifier()
 		if err != nil || name == "" {
-			l.ExitWithError("expect ')' or identifier after function arguments\n")
+			return errorf("expect ')' or identifier after function arguments")
 		}
 
 		fmt.Fprintf(out, "  sub $%d, %%rsp\n  mov %s, -%d(%%rbp)\n",
@@ -319,7 +324,7 @@ func parseArguments(l *Lexer, out *bytes.Buffer) error {
 		case ',':
 			continue
 		default:
-			l.ExitWithError("unexpected character '%c', expect ')' or ','\n", c)
+			return errorf("unexpected character '%c', expect ')' or ','\n", c)
 		}
 	}
 }
@@ -449,7 +454,7 @@ func parseKeywordOrExpression(l *Lexer, out *bytes.Buffer, fnIdent string, switc
 func parseGoto(l *Lexer, out *bytes.Buffer, fnIdent string) error {
 	label, err := l.Identifier()
 	if err != nil || label == "" {
-		l.ExitWithError("expect label name after 'goto'\n")
+		return errorf("expect label name after 'goto'")
 	}
 	fmt.Fprintf(out, "  jmp .L.label.%s.%s\n", label, fnIdent)
 	if err := l.Whitespace(); err != nil {
@@ -466,7 +471,7 @@ func parseReturn(l *Lexer, out *bytes.Buffer, fnIdent string) error {
 
 	if c != ';' {
 		if c != '(' {
-			l.ExitWithError("expect '(' or ';' after 'return'\n")
+			return errorf("expect '(' or ';' after 'return'")
 		}
 		if err := parseExpression(l, out, 15); err != nil {
 			return err
@@ -619,7 +624,7 @@ func parseSwitch(l *Lexer, out *bytes.Buffer, fnIdent string) error {
 
 func parseCase(l *Lexer, out *bytes.Buffer, fnIdent string, switchID int64, cases *List) error {
 	if switchID < 0 {
-		l.ExitWithError("unexpected 'case' outside of 'switch' statements\n")
+		return errorf("unexpected 'case' outside of 'switch' statements")
 	}
 
 	var value int64
@@ -642,7 +647,7 @@ func parseCase(l *Lexer, out *bytes.Buffer, fnIdent string, switchID int64, case
 				return err
 			}
 		} else {
-			l.ExitWithError("unexpected character '%c', expect constant after 'case'\n", c)
+			return errorf("unexpected character '%c', expect constant after 'case'\n", c)
 		}
 	}
 
@@ -662,12 +667,12 @@ func parseExtrn(l *Lexer, out *bytes.Buffer) error {
 	for {
 		name, err := l.Identifier()
 		if err != nil || name == "" {
-			l.ExitWithError("expect identifier after 'extrn'\n")
+			return errorf("expect identifier after 'extrn'")
 		}
 
 		_, _, found := l.args.FindIdentifier(name)
 		if found {
-			l.ExitWithError("identifier '%s' is already defined in this scope\n", name)
+			return errorf("identifier '%s' is already defined in this scope\n", name)
 		}
 
 		l.args.Extrns.Push(name)
@@ -685,7 +690,7 @@ func parseExtrn(l *Lexer, out *bytes.Buffer) error {
 			return nil
 		}
 		if c != ',' {
-			l.ExitWithError("unexpected character '%c', expect ';' or ','\n", c)
+			return errorf("unexpected character '%c', expect ';' or ','\n", c)
 		}
 	}
 }
@@ -694,12 +699,12 @@ func parseAuto(l *Lexer, out *bytes.Buffer) error {
 	for {
 		name, err := l.Identifier()
 		if err != nil || name == "" {
-			l.ExitWithError("expect identifier after 'auto'\n")
+			return errorf("expect identifier after 'auto'")
 		}
 
 		_, _, found := l.args.FindIdentifier(name)
 		if found {
-			l.ExitWithError("identifier '%s' is already defined in this scope\n", name)
+			return errorf("identifier '%s' is already defined in this scope\n", name)
 		}
 
 		if err := l.Whitespace(); err != nil {
@@ -777,7 +782,7 @@ func parseAuto(l *Lexer, out *bytes.Buffer) error {
 			break
 		}
 		if c != ',' {
-			l.ExitWithError("unexpected character '%c', expect ';' or ','\n", c)
+			return errorf("unexpected character '%c', expect ';' or ','\n", c)
 		}
 	}
 

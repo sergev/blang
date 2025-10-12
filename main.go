@@ -71,6 +71,7 @@ func main() {
 
 	// Compile
 	if err := Compile(args); err != nil {
+		Eprintf("blang", "%s\n", err)
 		os.Exit(1)
 	}
 }

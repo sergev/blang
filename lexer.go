@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"os"
 	"unicode"
 )
 
@@ -64,8 +63,7 @@ func (l *Lexer) Comment() error {
 		c, err := l.ReadChar()
 		if err != nil {
 			if err == io.EOF {
-				Eprintf(l.args.Arg0, "unclosed comment, expect '*/' to close the comment\n")
-				return fmt.Errorf("unclosed comment")
+				return fmt.Errorf("unclosed comment, expect '*/' to close the comment")
 			}
 			return err
 		}
@@ -208,8 +206,7 @@ func (l *Lexer) Escape() (rune, error) {
 	case 'r':
 		return '\r', nil
 	default:
-		Eprintf(l.args.Arg0, "undefined escape character '*%c'\n", c)
-		return 0, fmt.Errorf("undefined escape character")
+		return 0, fmt.Errorf("undefined escape character '*%c'", c)
 	}
 }
 
@@ -240,7 +237,6 @@ func (l *Lexer) Character() (int64, error) {
 
 	c, err := l.ReadChar()
 	if err != nil || c != '\'' {
-		Eprintf(l.args.Arg0, "unclosed char literal\n")
 		return 0, fmt.Errorf("unclosed char literal")
 	}
 
@@ -255,7 +251,6 @@ func (l *Lexer) String() (string, error) {
 		c, err := l.ReadChar()
 		if err != nil {
 			if err == io.EOF {
-				Eprintf(l.args.Arg0, "unterminated string literal\n")
 				return "", fmt.Errorf("unterminated string literal")
 			}
 			return "", err
@@ -291,15 +286,13 @@ func (l *Lexer) ExpectChar(expected rune, msg string) error {
 	c, err := l.ReadChar()
 	if err != nil {
 		if err == io.EOF {
-			Eprintf(l.args.Arg0, "%s\n", msg)
-			return fmt.Errorf("unexpected EOF")
+			return fmt.Errorf("%s", msg)
 		}
 		return err
 	}
 
 	if c != expected {
-		Eprintf(l.args.Arg0, "%s, got '%c'\n", msg, c)
-		return fmt.Errorf("unexpected character")
+		return fmt.Errorf("%s, got '%c'", msg, c)
 	}
 
 	return nil
@@ -315,10 +308,4 @@ func (l *Lexer) IsEOF() bool {
 		l.UnreadChar(c)
 	}
 	return false
-}
-
-// ExitWithError prints error and exits
-func (l *Lexer) ExitWithError(format string, args ...interface{}) {
-	Eprintf(l.args.Arg0, format, args...)
-	os.Exit(1)
 }

@@ -48,7 +48,7 @@ func parseExpression(l *Lexer, out *bytes.Buffer, level int) error {
 			}
 			c2, err := l.ReadChar()
 			if err != nil || c2 != ':' {
-				l.ExitWithError("unexpected character, expect ':' between conditional branches\n")
+				return errorf("unexpected character, expect ':' between conditional branches")
 			}
 			fmt.Fprintf(out, "  jmp .L.cond.end.%d\n.L.cond.else.%d:\n", condID, condID)
 			if err := parseExpression(l, out, 13); err != nil {
@@ -219,7 +219,7 @@ func parseExpression(l *Lexer, out *bytes.Buffer, level int) error {
 		if level >= 7 && c == '!' && !handled {
 			c2, err := l.ReadChar()
 			if err != nil || c2 != '=' {
-				l.ExitWithError("unknown operator '!%c'\n", c2)
+				return errorf("unknown operator '!%c'\n", c2)
 			}
 			if leftIsLvalue {
 				fmt.Fprintf(out, "  mov (%%rax), %%rax\n")
@@ -284,7 +284,7 @@ func parseExpression(l *Lexer, out *bytes.Buffer, level int) error {
 			if level >= 14 && !handled {
 				// Assignment operator
 				if !leftIsLvalue {
-					l.ExitWithError("left operand of assignment has to be an lvalue\n")
+					return errorf("left operand of assignment has to be an lvalue")
 				}
 				fmt.Fprintf(out, "  push %%rax\n  mov (%%rax), %%rax\n")
 				if err := assignExpr(l, out, c2, 14); err != nil {
@@ -320,7 +320,7 @@ func parseTerm(l *Lexer, out *bytes.Buffer) (bool, error) {
 	c, err := l.ReadChar()
 	if err != nil {
 		if err == io.EOF {
-			l.ExitWithError("unexpected end of file, expect expression\n")
+			return false, errorf("unexpected end of file, expect expression")
 		}
 		return false, err
 	}
@@ -383,7 +383,7 @@ func parseTerm(l *Lexer, out *bytes.Buffer) (bool, error) {
 				return false, err
 			}
 			if !lval {
-				l.ExitWithError("expected lvalue after '--'\n")
+				return false, errorf("expected lvalue after '--'")
 			}
 			fmt.Fprintf(out, "  mov (%%rax), %%rdi\n  sub $1, %%rdi\n  mov %%rdi, (%%rax)\n")
 			isLvalue = true
@@ -406,14 +406,14 @@ func parseTerm(l *Lexer, out *bytes.Buffer) (bool, error) {
 		// Prefix increment
 		c2, err := l.ReadChar()
 		if err != nil || c2 != '+' {
-			l.ExitWithError("unexpected character '%c', expect '+'\n", c2)
+			return false, errorf("unexpected character '%c', expect '+'\n", c2)
 		}
 		lval, err := parseTerm(l, out)
 		if err != nil {
 			return false, err
 		}
 		if !lval {
-			l.ExitWithError("expected lvalue after '++'\n")
+			return false, errorf("expected lvalue after '++'")
 		}
 		fmt.Fprintf(out, "  mov (%%rax), %%rdi\n  add $1, %%rdi\n  mov %%rdi, (%%rax)\n")
 		isLvalue = true
@@ -436,7 +436,7 @@ func parseTerm(l *Lexer, out *bytes.Buffer) (bool, error) {
 			return false, err
 		}
 		if !lval {
-			l.ExitWithError("expected lvalue after '&'\n")
+			return false, errorf("expected lvalue after '&'")
 		}
 
 	case unicode.IsDigit(c):
@@ -474,7 +474,7 @@ func parseTerm(l *Lexer, out *bytes.Buffer) (bool, error) {
 				l.args.Extrns.Push(name)
 				isExtrn = true
 			} else {
-				l.ExitWithError("undefined identifier '%s'\n", name)
+				return false, errorf("undefined identifier '%s'\n", name)
 			}
 		}
 
@@ -491,7 +491,7 @@ func parseTerm(l *Lexer, out *bytes.Buffer) (bool, error) {
 		}
 
 	default:
-		l.ExitWithError("unexpected character '%c', expect expression\n", c)
+		return false, errorf("unexpected character '%c', expect expression\n", c)
 	}
 
 	return isLvalue, nil
@@ -543,7 +543,7 @@ func parsePostfix(l *Lexer, out *bytes.Buffer, isLvalue bool) (bool, error) {
 
 				numArgs++
 				if numArgs > MaxFnCallArgs {
-					l.ExitWithError("only %d call arguments are currently supported\n", MaxFnCallArgs)
+					return false, errorf("only %d call arguments are currently supported\n", MaxFnCallArgs)
 				}
 				fmt.Fprintf(out, "  push %%rax\n")
 
@@ -559,7 +559,7 @@ func parsePostfix(l *Lexer, out *bytes.Buffer, isLvalue bool) (bool, error) {
 					break
 				}
 				if c != ',' {
-					l.ExitWithError("unexpected character '%c', expect closing ')' after call expression\n", c)
+					return false, errorf("unexpected character '%c', expect closing ')' after call expression\n", c)
 				}
 			}
 
@@ -682,14 +682,14 @@ func assignExpr(l *Lexer, out *bytes.Buffer, c rune, level int) error {
 	case '!':
 		c2, err := l.ReadChar()
 		if err != nil || c2 != '=' {
-			l.ExitWithError("unknown operator '!%c'\n", c2)
+			return errorf("unknown operator '!%c'\n", c2)
 		}
 		return cmpExpr(l, out, CmpNE, level)
 
 	case '=':
 		c2, err := l.ReadChar()
 		if err != nil || c2 != '=' {
-			l.ExitWithError("unknown operator '=%c'\n", c2)
+			return errorf("unknown operator '=%c'\n", c2)
 		}
 		return cmpExpr(l, out, CmpEQ, level)
 
