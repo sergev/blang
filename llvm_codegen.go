@@ -176,34 +176,36 @@ func (c *LLVMCompiler) LoadValue(name string) (value.Value, error) {
 		return fn, nil
 	}
 
+	// Not found - will be declared later if it's a function call
 	return nil, fmt.Errorf("undefined identifier '%s'", name)
 }
 
 // GetAddress gets the address of a variable (for lvalue operations)
-func (c *LLVMCompiler) GetAddress(name string) (value.Value, error) {
+// Returns nil if not found (will be handled as function call)
+func (c *LLVMCompiler) GetAddress(name string) (value.Value, bool) {
 	// Check locals first
 	if val, ok := c.locals[name]; ok {
-		return val, nil
+		return val, true
 	}
 
 	// Check globals
 	if val, ok := c.globals[name]; ok {
-		return val, nil
+		return val, true
 	}
 
 	// Check functions
 	if fn, ok := c.functions[name]; ok {
-		return fn, nil
+		return fn, true
 	}
 
-	return nil, fmt.Errorf("undefined identifier '%s'", name)
+	return nil, false
 }
 
 // StoreValue stores a value to a variable
 func (c *LLVMCompiler) StoreValue(name string, val value.Value) error {
-	addr, err := c.GetAddress(name)
-	if err != nil {
-		return err
+	addr, found := c.GetAddress(name)
+	if !found {
+		return fmt.Errorf("undefined identifier '%s'", name)
 	}
 	c.builder.NewStore(val, addr)
 	return nil

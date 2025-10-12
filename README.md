@@ -93,11 +93,60 @@ Try the example programs:
 
 ## Current Status
 
-✅ **LLVM IR Backend** - Complete  
-✅ **Basic Compilation** - Working (functions, variables, return statements)  
-✅ **String Literals** - Working  
-✅ **Function Calls** - Working  
-⚠️ **Full Expression Support** - In Progress (assignments working, operators pending)  
-⚠️ **Control Flow** - In Progress (if/while implemented, switch/goto pending)  
-⚠️ **Arrays** - Partial (global arrays declared, indexing pending)  
+✅ **LLVM IR Backend** - Complete
+✅ **Expression Parser with Full Operator Precedence** - Complete (15 levels)
+✅ **Operators** - Fully Implemented
+  - Arithmetic: `+`, `-`, `*`, `/`, `%`
+  - Comparison: `<`, `<=`, `>`, `>=`, `==`, `!=`
+  - Bitwise: `&`, `|`, `<<`, `>>`
+  - Logical: `!`
+  - Unary: `-`, `&` (address-of), `*` (dereference)
+  - Increment/Decrement: `++`, `--` (prefix and postfix)
+  - Assignment: `=`
+  - Ternary: `? :`
+✅ **Control Flow** - Complete
+  - if/else statements
+  - while loops
+  - Recursive function calls
+  - Labels (for goto targets)
+✅ **Functions** - Complete
+  - Declarations and definitions
+  - Function calls with parameters
+  - Return values
+  - Automatic external function declaration
+✅ **Variables** - Complete (local `auto`, global, `extrn`)
+✅ **String Literals** - Complete
+✅ **Array Indexing** - Working (access elements with `array[i]`)
+⏳ **Compound Assignment** - Pending (`=+`, `=-`, etc. - use `x = x + 5` instead)
+⏳ **Switch/Case** - Pending
+⏳ **Goto** - Pending
 ⏳ **Unit Tests** - Temporarily disabled during migration
+
+### Verified Working Programs:
+
+All test programs compile to LLVM IR and produce correct results:
+
+| Program | Description | Result |
+|---------|-------------|--------|
+| `hello.b` | External function calls, strings | ✅ Compiles & links |
+| `arithmetic.b` | All arithmetic operators | ✅ Returns 50 |
+| `conditionals.b` | if/else, max, abs functions | ✅ Returns 35 |
+| `loops.b` | While loop, factorial(5) | ✅ Returns 120 |
+
+### Linking with Runtime Library
+
+```bash
+# Compile B program to LLVM IR
+./blang -o program.ll program.b
+
+# Compile B runtime library
+clang -c -ffreestanding libb/libb.c -o libb/libb.o
+
+# Link and create executable
+clang program.ll libb/libb.o -o program
+
+# Run
+./program
+```
+
+The B runtime library (`libb/libb.c`) provides standard B functions like `write()`, `read()`, `printf()`, etc.

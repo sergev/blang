@@ -7,7 +7,6 @@ import (
 
 	"github.com/llir/llvm/ir/constant"
 	"github.com/llir/llvm/ir/enum"
-	"github.com/llir/llvm/ir/types"
 	"github.com/llir/llvm/ir/value"
 )
 
@@ -487,8 +486,17 @@ func parseExtrnLLVM(l *Lexer, c *LLVMCompiler) error {
 			return fmt.Errorf("expect identifier after 'extrn'")
 		}
 
-		// Just ensure the external is declared
-		c.GetOrDeclareFunction(name)
+		// Declare as external global variable or function
+		// We'll treat it as a potential function for now
+		// If it's used as a variable, it will be handled differently
+		if _, exists := c.globals[name]; !exists {
+			if _, exists := c.functions[name]; !exists {
+				// Add to globals map as a placeholder
+				// The actual type will be determined at use site
+				global := c.module.NewGlobal(name, c.WordType())
+				c.globals[name] = global
+			}
+		}
 
 		if err := l.Whitespace(); err != nil {
 			return err
@@ -645,227 +653,7 @@ func parseWhileLLVM(l *Lexer, c *LLVMCompiler) error {
 }
 
 // parseExpressionLLVM parses an expression and returns the result value
+// This is a wrapper that calls the comprehensive expression parser with full precedence support
 func parseExpressionLLVM(l *Lexer, c *LLVMCompiler) (value.Value, error) {
-	return parseAssignmentLLVM(l, c)
-}
-
-// parseAssignmentLLVM handles assignment expressions
-func parseAssignmentLLVM(l *Lexer, c *LLVMCompiler) (value.Value, error) {
-	// Try to parse the left side
-	left, varName, err := parseAssignableLLVM(l, c)
-	if err != nil {
-		return nil, err
-	}
-
-	// Check for assignment operator
-	if err := l.Whitespace(); err != nil {
-		return nil, err
-	}
-
-	ch, err := l.ReadChar()
-	if err == nil && ch == '=' {
-		// This is an assignment
-		ch2, err2 := l.ReadChar()
-		if err2 == nil && ch2 == '=' {
-			// It's == comparison, not assignment
-			l.UnreadChar(ch2)
-			l.UnreadChar(ch)
-			return left, nil
-		}
-		if err2 == nil {
-			l.UnreadChar(ch2)
-		}
-
-		// Parse the right side
-		right, err := parseAssignmentLLVM(l, c)
-		if err != nil {
-			return nil, err
-		}
-
-		// Store the value
-		if varName != "" {
-			addr, err := c.GetAddress(varName)
-			if err != nil {
-				return nil, err
-			}
-			c.builder.NewStore(right, addr)
-			return right, nil
-		}
-		return nil, fmt.Errorf("invalid assignment target")
-	}
-
-	if err == nil {
-		l.UnreadChar(ch)
-	}
-	return left, nil
-}
-
-// parseAssignableLLVM parses an expression that can be assigned to
-func parseAssignableLLVM(l *Lexer, c *LLVMCompiler) (value.Value, string, error) {
-	// For now, just handle simple variable references
-	if err := l.Whitespace(); err != nil {
-		return nil, "", err
-	}
-
-	ch, err := l.ReadChar()
-	if err != nil {
-		return nil, "", err
-	}
-
-	if unicode.IsLetter(ch) {
-		l.UnreadChar(ch)
-		name, err := l.Identifier()
-		if err != nil {
-			return nil, "", err
-		}
-
-		// Check for function call
-		if err := l.Whitespace(); err != nil {
-			return nil, "", err
-		}
-		ch, err := l.ReadChar()
-		if err == nil && ch == '(' {
-			// Function call
-			val, err := parseFunctionCallLLVM(l, c, name)
-			return val, "", err
-		}
-		if err == nil {
-			l.UnreadChar(ch)
-		}
-
-		// Variable - load it
-		val, err := c.LoadValue(name)
-		return val, name, err
-	}
-
-	// Not an identifier, try other expressions
-	l.UnreadChar(ch)
-	val, err := parseTermLLVM(l, c)
-	return val, "", err
-}
-
-// parseTermLLVM parses a term (primary expression)
-func parseTermLLVM(l *Lexer, c *LLVMCompiler) (value.Value, error) {
-	if err := l.Whitespace(); err != nil {
-		return nil, err
-	}
-
-	ch, err := l.ReadChar()
-	if err != nil {
-		if err == io.EOF {
-			return nil, fmt.Errorf("unexpected end of file, expect expression")
-		}
-		return nil, err
-	}
-
-	switch {
-	case ch == '\'':
-		// Character literal
-		val, err := l.Character()
-		if err != nil {
-			return nil, err
-		}
-		return constant.NewInt(c.WordType(), val), nil
-
-	case ch == '"':
-		// String literal
-		str, err := l.String()
-		if err != nil {
-			return nil, err
-		}
-		global := c.CreateStringConstant(str)
-		// Return pointer to first element
-		gep := c.builder.NewGetElementPtr(global.ContentType, global,
-			constant.NewInt(types.I32, 0),
-			constant.NewInt(types.I32, 0))
-		return gep, nil
-
-	case ch == '(':
-		// Parentheses
-		val, err := parseExpressionLLVM(l, c)
-		if err != nil {
-			return nil, err
-		}
-		if err := l.ExpectChar(')', "expect ')' after expression"); err != nil {
-			return nil, err
-		}
-		return val, nil
-
-	case unicode.IsDigit(ch):
-		// Integer literal
-		l.UnreadChar(ch)
-		val, err := l.Number()
-		if err != nil {
-			return nil, err
-		}
-		return constant.NewInt(c.WordType(), val), nil
-
-	case unicode.IsLetter(ch):
-		// Identifier
-		l.UnreadChar(ch)
-		name, err := l.Identifier()
-		if err != nil {
-			return nil, err
-		}
-
-		// Check for function call
-		if err := l.Whitespace(); err != nil {
-			return nil, err
-		}
-		ch, err := l.ReadChar()
-		if err == nil && ch == '(' {
-			// Function call
-			return parseFunctionCallLLVM(l, c, name)
-		}
-		if err == nil {
-			l.UnreadChar(ch)
-		}
-
-		// Variable access
-		return c.LoadValue(name)
-
-	default:
-		return nil, fmt.Errorf("unexpected character '%c', expect expression", ch)
-	}
-}
-
-// parseFunctionCallLLVM parses a function call
-func parseFunctionCallLLVM(l *Lexer, c *LLVMCompiler, name string) (value.Value, error) {
-	fn := c.GetOrDeclareFunction(name)
-
-	var args []value.Value
-	for {
-		ch, err := l.ReadChar()
-		if err != nil {
-			return nil, err
-		}
-		if ch == ')' {
-			break
-		}
-		l.UnreadChar(ch)
-
-		arg, err := parseExpressionLLVM(l, c)
-		if err != nil {
-			return nil, err
-		}
-		args = append(args, arg)
-
-		if err := l.Whitespace(); err != nil {
-			return nil, err
-		}
-
-		ch, err = l.ReadChar()
-		if err != nil {
-			return nil, err
-		}
-		if ch == ')' {
-			break
-		}
-		if ch != ',' {
-			return nil, fmt.Errorf("unexpected character '%c', expect ')' or ','", ch)
-		}
-	}
-
-	call := c.builder.NewCall(fn, args...)
-	return call, nil
+	return parseExpressionLLVMWithLevel(l, c, 15)
 }
