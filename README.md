@@ -1,7 +1,10 @@
 The goal of the project is to build a compiler for the B programming language.
 The compiler is written in Go, and emits assembly code for X86_64 architecture.
 
-The B programming language was developed by Ken Thompson and Dennis Ritchie at Bell Labs in 1969 and was later replaced by C.
+The [B programming language](https://en.wikipedia.org/wiki/B_(programming_language))
+was developed by Ken Thompson and Dennis Ritchie at Bell Labs in 1969 and was later replaced by C.
+
+Implementation is loosly based on [BCause compiler](https://github.com/Spydr06/BCause) by Spydr06.
 
 ## Building
 
@@ -85,9 +88,3 @@ Try the example programs:
 ./blang -o hello.s testdata/hello.b
 ./blang -o arithmetic.s testdata/arithmetic.b
 ```
-
-## Directory Structure
-
-Directory c-prototype/ contains sources of a similar compiler, but written in C.
-The Go implementation in the root directory is a complete rewrite that retains all functionality.
-See c-prototype/README.md for details about the B language.
