@@ -3,7 +3,7 @@ SRC     = codegen.go compiler.go lexer.go list.go llvm_codegen.go llvm_expr.go l
 
 .PHONY: all install clean test
 
-all: ${PROG}
+all: ${PROG} libb.o
 
 test:
 	go test -v
@@ -16,3 +16,6 @@ clean:
 
 ${PROG}: ${SRC}
 	go build
+
+libb.o: libb/libb.c
+	$(CC) -c -ffreestanding $< -o $@

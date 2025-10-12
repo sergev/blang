@@ -140,10 +140,10 @@ All test programs compile to LLVM IR and produce correct results:
 ./blang -o program.ll program.b
 
 # Compile B runtime library
-clang -c -ffreestanding libb/libb.c -o libb/libb.o
+clang -c -ffreestanding libb/libb.c -o libb.o
 
 # Link and create executable
-clang program.ll libb/libb.o -o program
+clang -nostdlib program.ll libb.o -o program
 
 # Run
 ./program

@@ -11,7 +11,7 @@ go build -o blang
 ### 2. Compile B Runtime Library
 
 ```bash
-clang -c -ffreestanding libb/libb.c -o libb/libb.o
+clang -c -ffreestanding libb/libb.c -o libb.o
 ```
 
 ### 3. Compile and Run a B Program
@@ -21,7 +21,7 @@ clang -c -ffreestanding libb/libb.c -o libb/libb.o
 ./blang -o program.ll program.b
 
 # Link with runtime and create executable
-clang program.ll libb/libb.o -o program
+clang -nostdlib program.ll libb.o -o program
 
 # Run
 ./program
@@ -34,7 +34,7 @@ echo $?  # Check exit code (return value)
 
 ```bash
 ./blang -o hello.ll testdata/hello.b
-clang hello.ll libb/libb.o -o hello
+clang -nostdlib hello.ll libb.o -o hello
 ./hello
 # Output: Hello, World!
 ```
@@ -43,7 +43,7 @@ clang hello.ll libb/libb.o -o hello
 
 ```bash
 ./blang -o factorial.ll testdata/loops.b
-clang factorial.ll libb/libb.o -o factorial
+clang -nostdlib factorial.ll libb.o -o factorial
 ./factorial
 echo $?
 # Exit code: 120 (which is 5!)
@@ -53,7 +53,7 @@ echo $?
 
 ```bash
 ./blang -o arith.ll testdata/arithmetic.b
-clang arith.ll libb/libb.o -o arith
+clang -nostdlib arith.ll libb.o -o arith
 ./arith
 echo $?
 # Exit code: 50
@@ -63,7 +63,7 @@ echo $?
 
 ```bash
 ./blang -o cond.ll testdata/conditionals.b
-clang cond.ll libb/libb.o -o cond
+clang -nostdlib cond.ll libb.o -o cond
 ./cond
 echo $?
 # Exit code: 35
