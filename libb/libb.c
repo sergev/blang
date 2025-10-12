@@ -2,6 +2,7 @@
 // Implement read(), write(c), flush().
 //
 #include <stdarg.h>
+#include <sys/syscall.h>
 #ifndef B_TYPE
     /* type representing B's single data type (64-bit int on x86_64) */
     #include <stdint.h>
@@ -21,49 +22,26 @@
 /* type used for syscalls */
 #define SYSCALL_TYPE long
 
-static inline SYSCALL_TYPE syscall1(SYSCALL_TYPE n, SYSCALL_TYPE a1)
+static inline SYSCALL_TYPE syscall(SYSCALL_TYPE n, SYSCALL_TYPE a1, SYSCALL_TYPE a2, SYSCALL_TYPE a3)
 {
-	unsigned SYSCALL_TYPE ret;
-	__asm__ __volatile__ ("syscall" : "=a"(ret) : "a"(n), "D"(a1) : "rcx", "r11", "memory");
-	return ret;
+    SYSCALL_TYPE ret;
+#ifdef __APPLE__
+    n |= 0x2000000;
+#endif
+    __asm__ __volatile__ (
+        "syscall"
+        : "=a"(ret)
+        : "a"(n), "D"(a1), "S"(a2), "d"(a3)
+        : "rcx", "r11", "memory"
+    );
+    return ret;
 }
-
-static inline SYSCALL_TYPE syscall3(SYSCALL_TYPE n, SYSCALL_TYPE a1, SYSCALL_TYPE a2, SYSCALL_TYPE a3)
-{
-	unsigned SYSCALL_TYPE ret;
-	__asm__ __volatile__ ("syscall" : "=a"(ret) : "a"(n), "D"(a1), "S"(a2),
-						  "d"(a3) : "rcx", "r11", "memory");
-	return ret;
-}
-
-/* syscall ids */
-#define SYS_read 0
-#define SYS_write 1
-#define SYS_open 2
-#define SYS_close 3
-#define SYS_stat 4
-#define SYS_fstat 5
-#define SYS_seek 8
-#define SYS_fork 57
-#define SYS_execve 59
-#define SYS_exit 60
-#define SYS_wait4 61
-#define SYS_chdir 80
-#define SYS_mkdir 83
-#define SYS_creat 85
-#define SYS_link 86
-#define SYS_unlink 87
-#define SYS_chmod 90
-#define SYS_chown 92
-#define SYS_gettimeofday 96
-#define SYS_getuid 102
-#define SYS_setuid 105
-#define SYS_time 201
 
 //
 // B standard library implementation
 //
 
+#ifdef linux
 /* The `main` function must be declared in any B program */
 extern B_TYPE B_FN(main)(void);
 
@@ -71,16 +49,22 @@ extern B_TYPE B_FN(main)(void);
 void _start(void) __asm__ ("_start"); /* assure, that _start is really named _start in asm */
 void _start(void) {
     B_TYPE code = B_FN(main)();
-    syscall1(SYS_exit, code);
+    syscall(SYS_exit, code, 0, 0);
 }
+#endif
 
 /* The current process is terminated. */
 void B_FN(exit)(void) {
-    syscall1(SYS_exit, 0);
+    syscall(SYS_exit, 0, 0, 0);
 }
 
 /* The i-th character of the string is returned */
+#ifdef linux
 B_TYPE B_FN(_char)(B_TYPE string, B_TYPE i) __asm__ ("char"); /* alias name */
+#endif
+#ifdef __APPLE__
+B_TYPE B_FN(_char)(B_TYPE string, B_TYPE i) __asm__ ("_char"); /* alias name */
+#endif
 B_TYPE B_FN(_char)(B_TYPE string, B_TYPE i) {
     return ((char*) string)[i];
 }
@@ -96,7 +80,7 @@ void B_FN(lchar)(B_TYPE string, B_TYPE i, B_TYPE chr) {
 //
 B_TYPE B_FN(read)(void) {
     B_TYPE c = 0;
-    if (syscall3(SYS_read, 0, (B_TYPE)&c, 1) == 1) {
+    if (syscall(SYS_read, 0, (B_TYPE)&c, 1) == 1) {
         if (c > 0 && c <= 127) {
             return c;
         } else {
@@ -114,7 +98,7 @@ B_TYPE B_FN(read)(void) {
    are returned. A negative number returned indicates an
    error. */
 B_TYPE B_FN(nread)(B_TYPE file, B_TYPE buffer, B_TYPE count) {
-    return (B_TYPE) syscall3(SYS_read, file, buffer, count);
+    return (B_TYPE) syscall(SYS_read, file, buffer, count);
 }
 
 //
@@ -126,7 +110,7 @@ B_TYPE fout = 0;
 // One byte is written on the standard output file.
 //
 void B_FN(writeb)(B_TYPE c) {
-    syscall3(SYS_write, fout + 1, (B_TYPE)&c, 1);
+    syscall(SYS_write, fout + 1, (B_TYPE)&c, 1);
 }
 
 //
@@ -146,7 +130,7 @@ void B_FN(write)(B_TYPE c) {
    written are returned. A negative number returned indicates
    an error. */
 B_TYPE B_FN(nwrite)(B_TYPE file, B_TYPE buffer, B_TYPE count) {
-    return (B_TYPE) syscall3(SYS_write, file, buffer, count);
+    return (B_TYPE) syscall(SYS_write, file, buffer, count);
 }
 
 /* The following function will print a decimal number, possibly negative.
