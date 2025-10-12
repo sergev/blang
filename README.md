@@ -6,6 +6,14 @@ was developed by Ken Thompson and Dennis Ritchie at Bell Labs in 1969 and was la
 
 Implementation is loosly based on [BCause compiler](https://github.com/Spydr06/BCause) by Spydr06.
 
+## 📚 Documentation
+
+- **[LLVM Backend Details](doc/LLVM_Backend.md)** - LLVM IR code generation and linking
+- **[Testing Guide](doc/Testing.md)** - Running tests and examples
+- **[TODO List](doc/TODO.md)** - Pending features and roadmap
+- **[Development Journal](doc/Journal.md)** - Complete development history
+- **[Runtime Library](libb/README.md)** - B standard library functions (`printf`, `write`, etc.)
+
 ## Building
 
 To build the compiler:
@@ -173,4 +181,15 @@ clang program.ll libb.o -o program
 **Important**: The B runtime library (`libb/libb.c`) provides standard B functions:
 - **`write(c)`** - For multi-character constants like `write('Hi!*n')`
 - **`printf(fmt, ...)`** - For string pointers like `printf("Hello %s", name)`
-- See `TESTING.md` for more details
+- See **[libb/README.md](libb/README.md)** for complete runtime library documentation
+
+---
+
+## Contributing
+
+See **[TODO.md](doc/TODO.md)** for a list of pending features and suggested next steps.
+
+## Additional Resources
+
+- **[LLVM Backend Architecture](doc/LLVM_Backend.md)** - Technical details of LLVM IR generation
+- **[Development Journal](doc/Journal.md)** - Complete history of the project from C prototype to production-ready Go compiler
