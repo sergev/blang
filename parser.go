@@ -222,7 +222,8 @@ func parseIvalConstLLVM(l *Lexer, c *LLVMCompiler) (constant.Constant, error) {
 			return nil, err
 		}
 		global := c.CreateStringConstant(str)
-		return global, nil
+		// Convert string pointer to i64 for array storage
+		return constant.NewPtrToInt(global, c.WordType()), nil
 	} else if ch == '-' {
 		val, err := l.Number()
 		if err != nil {
