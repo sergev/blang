@@ -116,7 +116,16 @@ Try the example programs:
   - Automatic external function declaration
 ✅ **Variables** - Complete (local `auto`, global, `extrn`)
 ✅ **String Literals** - Complete
-✅ **Array Indexing** - Working (access elements with `array[i]`)
+✅ **Arrays** - Complete
+  - Local arrays with automatic initialization
+  - Global arrays with constant expressions
+  - Array indexing with `[]` operator (auto-scales)
+  - Arrays as function parameters
+✅ **Pointers** - Complete
+  - Address-of operator (`&`)
+  - Dereference operator (`*`)
+  - Pointer indexing with `[]`
+  - Stores through pointers
 ⏳ **Compound Assignment** - Pending (`=+`, `=-`, etc. - use `x = x + 5` instead)  
 ⏳ **Indirect Function Calls** - Pending (extrn function pointers - use direct calls for now)  
 ⏳ **Switch/Case** - Pending  
@@ -132,14 +141,17 @@ Try the example programs:
 
 ### Verified Working Programs:
 
-All test programs compile to LLVM IR and produce correct results:
+All test programs compile to LLVM IR and execute correctly:
 
 | Program | Description | Result |
 |---------|-------------|--------|
-| `hello.b` | External function calls, strings | ✅ Compiles & links |
+| `hello.b` | printf with strings | ✅ Returns 0 |
 | `arithmetic.b` | All arithmetic operators | ✅ Returns 50 |
 | `conditionals.b` | if/else, max, abs functions | ✅ Returns 35 |
 | `loops.b` | While loop, factorial(5) | ✅ Returns 120 |
+| `arrays.b` | Array operations, sum function | ✅ Returns 150 |
+| `pointers.b` | Pointer ops, &, *, indexing | ✅ Returns 30 |
+| `globals.b` | Global variables & arrays | ✅ Returns 60 |
 
 ### Linking with Runtime Library
 

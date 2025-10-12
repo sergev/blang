@@ -293,6 +293,10 @@ func parseExpressionLLVMWithLevel(l *Lexer, c *LLVMCompiler, level int) (value.V
 			if err != nil {
 				return nil, err
 			}
+
+			// Note: In B, we can't distinguish pointers from integers at compile time
+			// Pointer arithmetic scaling happens in the [] operator, not here
+			// Regular addition/subtraction is just integer arithmetic
 			if ch == '+' {
 				left = c.builder.NewAdd(left, right)
 			} else {
@@ -477,11 +481,14 @@ func parsePostfixLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
 		switch ch {
 		case '[':
 			// Array indexing
+			// In B, array[i] means: (pointer + i * word_size)
 			if isLvalue {
 				val = c.builder.NewLoad(c.WordType(), val)
 				isLvalue = false
 			}
-			// Load pointer from array variable
+
+			// val is an i64 containing a pointer value
+			// Convert to actual pointer type
 			ptr := c.builder.NewIntToPtr(val, c.WordPtrType())
 
 			// Parse index
@@ -493,7 +500,8 @@ func parsePostfixLLVM(l *Lexer, c *LLVMCompiler) (value.Value, bool, error) {
 				return nil, false, err
 			}
 
-			// Calculate address: ptr + index
+			// Calculate element address using getelementptr
+			// This automatically scales by element size (i64 = 8 bytes)
 			elemPtr := c.builder.NewGetElementPtr(c.WordType(), ptr, index)
 			val = elemPtr
 			isLvalue = true

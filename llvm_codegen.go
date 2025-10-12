@@ -60,17 +60,24 @@ func (c *LLVMCompiler) DeclareGlobal(name string, init constant.Constant) *ir.Gl
 }
 
 // DeclareGlobalArray declares a global array (vector)
+// In B, arrays work as follows:
+//   - name[N] creates N+1 words
+//   - First word contains address of second word (pointer to data)
+//   - Accessing name gives you the address of the first word
+//   - Accessing name[i] loads the pointer and indexes into it
 func (c *LLVMCompiler) DeclareGlobalArray(name string, size int64, init []constant.Constant) *ir.Global {
-	// In B, arrays are pointers to the first element after the size field
-	// Layout: [size_word][elem0][elem1]...
-
 	arraySize := size + 1 // +1 for the pointer storage
 	elemType := c.WordType()
 	arrayType := types.NewArray(uint64(arraySize), elemType)
 
-	// Initialize with zeros or provided values
+	// Initialize data elements
 	var initVals []constant.Constant
-	initVals = append(initVals, constant.NewInt(elemType, 0)) // First word stores pointer
+
+	// First element: will be initialized with pointer to second element
+	// We use a special constant expression: getelementptr to get address of element [1]
+	// For now, use 0 and fix it with a global constructor or leave for linker
+	// Actually, LLVM allows constant expressions for this
+	initVals = append(initVals, constant.NewInt(elemType, 0)) // Placeholder, will be fixed below
 
 	for i := int64(0); i < size; i++ {
 		if init != nil && i < int64(len(init)) {
@@ -81,6 +88,18 @@ func (c *LLVMCompiler) DeclareGlobalArray(name string, size int64, init []consta
 	}
 
 	global := c.module.NewGlobalDef(name, constant.NewArray(arrayType, initVals...))
+
+	// Now fix the first element to point to the second element
+	// Use constant GEP expression to get address of element [1]
+	dataPtr := constant.NewGetElementPtr(arrayType, global,
+		constant.NewInt(types.I64, 0),
+		constant.NewInt(types.I64, 1))
+	ptrAsInt := constant.NewPtrToInt(dataPtr, elemType)
+
+	// Update the global initialization
+	initVals[0] = ptrAsInt
+	global.Init = constant.NewArray(arrayType, initVals...)
+
 	c.globals[name] = global
 	return global
 }
@@ -162,19 +181,31 @@ func (c *LLVMCompiler) DeclareLocal(name string) value.Value {
 }
 
 // DeclareLocalArray allocates a local array
+// In B, arrays work as follows:
+//   - array[N] allocates N+1 words
+//   - First word contains pointer to second word (where data starts)
+//   - This allows array[-1] to get the original pointer
 func (c *LLVMCompiler) DeclareLocalArray(name string, size int64) value.Value {
-	arraySize := size + 1 // +1 for pointer storage
+	arraySize := size + 1 // +1 for pointer storage in first element
 	arrayType := types.NewArray(uint64(arraySize), c.WordType())
 	alloca := c.builder.NewAlloca(arrayType)
 
-	// Store pointer to first element after size word
+	// Get pointer to first data element (skip the pointer storage slot)
+	// This is element [0][1] in the array
 	firstElemPtr := c.builder.NewGetElementPtr(arrayType, alloca,
 		constant.NewInt(types.I32, 0),
 		constant.NewInt(types.I32, 1))
-	c.builder.NewStore(firstElemPtr, alloca)
 
-	c.locals[name] = alloca
-	return alloca
+	// Convert to i64 and store in the first slot [0][0]
+	ptrAsInt := c.builder.NewPtrToInt(firstElemPtr, c.WordType())
+	firstSlotPtr := c.builder.NewGetElementPtr(arrayType, alloca,
+		constant.NewInt(types.I32, 0),
+		constant.NewInt(types.I32, 0))
+	c.builder.NewStore(ptrAsInt, firstSlotPtr)
+
+	// Store the array base address (to first slot which now contains the data pointer)
+	c.locals[name] = firstSlotPtr
+	return firstSlotPtr
 }
 
 // LoadValue loads a value (handles both locals and globals)
