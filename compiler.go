@@ -88,12 +88,12 @@ func (args *CompilerArgs) FindIdentifier(name string) (int64, bool, bool) {
 	return -1, false, false
 }
 
-// Compile processes the input files and generates assembly
+// Compile processes the input files and generates LLVM IR
 func Compile(args *CompilerArgs) error {
-	// Create a buffer for the assembly code
-	var buffer []byte
+	// Create LLVM compiler
+	llvmCompiler := NewLLVMCompiler(args)
 
-	// Open every provided `.b` file and generate assembly for it
+	// Open every provided `.b` file and generate LLVM IR for it
 	for _, inputFile := range args.InputFiles {
 		if len(inputFile) < 2 || inputFile[len(inputFile)-2:] != ".b" {
 			continue
@@ -106,16 +106,15 @@ func Compile(args *CompilerArgs) error {
 		}
 
 		lexer := NewLexer(args, file)
-		output, err := ParseDeclarations(lexer)
+		err = ParseDeclarationsLLVM(lexer, llvmCompiler)
 		if err != nil {
 			file.Close()
 			return err
 		}
-		buffer = append(buffer, output...)
 		file.Close()
 	}
 
-	// Write the buffer to an assembly file
+	// Write the LLVM IR to output file
 	outFile, err := os.Create(args.OutputFile)
 	if err != nil {
 		Eprintf(args.Arg0, "cannot open file '%s' %s.", args.OutputFile, err)
@@ -123,7 +122,7 @@ func Compile(args *CompilerArgs) error {
 	}
 	defer outFile.Close()
 
-	_, err = outFile.Write(buffer)
+	_, err = outFile.WriteString(llvmCompiler.GetModule().String())
 	return err
 }
 
