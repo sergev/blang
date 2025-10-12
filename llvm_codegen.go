@@ -20,6 +20,7 @@ type LLVMCompiler struct {
 	functions map[string]*ir.Func    // functions
 	strings   []*ir.Global           // string constants
 	labelID   int                    // counter for labels
+	labels    map[string]*ir.Block   // named labels for goto
 }
 
 // NewLLVMCompiler creates a new LLVM compiler
@@ -152,8 +153,9 @@ func (c *LLVMCompiler) GetOrDeclareFunction(name string) *ir.Func {
 func (c *LLVMCompiler) StartFunction(fn *ir.Func) {
 	c.currentFn = fn
 	c.locals = make(map[string]value.Value)
+	c.labels = make(map[string]*ir.Block)
 	c.builder = fn.NewBlock("entry")
-
+	
 	// Allocate space for parameters
 	for _, param := range fn.Params {
 		alloca := c.builder.NewAlloca(c.WordType())
@@ -171,6 +173,7 @@ func (c *LLVMCompiler) EndFunction() {
 	c.currentFn = nil
 	c.builder = nil
 	c.locals = make(map[string]value.Value)
+	c.labels = make(map[string]*ir.Block)
 }
 
 // DeclareLocal allocates a local variable
@@ -302,4 +305,14 @@ func (c *LLVMCompiler) SetInsertPoint(block *ir.Block) {
 // GetInsertBlock returns the current insertion block
 func (c *LLVMCompiler) GetInsertBlock() *ir.Block {
 	return c.builder
+}
+
+// GetOrCreateLabel gets an existing label block or creates a new one
+func (c *LLVMCompiler) GetOrCreateLabel(name string) *ir.Block {
+	if block, ok := c.labels[name]; ok {
+		return block
+	}
+	block := c.currentFn.NewBlock(name)
+	c.labels[name] = block
+	return block
 }

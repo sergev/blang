@@ -230,7 +230,7 @@ func parseFunctionLLVM(l *Lexer, c *LLVMCompiler, name string) error {
 	fn := c.DeclareFunction(name, paramNames)
 	c.StartFunction(fn)
 
-	if err := parseStatementLLVM(l, c); err != nil {
+	if err := parseStatementLLVMWithSwitch(l, c, -1, nil); err != nil {
 		return err
 	}
 
@@ -275,7 +275,13 @@ func parseArgumentsLLVM(l *Lexer) ([]string, error) {
 }
 
 // parseStatementLLVM parses a statement
+// switchID: ID of enclosing switch statement (-1 if none)
+// cases: list to accumulate case values for switch
 func parseStatementLLVM(l *Lexer, c *LLVMCompiler) error {
+	return parseStatementLLVMWithSwitch(l, c, -1, nil)
+}
+
+func parseStatementLLVMWithSwitch(l *Lexer, c *LLVMCompiler, switchID int64, cases *List) error {
 	if err := l.Whitespace(); err != nil {
 		return err
 	}
@@ -300,7 +306,7 @@ func parseStatementLLVM(l *Lexer, c *LLVMCompiler) error {
 				break
 			}
 			l.UnreadChar(ch)
-			if err := parseStatementLLVM(l, c); err != nil {
+			if err := parseStatementLLVMWithSwitch(l, c, switchID, cases); err != nil {
 				return err
 			}
 		}
@@ -311,7 +317,7 @@ func parseStatementLLVM(l *Lexer, c *LLVMCompiler) error {
 	default:
 		if unicode.IsLetter(ch) {
 			l.UnreadChar(ch)
-			return parseKeywordOrExpressionLLVM(l, c)
+			return parseKeywordOrExpressionLLVMWithSwitch(l, c, switchID, cases)
 		} else {
 			l.UnreadChar(ch)
 			// Expression statement
@@ -333,6 +339,10 @@ func parseStatementLLVM(l *Lexer, c *LLVMCompiler) error {
 
 // parseKeywordOrExpressionLLVM handles keywords and expressions
 func parseKeywordOrExpressionLLVM(l *Lexer, c *LLVMCompiler) error {
+	return parseKeywordOrExpressionLLVMWithSwitch(l, c, -1, nil)
+}
+
+func parseKeywordOrExpressionLLVMWithSwitch(l *Lexer, c *LLVMCompiler, switchID int64, cases *List) error {
 	name, err := l.Identifier()
 	if err != nil {
 		return err
@@ -353,6 +363,12 @@ func parseKeywordOrExpressionLLVM(l *Lexer, c *LLVMCompiler) error {
 		return parseIfLLVM(l, c)
 	case "while":
 		return parseWhileLLVM(l, c)
+	case "switch":
+		return parseSwitchLLVM(l, c)
+	case "case":
+		return parseCaseLLVM(l, c, switchID, cases)
+	case "goto":
+		return parseGotoLLVM(l, c)
 	default:
 		// Check if it's a label
 		ch, err := l.ReadChar()
@@ -360,13 +376,19 @@ func parseKeywordOrExpressionLLVM(l *Lexer, c *LLVMCompiler) error {
 			return err
 		}
 		if ch == ':' {
-			// Label - create a new block
-			block := c.NewBlock(name)
-			if c.builder.Term == nil {
+			// Label - get or create labeled block
+			block := c.GetOrCreateLabel(name)
+
+			// Only create a branch if the current block has no terminator
+			// This handles fall-through to labels
+			currentBlock := c.GetInsertBlock()
+			if currentBlock != nil && currentBlock.Term == nil {
 				c.builder.NewBr(block)
 			}
+
+			// Set insertion point to the label block
 			c.SetInsertPoint(block)
-			return parseStatementLLVM(l, c)
+			return parseStatementLLVMWithSwitch(l, c, switchID, cases)
 		}
 
 		// Otherwise it's an expression

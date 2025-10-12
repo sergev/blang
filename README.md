@@ -107,8 +107,10 @@ Try the example programs:
 ✅ **Control Flow** - Complete
   - if/else statements
   - while loops
+  - switch/case statements (LLVM switch instruction)
+  - goto statements
+  - Labels
   - Recursive function calls
-  - Labels (for goto targets)
 ✅ **Functions** - Complete
   - Declarations and definitions
   - Function calls with parameters
@@ -128,9 +130,7 @@ Try the example programs:
   - Stores through pointers
 ⏳ **Compound Assignment** - Pending (`=+`, `=-`, etc. - use `x = x + 5` instead)  
 ⏳ **Indirect Function Calls** - Pending (extrn function pointers - use direct calls for now)  
-⏳ **Switch/Case** - Pending  
-⏳ **Goto** - Pending  
-⏳ **Unit Tests** - Temporarily disabled during migration
+⏳ **Unit Tests** - Temporarily disabled during migration (to be re-enabled incrementally)
 
 ### Important Notes
 
@@ -152,6 +152,8 @@ All test programs compile to LLVM IR and execute correctly:
 | `arrays.b` | Array operations, sum function | ✅ Returns 150 |
 | `pointers.b` | Pointer ops, &, *, indexing | ✅ Returns 30 |
 | `globals.b` | Global variables & arrays | ✅ Returns 60 |
+| `switch.b` | Switch/case statements | ✅ Returns 30 |
+| `goto.b` | goto and labels | ✅ Returns 42 |
 
 ### Linking with Runtime Library
 
