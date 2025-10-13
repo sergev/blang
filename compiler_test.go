@@ -576,11 +576,8 @@ func TestCompileAndRun(t *testing.T) {
 	}
 }
 
-// TestE2Constant tests the long-running e-2 constant calculation (from oldtests/e2_test.cpp)
-// This test is skipped by default because it takes 10+ seconds to run
+// TestE2Constant tests the e-2 constant calculation
 func TestE2Constant(t *testing.T) {
-	t.Skip("e-2 calculation is very long-running (~10+ seconds) - enable manually if needed")
-
 	// Check if clang is available
 	if _, err := os.Stat("libb.o"); err != nil {
 		t.Skip("libb.o not found, run 'make' first")
@@ -607,8 +604,8 @@ func TestE2Constant(t *testing.T) {
 		t.Fatalf("Linking failed: %v\nOutput: %s", err, linkOutput)
 	}
 
-	// Step 3: Run the executable (with 30 second timeout)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	// Step 3: Run the executable (with 3 second timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	runCmd := exec.CommandContext(ctx, exeFile)

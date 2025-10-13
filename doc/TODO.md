@@ -138,7 +138,7 @@ See sections below for details on pending features.
 | Compound Assignments | ✅ Complete | 15 | All 15 compound operators |
 | E-2 Constant | ⏭️ Skipped | 1 | Long-running (~10+ seconds) |
 
-**Total: 144 active tests passing, 1 skipped (long-running computation only)**
+**Total: 145 active tests passing, 0 skipped (all tests now pass)**
 
 ---
 

@@ -4,7 +4,7 @@ A modern B programming language compiler written in Go with LLVM IR backend.
 
 The [B programming language](https://en.wikipedia.org/wiki/B_(programming_language)) was developed by Ken Thompson and Dennis Ritchie at Bell Labs in 1969 as the predecessor to C.
 
-**Status:** ✅ **Feature-Complete** • 144 tests passing • 76.6% coverage
+**Status:** ✅ **Feature-Complete** • 145 tests passing • 76.6% coverage
 
 ## Quick Start
 
@@ -112,7 +112,7 @@ go test -v          # Run all tests
 go test -cover      # With coverage report
 ```
 
-**144 tests passing** (99.3% pass rate):
+  **145 tests passing** (100% pass rate):
 
 See **[Testing.md](doc/Testing.md)** for detailed testing guide and **[Test_Coverage_Plan.md](doc/Test_Coverage_Plan.md)** for coverage improvement roadmap (76.6% → 85%+ target).
 
