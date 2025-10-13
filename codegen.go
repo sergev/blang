@@ -86,18 +86,41 @@ func (c *Compiler) DeclareGlobalWithMultipleValues(name string, values []constan
 //   - First word contains address of second word (pointer to data)
 //   - Accessing name gives you the address of the first word
 //   - Accessing name[i] loads the pointer and indexes into it
+//
+// For large arrays without initializers (size > 10), we use a two-global approach:
+//   - name.data[N] = zeroinitializer (very compact in .ll files!)
+//   - name[1] = [pointer to name.data]
+//
+// This dramatically reduces .ll file size for large zero-initialized arrays.
 func (c *Compiler) DeclareGlobalArray(name string, size int64, init []constant.Constant) *ir.Global {
-	arraySize := size + 1 // +1 for the pointer storage
 	elemType := c.WordType()
+
+	// For large arrays without initializers, use compact two-global representation
+	if (init == nil || len(init) == 0) && size > 10 {
+		// Create the data array with zeroinitializer (compact!)
+		dataArrayType := types.NewArray(uint64(size), elemType)
+		dataGlobal := c.module.NewGlobalDef(name+".data", constant.NewZeroInitializer(dataArrayType))
+
+		// Create wrapper with just the pointer to data
+		wrapperType := types.NewArray(1, elemType)
+		dataPtr := constant.NewGetElementPtr(dataArrayType, dataGlobal,
+			constant.NewInt(types.I64, 0),
+			constant.NewInt(types.I64, 0))
+		ptrAsInt := constant.NewPtrToInt(dataPtr, elemType)
+
+		global := c.module.NewGlobalDef(name, constant.NewArray(wrapperType, ptrAsInt))
+		c.globals[name] = global
+		return global
+	}
+
+	// Standard approach for small arrays or arrays with initializers
+	arraySize := size + 1 // +1 for the pointer storage
 	arrayType := types.NewArray(uint64(arraySize), elemType)
 
 	// Initialize data elements
 	var initVals []constant.Constant
 
 	// First element: will be initialized with pointer to second element
-	// We use a special constant expression: getelementptr to get address of element [1]
-	// For now, use 0 and fix it with a global constructor or leave for linker
-	// Actually, LLVM allows constant expressions for this
 	initVals = append(initVals, constant.NewInt(elemType, 0)) // Placeholder, will be fixed below
 
 	for i := int64(0); i < size; i++ {
@@ -111,7 +134,6 @@ func (c *Compiler) DeclareGlobalArray(name string, size int64, init []constant.C
 	global := c.module.NewGlobalDef(name, constant.NewArray(arrayType, initVals...))
 
 	// Now fix the first element to point to the second element
-	// Use constant GEP expression to get address of element [1]
 	dataPtr := constant.NewGetElementPtr(arrayType, global,
 		constant.NewInt(types.I64, 0),
 		constant.NewInt(types.I64, 1))
