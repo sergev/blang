@@ -525,6 +525,263 @@ func TestE2Constant(t *testing.T) {
 	}
 }
 
+// TestPrecedence tests operator precedence (from oldtests/precedence_test.cpp)
+func TestPrecedence(t *testing.T) {
+	// Check if clang is available
+	if _, err := os.Stat("libb.o"); err != nil {
+		t.Skip("libb.o not found, run 'make' first")
+	}
+
+	tests := []struct {
+		name       string
+		code       string
+		wantStdout string
+	}{
+		{
+			name: "add_mul",
+			code: `main() {
+				printf("3 + 4 ** 2 -> %d*n", 3 + 4 * 2);
+			}`,
+			wantStdout: "3 + 4 * 2 -> 11\n",
+		},
+		{
+			name: "mul_add_mul",
+			code: `main() {
+				printf("5 ** 2 + 3 ** 4 -> %d*n", 5 * 2 + 3 * 4);
+			}`,
+			wantStdout: "5 * 2 + 3 * 4 -> 22\n",
+		},
+		{
+			name: "sub_div",
+			code: `main() {
+				printf("10 - 6 / 2 -> %d*n", 10 - 6 / 2);
+			}`,
+			wantStdout: "10 - 6 / 2 -> 7\n",
+		},
+		{
+			name: "mod_add",
+			code: `main() {
+				printf("7 %% 3 + 2 -> %d*n", 7 % 3 + 2);
+			}`,
+			wantStdout: "7 % 3 + 2 -> 3\n",
+		},
+		{
+			name: "add_lt",
+			code: `main() {
+				printf("5 + 3 < 9 -> %d*n", 5 + 3 < 9);
+			}`,
+			wantStdout: "5 + 3 < 9 -> 1\n",
+		},
+		{
+			name: "lt_eq",
+			code: `main() {
+				printf("4 < 6 == 1 -> %d*n", 4 < 6 == 1);
+			}`,
+			wantStdout: "4 < 6 == 1 -> 1\n",
+		},
+		{
+			name: "eq_and",
+			code: `main() {
+				printf("3 == 3 & 1 -> %d*n", 3 == 3 & 1);
+			}`,
+			wantStdout: "3 == 3 & 1 -> 1\n",
+		},
+		{
+			name: "and_or",
+			code: `main() {
+				printf("2 & 3 | 4 -> %d*n", 2 & 3 | 4);
+			}`,
+			wantStdout: "2 & 3 | 4 -> 6\n",
+		},
+		{
+			name: "mul_add_lt",
+			code: `main() {
+				printf("2 ** 3 + 4 < 11 -> %d*n", 2 * 3 + 4 < 11);
+			}`,
+			wantStdout: "2 * 3 + 4 < 11 -> 1\n",
+		},
+		{
+			name: "mul_ge_eq",
+			code: `main() {
+				printf("5 ** 2 >= 10 == 1 -> %d*n", 5 * 2 >= 10 == 1);
+			}`,
+			wantStdout: "5 * 2 >= 10 == 1 -> 1\n",
+		},
+		{
+			name: "mul_and_add",
+			code: `main() {
+				printf("4 ** 2 & 3 + 1 -> %d*n", 4 * 2 & 3 + 1);
+			}`,
+			wantStdout: "4 * 2 & 3 + 1 -> 0\n",
+		},
+		{
+			name: "div_add_gt_or",
+			code: `main() {
+				printf("6 / 2 + 1 > 3 | 2 -> %d*n", 6 / 2 + 1 > 3 | 2);
+			}`,
+			wantStdout: "6 / 2 + 1 > 3 | 2 -> 3\n",
+		},
+		{
+			name: "div_mod",
+			code: `main() {
+				printf("10 / 2 %% 3 -> %d*n", 10 / 2 % 3);
+			}`,
+			wantStdout: "10 / 2 % 3 -> 2\n",
+		},
+		{
+			name: "mul_or",
+			code: `main() {
+				printf("0 ** 5 | 3 -> %d*n", 0 * 5 | 3);
+			}`,
+			wantStdout: "0 * 5 | 3 -> 3\n",
+		},
+		{
+			name: "mul_lshift",
+			code: `main() {
+				printf("4 ** 3 << 2 -> %d*n", 4 * 3 << 2);
+			}`,
+			wantStdout: "4 * 3 << 2 -> 48\n",
+		},
+		{
+			name: "lshift_lt",
+			code: `main() {
+				printf("1 << 2 < 5 -> %d*n", 1 << 2 < 5);
+			}`,
+			wantStdout: "1 << 2 < 5 -> 1\n",
+		},
+		{
+			name: "sub_rshift",
+			code: `main() {
+				printf("16 - 8 >> 1 -> %d*n", 16 - 8 >> 1);
+			}`,
+			wantStdout: "16 - 8 >> 1 -> 4\n",
+		},
+		{
+			name: "lshift_and",
+			code: `main() {
+				printf("3 << 2 & 7 -> %d*n", 3 << 2 & 7);
+			}`,
+			wantStdout: "3 << 2 & 7 -> 4\n",
+		},
+		{
+			name: "or_rshift",
+			code: `main() {
+				printf("2 | 4 >> 1 -> %d*n", 2 | 4 >> 1);
+			}`,
+			wantStdout: "2 | 4 >> 1 -> 2\n",
+		},
+		{
+			name: "rshift_eq",
+			code: `main() {
+				printf("8 >> 2 == 2 -> %d*n", 8 >> 2 == 2);
+			}`,
+			wantStdout: "8 >> 2 == 2 -> 1\n",
+		},
+		{
+			name: "mul_lshift_add",
+			code: `main() {
+				printf("5 ** 2 << 1 + 3 -> %d*n", 5 * 2 << 1 + 3);
+			}`,
+			wantStdout: "5 * 2 << 1 + 3 -> 160\n",
+		},
+		{
+			name: "mod_lshift",
+			code: `main() {
+				printf("15 %% 4 << 2 -> %d*n", 15 % 4 << 2);
+			}`,
+			wantStdout: "15 % 4 << 2 -> 12\n",
+		},
+		{
+			name: "lshift_gt_and",
+			code: `main() {
+				printf("1 << 3 > 5 & 2 -> %d*n", 1 << 3 > 5 & 2);
+			}`,
+			wantStdout: "1 << 3 > 5 & 2 -> 0\n",
+		},
+		{
+			name: "add_lshift",
+			code: `main() {
+				printf("12345 + 10 << 4 -> %d*n", 12345 + 10 << 4);
+			}`,
+			wantStdout: "12345 + 10 << 4 -> 197680\n",
+		},
+		{
+			name: "div_rshift",
+			code: `main() {
+				printf("16 / 2 >> 1 -> %d*n", 16 / 2 >> 1);
+			}`,
+			wantStdout: "16 / 2 >> 1 -> 4\n",
+		},
+		{
+			name: "and_lshift_or",
+			code: `main() {
+				printf("7 & 3 << 2 | 8 -> %d*n", 7 & 3 << 2 | 8);
+			}`,
+			wantStdout: "7 & 3 << 2 | 8 -> 12\n",
+		},
+		{
+			name: "lshift_ne",
+			code: `main() {
+				printf("1 << 4 != 15 -> %d*n", 1 << 4 != 15);
+			}`,
+			wantStdout: "1 << 4 != 15 -> 1\n",
+		},
+		{
+			name: "rshift_ge",
+			code: `main() {
+				printf("98765 >> 3 >= 12345 -> %d*n", 98765 >> 3 >= 12345);
+			}`,
+			wantStdout: "98765 >> 3 >= 12345 -> 1\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			inputFile := filepath.Join(tmpDir, "test.b")
+			llFile := filepath.Join(tmpDir, "test.ll")
+			exeFile := filepath.Join(tmpDir, "test")
+
+			// Write test code to file
+			err := os.WriteFile(inputFile, []byte(tt.code), 0644)
+			if err != nil {
+				t.Fatalf("Failed to write test file: %v", err)
+			}
+
+			// Step 1: Compile B program to LLVM IR
+			args := NewCompileOptions("blang", []string{inputFile})
+			args.OutputFile = llFile
+
+			err = Compile(args)
+			if err != nil {
+				t.Fatalf("Compile failed: %v", err)
+			}
+
+			// Step 2: Link with libb.o using clang
+			linkCmd := exec.Command("clang", llFile, "libb.o", "-o", exeFile)
+			linkOutput, err := linkCmd.CombinedOutput()
+			if err != nil {
+				t.Fatalf("Linking failed: %v\nOutput: %s", err, linkOutput)
+			}
+
+			// Step 3: Run the executable
+			runCmd := exec.Command(exeFile)
+			stdout, err := runCmd.Output()
+			if err != nil {
+				if _, ok := err.(*exec.ExitError); !ok {
+					t.Fatalf("Failed to run executable: %v", err)
+				}
+			}
+
+			// Check stdout
+			gotStdout := string(stdout)
+			if gotStdout != tt.wantStdout {
+				t.Errorf("Stdout mismatch:\nGot:\n%s\nWant:\n%s", gotStdout, tt.wantStdout)
+			}
+		})
+	}
+}
+
 // TestExpressions tests various expression features (from oldtests/expr_test.cpp)
 func TestExpressions(t *testing.T) {
 	// Check if clang is available

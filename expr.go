@@ -37,6 +37,9 @@ func parseExpressionWithLevel(l *Lexer, c *Compiler, level int) (value.Value, er
 			return nil, err
 		}
 
+		// Track if we handled an operator at this iteration
+		handled := false
+
 		// Ternary operator (level 13)
 		if level >= 13 && ch == '?' {
 			if isLvalue {
@@ -88,7 +91,7 @@ func parseExpressionWithLevel(l *Lexer, c *Compiler, level int) (value.Value, er
 		}
 
 		// Assignment operators (level 14, right associative)
-		if level >= 14 && ch == '=' {
+		if level >= 14 && ch == '=' && !handled {
 			ch2, err2 := l.ReadChar()
 			if err2 == nil && ch2 == '=' {
 				// Equality comparison ==, not assignment
@@ -102,7 +105,9 @@ func parseExpressionWithLevel(l *Lexer, c *Compiler, level int) (value.Value, er
 						return nil, err
 					}
 					cmp := c.builder.NewICmp(enum.IPredEQ, left, right)
-					return c.builder.NewZExt(cmp, c.WordType()), nil
+					left = c.builder.NewZExt(cmp, c.WordType())
+					handled = true
+					continue
 				}
 				l.UnreadChar(ch2)
 				l.UnreadChar(ch)
@@ -134,7 +139,6 @@ func parseExpressionWithLevel(l *Lexer, c *Compiler, level int) (value.Value, er
 		}
 
 		// Binary operators (left associative)
-		handled := false
 
 		// Bitwise OR (level 10)
 		if level >= 10 && ch == '|' && !handled {
