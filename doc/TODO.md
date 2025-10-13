@@ -175,15 +175,6 @@ All critical bugs have been fixed:
 
 ---
 
-## 📚 Reference Materials
-
-- Original B Language Reference: [Bell Labs CSRC](https://www.bell-labs.com/usr/dmr/www/kbman.html)
-- B Language Tutorial: [Ken Thompson's B Tutorial](https://www.bell-labs.com/usr/dmr/www/btut.html)
-- LLVM IR Documentation: [LLVM Language Reference](https://llvm.org/docs/LangRef.html)
-- C Prototype: `c-prototype/` directory
-
----
-
 ## 🎯 Next Steps
 
 **Recommended Priority Order:**
@@ -193,11 +184,10 @@ All critical bugs have been fixed:
    - High test coverage (15 tests)
    - Significant language feature
 
-3. **Code Quality Improvements** (ongoing)
+2. **Code Quality Improvements** (ongoing)
    - Better error messages
    - More documentation
    - Performance optimization
-
 
 ---
 

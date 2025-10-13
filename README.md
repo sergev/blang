@@ -116,8 +116,9 @@ Contributions welcome! Check **[TODO.md](doc/TODO.md)** for:
 
 ## References
 
-- [B Language Reference](https://www.bell-labs.com/usr/dmr/www/kbman.html) - Original manual
-- [B Tutorial](https://www.bell-labs.com/usr/dmr/www/btut.html) - Ken Thompson's guide
+- [B Language Reference](https://github.com/sergev/blang/raw/refs/heads/main/doc/bref.pdf) - Original manual by S.C.Johnson
+- [B Tutorial](https://github.com/sergev/blang/raw/refs/heads/main/doc/btut.pdf) - A tutorial introduction by B.W.Kernighan
+- [Users' Reference to B](https://github.com/sergev/blang/raw/refs/heads/main/doc/kbman.pdf) - Ken Thompson's guide
 - [LLVM Documentation](https://llvm.org/docs/LangRef.html) - LLVM IR reference
 - [BCause](https://github.com/Spydr06/BCause) - C-based B compiler (inspiration)
 
