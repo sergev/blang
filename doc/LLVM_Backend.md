@@ -215,6 +215,32 @@ main() {
 - Calls through variables use LLVM indirect call mechanism
 - Supports variadic function pointers
 
+### Ternary Conditional Operator
+
+The ternary operator provides conditional expressions:
+
+```b
+max(a, b) {
+    return (a > b ? a : b);
+}
+
+classify(score) {
+    /* Nested ternary - right associative */
+    return (score > 90 ? 100 : (score > 70 ? 80 : 60));
+}
+
+main() {
+    printf("max(5, 3) = %d*n", max(5, 3));        /* Prints: 5 */
+    printf("classify(85) = %d*n", classify(85)); /* Prints: 80 */
+}
+```
+
+**Key Points:**
+- Syntax: `condition ? true_value : false_value`
+- Right-associative: `a ? b : c ? d : e` parses as `a ? b : (c ? d : e)`
+- Short-circuit evaluation: only one branch is evaluated
+- Works in complex expressions: `x + (y > 0 ? z : 0)`
+
 ## Testing
 
 All test programs compile successfully to LLVM IR:
@@ -250,6 +276,7 @@ go test
 ✅ **Reverse Allocation** - Auto statements allocated in reverse order
 ✅ **Escape Sequences** - All B escape sequences verified (10 sequences)
 ✅ **Indirect Function Calls** - Function pointers stored in variables and called through them
+✅ **Ternary Operator** - Full support for nested `? :` expressions
 
 ## Example Generated IR
 

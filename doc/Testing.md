@@ -255,9 +255,9 @@ go test -cover
 
 ## Test Results Summary
 
-✅ **124 tests passing** (100% of active tests)
-⏭️ **3 tests skipped** (pending features)
-📈 **73.9% code coverage**
+✅ **127 tests passing** (100% of active tests)
+⏭️ **2 tests skipped** (pending features)
+📈 **76.0% code coverage**
 
 ### Test Breakdown by Category
 
@@ -268,18 +268,16 @@ go test -cover
 - **9 tests** - Expressions (operators, unary, arrays)
 - **7 tests** - Error handling
 - **6 tests** - Runtime library (`printf`, `write`, `char`, etc.)
+- **5 tests** - Functions (definitions, parameters, ternary operator)
 - **4 tests** - Globals (multi-value scalars, reverse allocation)
-- **3 tests** - Functions (definitions, parameters, calls)
 - **2 tests** - Strings (escape sequences, literals)
 - **2 tests** - Indirect calls (function pointers)
 
 ### Skipped Tests (Pending Implementation)
 
 - **15 tests** - Compound assignments (`=+`, `=-`, etc.)
-- **1 test** - Ternary operator (`? :`)
 - **1 test** - E-2 constant (long-running computation)
 
 ## Known Limitations
 
 - ⏳ Compound assignments (`=+`, `=-`, etc.) not yet implemented - use `x = x + 5` instead
-- ⏳ Ternary operator (`? :`) not yet implemented

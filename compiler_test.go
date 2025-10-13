@@ -1327,15 +1327,59 @@ after n()
 456
 `,
 		},
+		{
+			name: "nested_ternary",
+			code: `classify(n) {
+				return (n > 50 ? 100 : (n > 25 ? 50 : 25));
+			}
+
+			sign(n) {
+				return (n > 0 ? 1 : (n < 0 ? -1 : 0));
+			}
+
+			main() {
+				printf("classify(75) = %d*n", classify(75));
+				printf("classify(40) = %d*n", classify(40));
+				printf("classify(10) = %d*n", classify(10));
+
+				printf("sign(42) = %d*n", sign(42));
+				printf("sign(-17) = %d*n", sign(-17));
+				printf("sign(0) = %d*n", sign(0));
+			}`,
+			wantStdout: `classify(75) = 100
+classify(40) = 50
+classify(10) = 25
+sign(42) = 1
+sign(-17) = -1
+sign(0) = 0
+`,
+		},
+		{
+			name: "ternary_in_expression",
+			code: `main() {
+				auto x, y, z, result;
+
+				x = 10;
+				y = 20;
+				z = 30;
+
+				result = x + (y > 15 ? z : 0);
+				printf("x + (y > 15 ? z : 0) = %d*n", result);
+
+				result = (x < y ? x : y) * 2;
+				printf("(x < y ? x : y) ** 2 = %d*n", result);
+
+				printf("nested: %d*n", (x > 5 ? (y > 15 ? 100 : 50) : 0));
+			}`,
+			wantStdout: `x + (y > 15 ? z : 0) = 40
+(x < y ? x : y) * 2 = 20
+nested: 100
+`,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Skip ternary operator test as it's not yet implemented
-			if tt.name == "function_ternary_operator" {
-				t.Skip("Ternary operator (? :) not yet implemented")
-			}
-
 			tmpDir := t.TempDir()
 			inputFile := filepath.Join(tmpDir, "test.b")
 			llFile := filepath.Join(tmpDir, "test.ll")

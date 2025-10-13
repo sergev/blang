@@ -29,36 +29,6 @@ Implement all compound assignment operators from the B language specification:
 
 ---
 
-#### 2. Ternary Conditional Operator (`? :`)
-**Status:** Not implemented (1 test skipped)
-**Test Coverage:** `TestFunctions/function_ternary_operator`
-
-Implement the ternary conditional operator:
-```b
-result = condition ? true_value : false_value;
-```
-
-**Example:**
-```b
-choose(a, b, c) {
-    return (a ? b : c);
-}
-```
-
-**Implementation Notes:**
-- Precedence: Between assignment and logical OR
-- Right-associative
-- Returns type should be the common type of both branches
-- In LLVM IR, use `select` instruction or conditional branches
-
-**Files to modify:**
-- `expr.go` - Add ternary operator parsing at appropriate precedence level
-- `compiler_test.go` - Remove `t.Skip()` from ternary operator test
-
----
-
----
-
 ## ✅ Recently Completed
 
 - ✅ All basic B language features (variables, arrays, functions)
@@ -78,7 +48,8 @@ choose(a, b, c) {
 - ✅ **Reverse allocation order for auto statements**
 - ✅ **Expression parser bug fixes** (equality operator chaining)
 - ✅ **Indirect function calls** via function pointer variables
-- ✅ Comprehensive test suite (124 active tests, 73.9% coverage)
+- ✅ **Ternary conditional operator** (`? :`) with nested support
+- ✅ Comprehensive test suite (127 active tests, 76.0% coverage)
 
 ---
 
@@ -182,12 +153,12 @@ See sections below for details on pending features.
 | Expression Tests | ✅ Complete | 9 | All operators and precedence |
 | String Tests | ✅ Complete | 2 | Escape sequences, literals |
 | Globals Tests | ✅ Complete | 4 | Global/local allocation, multi-value scalars |
-| Function Tests | 🟡 Partial | 2/3 | Missing ternary operator |
+| Function Tests | ✅ Complete | 5 | Includes nested ternary operator |
 | Indirect Calls | ✅ Complete | 2 | Function pointers |
 | E-2 Constant | ⏭️ Skipped | 1 | Long-running (~10+ seconds) |
 | Compound Assignments | ⏭️ Skipped | 15 | Not implemented |
 
-**Total: 124 active tests passing, 3 skipped (pending implementation)**
+**Total: 127 active tests passing, 2 skipped (pending implementation)**
 
 ---
 
@@ -217,12 +188,7 @@ All critical bugs have been fixed:
 
 **Recommended Priority Order:**
 
-1. **Implement Ternary Operator** (1-2 hours)
-   - Small, self-contained feature
-   - Completes function tests
-   - Good warm-up for compound assignments
-
-2. **Implement Compound Assignments** (4-6 hours)
+1. **Implement Compound Assignments** (4-6 hours)
    - More complex due to operator variety
    - High test coverage (15 tests)
    - Significant language feature
@@ -237,4 +203,4 @@ All critical bugs have been fixed:
 
 **Last Updated:** October 13, 2025
 **Compiler Version:** LLVM Backend (production-ready)
-**Test Pass Rate:** 100% (124/124 active tests)
+**Test Pass Rate:** 100% (127/127 active tests)
