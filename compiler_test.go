@@ -188,7 +188,7 @@ func TestLibbFunctions(t *testing.T) {
 		wantStdout string
 	}{
 		{
-			name: "write",
+			name: "libb_write",
 			code: `main() {
 				write('Hello,');
 				write(' World');
@@ -197,29 +197,36 @@ func TestLibbFunctions(t *testing.T) {
 			wantStdout: "Hello, World!\n",
 		},
 		{
-			name: "printf_basic",
+			name: "libb_printf",
 			code: `main() {
 				printf("Hello, World!*n");
-			}`,
-			wantStdout: "Hello, World!\n",
-		},
-		{
-			name: "printf_formats",
-			code: `main() {
+				printf("%% %% %%%%*n");
 				printf("format %%d: %d %d*n", 123, -123);
 				printf("format %%o: %o %o*n", 234, -234);
-			}`,
-			wantStdout: "format %d: 123 -123\nformat %o: 352 -352\n",
-		},
-		{
-			name: "printf_char",
-			code: `main() {
 				printf("format %%c: %c %c*n", 'foo', 'bar');
+				printf("format %%s: *"%s*" *"%s*"*n", "Hello", "World");
+				printf("unknown format: %q*n", "foo");
 			}`,
-			wantStdout: "format %c: foo bar\n",
+			wantStdout: `Hello, World!
+% % %%
+format %d: 123 -123
+format %o: 352 -352
+format %c: foo bar
+format %s: "Hello" "World"
+unknown format: %q
+`,
 		},
 		{
-			name: "char_function",
+			name: "libb_exit",
+			code: `main() {
+				printf("before exit()*n");
+				exit();
+				printf("after exit()*n");
+			}`,
+			wantStdout: "before exit()\n",
+		},
+		{
+			name: "libb_char",
 			code: `main() {
 				write(char("fubar", 2));
 				write(char("fubar", 4));
@@ -229,6 +236,28 @@ func TestLibbFunctions(t *testing.T) {
 				write('*n');
 			}`,
 			wantStdout: "brufa\n",
+		},
+		{
+			name: "libb_lchar",
+			code: `main() {
+				auto str;
+
+				lchar(&str, 0, 'f');
+				lchar(&str, 1, 'u');
+				lchar(&str, 2, 'b');
+				lchar(&str, 3, 'a');
+				lchar(&str, 4, 'r');
+				lchar(&str, 5, 0);
+				printf("%s*n", &str);
+			}`,
+			wantStdout: "fubar\n",
+		},
+		{
+			name: "libb_nwrite",
+			code: `main() {
+				nwrite(1, "foobar*n", 7);
+			}`,
+			wantStdout: "foobar\n",
 		},
 	}
 
