@@ -498,7 +498,16 @@ func parseReturn(l *Lexer, c *Compiler) error {
 }
 
 // parseAuto parses auto variable declarations
+// Note: Variables within ONE auto statement are allocated in forward order.
+// Reverse allocation happens at the statement level (last statement allocated first).
 func parseAuto(l *Lexer, c *Compiler) error {
+	// Collect all declarations in this auto statement
+	type autoDecl struct {
+		name string
+		size int64 // -1 for scalar, >= 0 for array
+	}
+	var decls []autoDecl
+
 	for {
 		name, err := l.Identifier()
 		if err != nil || name == "" {
@@ -527,10 +536,20 @@ func parseAuto(l *Lexer, c *Compiler) error {
 
 			var size int64 = 0
 			if ch2 != ']' {
-				l.UnreadChar(ch2)
-				size, err = l.Number()
-				if err != nil {
-					return err
+				// Array size can be a number or character constant
+				if ch2 == '\'' {
+					// Character constant (already read the opening ')
+					size, err = l.Character()
+					if err != nil {
+						return err
+					}
+				} else {
+					// Should be a number
+					l.UnreadChar(ch2)
+					size, err = l.Number()
+					if err != nil {
+						return err
+					}
 				}
 				if err := l.Whitespace(); err != nil {
 					return err
@@ -540,7 +559,7 @@ func parseAuto(l *Lexer, c *Compiler) error {
 				}
 			}
 
-			c.DeclareLocalArray(name, size)
+			decls = append(decls, autoDecl{name: name, size: size})
 
 			if err := l.Whitespace(); err != nil {
 				return err
@@ -555,38 +574,30 @@ func parseAuto(l *Lexer, c *Compiler) error {
 			}
 			if ch != ',' {
 				return fmt.Errorf("unexpected character '%c', expect ';' or ','", ch)
-			}
-		} else if ch == ';' || ch == ',' {
-			// Scalar variable with no initialization
-			c.DeclareLocal(name)
-			if ch == ';' {
-				break
 			}
 		} else {
-			// Scalar variable with initialization
-			l.UnreadChar(ch)
-			val, err := parseExpression(l, c)
-			if err != nil {
-				return err
+			// Scalar variable - no initialization allowed
+			// Must be ';' or ','
+			if ch != ';' && ch != ',' {
+				return fmt.Errorf("unexpected character '%c', expect ';' or ',' after auto variable", ch)
 			}
-
-			// Declare and initialize
-			alloca := c.DeclareLocal(name)
-			c.builder.NewStore(val, alloca)
-
-			if err := l.Whitespace(); err != nil {
-				return err
-			}
-			ch, err = l.ReadChar()
-			if err != nil {
-				return err
-			}
+			decls = append(decls, autoDecl{name: name, size: -1})
 			if ch == ';' {
 				break
 			}
-			if ch != ',' {
-				return fmt.Errorf("unexpected character '%c', expect ';' or ','", ch)
-			}
+		}
+	}
+
+	// Declare in FORWARD order (variables within one auto statement)
+	// The reverse order happens at the statement level, not variable level
+	for i := 0; i < len(decls); i++ {
+		decl := decls[i]
+		if decl.size == -1 {
+			// Scalar
+			c.DeclareLocal(decl.name)
+		} else {
+			// Array
+			c.DeclareLocalArray(decl.name, decl.size)
 		}
 	}
 

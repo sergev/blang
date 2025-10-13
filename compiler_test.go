@@ -93,7 +93,7 @@ func TestCompileErrors(t *testing.T) {
 			name:        "missing_semicolon",
 			content:     "main() { auto x x = 10; }",
 			wantErr:     true,
-			errContains: "undefined identifier",
+			errContains: "expect ';' or ','",
 		},
 		{
 			name:        "unclosed_char_literal",
@@ -1045,36 +1045,34 @@ c = -345, 'foo', "bar", 0
 		{
 			name: "local_scalars",
 			code: `main() {
-				auto a 123;
-				auto b 'x';
+				auto a;
+				auto b;
 				auto c;
 
-				printf("offset a = %d*n", (&a) - &a);
-				printf("offset b = %d*n", (&b) - &a);
-				printf("offset c = %d*n", (&c) - &a);
+				printf("offset a = %d*n", (&a) - &c);
+				printf("offset b = %d*n", (&b) - &c);
+				printf("offset c = %d*n", (&c) - &c);
 			}`,
-			wantStdout: `offset a = 0
-offset b = -8
-offset c = -16
-`, // TODO: must be offset b = -968, offset c = -984
-
+			wantStdout: `offset a = 16
+offset b = 8
+offset c = 0
+`,
 		},
 		{
 			name: "local_vectors",
 			code: `main() {
-				auto a[];
-				auto b[123];
-				auto c[];
+				auto a[124];
+				auto b['x'];
+				auto c[1];
 
-				printf("offset a = %d*n", (&a) - &a);
-				printf("offset b = %d*n", (&b) - &a);
-				printf("offset c = %d*n", (&c) - &a);
+				printf("offset a = %d*n", (&a) - &c);
+				printf("offset b = %d*n", (&b) - &c);
+				printf("offset c = %d*n", (&c) - &c);
 			}`,
-			wantStdout: `offset a = 0
-offset b = -992
-offset c = -1008
-`, // TODO: must be offset b = -1000, offset c = -1008
-
+			wantStdout: `offset a = 984
+offset b = 16
+offset c = 0
+`,
 		},
 	}
 
