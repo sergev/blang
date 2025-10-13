@@ -241,6 +241,44 @@ main() {
 - Short-circuit evaluation: only one branch is evaluated
 - Works in complex expressions: `x + (y > 0 ? z : 0)`
 
+### Compound Assignment Operators
+
+All 15 compound assignment operators are supported:
+
+```b
+main() {
+    auto x;
+
+    /* Arithmetic */
+    x = 10; x =+ 5;   /* x = x + 5  → 15 */
+    x = 20; x =- 3;   /* x = x - 3  → 17 */
+    x = 4;  x =* 3;   /* x = x * 3  → 12 */
+    x = 20; x =/ 4;   /* x = x / 4  → 5  */
+    x = 17; x =% 5;   /* x = x % 5  → 2  */
+
+    /* Bitwise */
+    x = 12; x =& 10;  /* x = x & 10 → 8  */
+    x = 12; x =| 10;  /* x = x | 10 → 14 */
+
+    /* Shift */
+    x = 2;  x =<< 2;  /* x = x << 2 → 8  */
+    x = 16; x =>> 2;  /* x = x >> 2 → 4  */
+
+    /* Comparison (assigns boolean result) */
+    x = 5;  x =< 3;   /* x = (x < 3)  → 0 */
+    x = 2;  x =<= 3;  /* x = (x <= 3) → 1 */
+    x = 4;  x => 5;   /* x = (x > 5)  → 0 */
+    x = 6;  x =>= 5;  /* x = (x >= 5) → 1 */
+    x = 5;  x =!= 3;  /* x = (x != 3) → 1 */
+    x = 5;  x === 5;  /* x = (x == 5) → 1 */
+}
+```
+
+**Implementation Notes:**
+- Multi-character operators parsed with proper lookahead
+- `===` specially handled to distinguish from `==` comparison
+- All operators expand to: `x =op y` → `x = x op y`
+
 ## Testing
 
 All test programs compile successfully to LLVM IR:
@@ -277,6 +315,8 @@ go test
 ✅ **Escape Sequences** - All B escape sequences verified (10 sequences)
 ✅ **Indirect Function Calls** - Function pointers stored in variables and called through them
 ✅ **Ternary Operator** - Full support for nested `? :` expressions
+✅ **Compound Assignments** - All 15 operators (`=+`, `=-`, `=*`, `/`, `=%`, `=<<`, `=>>`, `=&`, `=|`, `=<`, `=<=`, `=>`, `=>=`, `=!=`, `===`)
+✅ **Nested While Loops** - Unique label generation for arbitrary nesting
 
 ## Example Generated IR
 

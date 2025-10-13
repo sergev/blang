@@ -93,8 +93,33 @@ func parseExpressionWithLevel(l *Lexer, c *Compiler, level int) (value.Value, er
 		// Assignment operators (level 14, right associative)
 		if level >= 14 && ch == '=' && !handled {
 			ch2, err2 := l.ReadChar()
+
+			// Check for === first (compound assignment for equality)
 			if err2 == nil && ch2 == '=' {
-				// Equality comparison ==, not assignment
+				ch3, err3 := l.ReadChar()
+				if err3 == nil && ch3 == '=' {
+					// === compound assignment
+					if !isLvalue {
+						return nil, fmt.Errorf("left operand of assignment must be an lvalue")
+					}
+					// Parse right side
+					right, err := parseExpressionWithLevel(l, c, 14)
+					if err != nil {
+						return nil, err
+					}
+					// x === y → x = (x == y)
+					currentVal := c.builder.NewLoad(c.WordType(), left)
+					cmp := c.builder.NewICmp(enum.IPredEQ, currentVal, right)
+					newVal := c.builder.NewZExt(cmp, c.WordType())
+					c.builder.NewStore(newVal, left)
+					return newVal, nil
+				}
+
+				// Not ===, check if it's == (equality comparison)
+				if err3 == nil {
+					l.UnreadChar(ch3)
+				}
+				// == equality comparison
 				if isLvalue {
 					left = c.builder.NewLoad(c.WordType(), left)
 					isLvalue = false
@@ -113,29 +138,125 @@ func parseExpressionWithLevel(l *Lexer, c *Compiler, level int) (value.Value, er
 				l.UnreadChar(ch)
 				break
 			}
-			if err2 == nil {
-				l.UnreadChar(ch2)
-			}
 
-			// Assignment
+			// Assignment (simple or compound)
 			if !isLvalue {
 				return nil, fmt.Errorf("left operand of assignment must be an lvalue")
 			}
 
-			// TODO: Implement compound assignments (=+, =-, =*, etc.)
-			// For now, only simple assignment (=) is supported
-			// Use regular syntax: x = x + 5 instead of x =+ 5
-			if err2 != nil {
-				// Error reading second char, assume simple assignment
+			// Check for compound assignment operators
+			var compoundOp rune = 0
+			if err2 == nil {
+				// Check if it's a compound assignment
+				switch ch2 {
+				case '+', '-', '*', '/', '%', '&', '|':
+					compoundOp = ch2
+				case '<', '>':
+					// Could be =<, =>, =<=, =>>, =>=
+					ch3, err3 := l.ReadChar()
+					if err3 == nil {
+						if (ch2 == '<' && ch3 == '<') || (ch2 == '>' && ch3 == '>') {
+							// =<< or =>>
+							compoundOp = ch2
+							// Mark as shift operator (use special marker)
+							if ch2 == '<' {
+								compoundOp = '«' // Left shift marker
+							} else {
+								compoundOp = '»' // Right shift marker
+							}
+						} else if ch3 == '=' {
+							// =<= or =>=
+							compoundOp = ch2
+							// Mark as comparison with = (use special markers)
+							if ch2 == '<' {
+								compoundOp = '≤' // <= marker
+							} else {
+								compoundOp = '≥' // >= marker
+							}
+						} else {
+							// Just =< or =>
+							l.UnreadChar(ch3)
+							compoundOp = ch2
+						}
+					} else {
+						compoundOp = ch2
+					}
+				case '!':
+					// =!=
+					ch3, err3 := l.ReadChar()
+					if err3 == nil && ch3 == '=' {
+						compoundOp = '≠' // != marker
+					} else {
+						if err3 == nil {
+							l.UnreadChar(ch3)
+						}
+						l.UnreadChar(ch2)
+					}
+				default:
+					l.UnreadChar(ch2)
+				}
 			}
 
-			// Simple assignment
+			// Parse right side
 			right, err := parseExpressionWithLevel(l, c, 14)
 			if err != nil {
 				return nil, err
 			}
-			c.builder.NewStore(right, left)
-			return right, nil
+
+			// Perform compound assignment or simple assignment
+			if compoundOp != 0 {
+				// Compound assignment: x =op y → x = x op y
+				// Load current value
+				currentVal := c.builder.NewLoad(c.WordType(), left)
+				var newVal value.Value
+
+				switch compoundOp {
+				case '+':
+					newVal = c.builder.NewAdd(currentVal, right)
+				case '-':
+					newVal = c.builder.NewSub(currentVal, right)
+				case '*':
+					newVal = c.builder.NewMul(currentVal, right)
+				case '/':
+					newVal = c.builder.NewSDiv(currentVal, right)
+				case '%':
+					newVal = c.builder.NewSRem(currentVal, right)
+				case '&':
+					newVal = c.builder.NewAnd(currentVal, right)
+				case '|':
+					newVal = c.builder.NewOr(currentVal, right)
+				case '«': // =<<
+					newVal = c.builder.NewShl(currentVal, right)
+				case '»': // =>>
+					newVal = c.builder.NewAShr(currentVal, right)
+				case '<': // =<
+					cmp := c.builder.NewICmp(enum.IPredSLT, currentVal, right)
+					newVal = c.builder.NewZExt(cmp, c.WordType())
+				case '≤': // =<=
+					cmp := c.builder.NewICmp(enum.IPredSLE, currentVal, right)
+					newVal = c.builder.NewZExt(cmp, c.WordType())
+				case '>': // =>
+					cmp := c.builder.NewICmp(enum.IPredSGT, currentVal, right)
+					newVal = c.builder.NewZExt(cmp, c.WordType())
+				case '≥': // =>=
+					cmp := c.builder.NewICmp(enum.IPredSGE, currentVal, right)
+					newVal = c.builder.NewZExt(cmp, c.WordType())
+				case '≠': // =!=
+					cmp := c.builder.NewICmp(enum.IPredNE, currentVal, right)
+					newVal = c.builder.NewZExt(cmp, c.WordType())
+				case '⩵': // ===
+					cmp := c.builder.NewICmp(enum.IPredEQ, currentVal, right)
+					newVal = c.builder.NewZExt(cmp, c.WordType())
+				default:
+					return nil, fmt.Errorf("unknown compound assignment operator")
+				}
+				c.builder.NewStore(newVal, left)
+				return newVal, nil
+			} else {
+				// Simple assignment
+				c.builder.NewStore(right, left)
+				return right, nil
+			}
 		}
 
 		// Binary operators (left associative)

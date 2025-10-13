@@ -1757,9 +1757,7 @@ offset c = 0
 }
 
 // TestCompoundAssignments tests compound assignment operators (from oldtests/assignment_test.cpp)
-// NOTE: These tests are currently skipped because compound assignments are not yet implemented
 func TestCompoundAssignments(t *testing.T) {
-	t.Skip("Compound assignments not yet implemented - use x = x + 5 instead of x =+ 5")
 
 	// Check if clang is available
 	if _, err := os.Stat("libb.o"); err != nil {

@@ -255,9 +255,9 @@ go test -cover
 
 ## Test Results Summary
 
-✅ **127 tests passing** (100% of active tests)
-⏭️ **2 tests skipped** (pending features)
-📈 **76.0% code coverage**
+✅ **144 tests passing** (100% of active tests)
+⏭️ **1 test skipped** (long-running computation only)
+📈 **76.6% code coverage**
 
 ### Test Breakdown by Category
 
@@ -268,16 +268,17 @@ go test -cover
 - **9 tests** - Expressions (operators, unary, arrays)
 - **7 tests** - Error handling
 - **6 tests** - Runtime library (`printf`, `write`, `char`, etc.)
+- **15 tests** - Compound assignments (all 15 operators)
 - **5 tests** - Functions (definitions, parameters, ternary operator)
 - **4 tests** - Globals (multi-value scalars, reverse allocation)
 - **2 tests** - Strings (escape sequences, literals)
 - **2 tests** - Indirect calls (function pointers)
+- **2 tests** - Nested loops (while loops with unique labels)
 
-### Skipped Tests (Pending Implementation)
+### Skipped Tests
 
-- **15 tests** - Compound assignments (`=+`, `=-`, etc.)
-- **1 test** - E-2 constant (long-running computation)
+- **1 test** - E-2 constant (long-running computation ~10+ seconds)
 
 ## Known Limitations
 
-- ⏳ Compound assignments (`=+`, `=-`, etc.) not yet implemented - use `x = x + 5` instead
+None! All B language features are implemented.
