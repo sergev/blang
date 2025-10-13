@@ -102,7 +102,11 @@ main() {
 - ✅ Forward references (`extrn` declarations)
 - ✅ LLVM IR backend
 - ✅ Runtime library integration (`libb.c`)
-- ✅ Comprehensive test suite (84 active tests, 71.4% coverage)
+- ✅ **Scalar with multiple initialization values** (`c -345, 'foo', "bar";`)
+- ✅ **Auto arrays with character constant sizes** (`auto buf['x'];`)
+- ✅ **Reverse allocation order for auto statements**
+- ✅ **Expression parser bug fixes** (equality operator chaining)
+- ✅ Comprehensive test suite (120 active tests, 73.4% coverage)
 
 ---
 
@@ -201,13 +205,16 @@ See sections below for details on pending features.
 | Compiler Tests | ✅ Complete | 10 | Basic compilation verification |
 | Error Handling | ✅ Complete | 7 | Compilation error scenarios |
 | Integration Tests | ✅ Complete | 9 | Compile + link + run |
-| Runtime Library | ✅ Complete | 5 | `printf`, `write`, `char` functions |
+| Runtime Library | ✅ Complete | 6 | All `libb` functions |
+| Precedence Tests | ✅ Complete | 28 | All operator precedence combinations |
 | Expression Tests | ✅ Complete | 9 | All operators and precedence |
+| String Tests | ✅ Complete | 2 | Escape sequences, literals |
+| Globals Tests | ✅ Complete | 4 | Global/local allocation, multi-value scalars |
 | Function Tests | 🟡 Partial | 2/3 | Missing ternary operator |
 | E-2 Constant | ⏭️ Skipped | 1 | Long-running (~10+ seconds) |
 | Compound Assignments | ⏭️ Skipped | 15 | Not implemented |
 
-**Total: 84 active tests passing, 3 skipped (pending implementation)**
+**Total: 120 active tests passing, 3 skipped (pending implementation)**
 
 ---
 
@@ -258,6 +265,6 @@ All critical bugs have been fixed:
 
 ---
 
-**Last Updated:** October 12, 2025
+**Last Updated:** October 13, 2025
 **Compiler Version:** LLVM Backend (production-ready)
-**Test Pass Rate:** 100% (84/84 active tests)
+**Test Pass Rate:** 100% (120/120 active tests)

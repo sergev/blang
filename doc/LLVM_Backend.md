@@ -10,11 +10,12 @@ The B compiler generates LLVM IR instead of x86_64 assembly, providing portabili
 
 ### Files
 
-- **`llvm_codegen.go`** (253 lines) - LLVM IR generation infrastructure
-- **`llvm_parser.go`** (659 lines) - B language parser for LLVM backend
-- **`llvm_expr.go`** (754 lines) - Comprehensive expression parser with full operator precedence
+- **`codegen.go`** - LLVM IR generation infrastructure
+- **`parser.go`** - B language parser for LLVM backend
+- **`expr.go`** - Comprehensive expression parser with full operator precedence
+- **`control.go`** - Control flow statement handling (switch/case, goto)
 
-**Total: 1,666 lines** of LLVM backend code
+**Total:** Complete B language implementation with LLVM backend
 
 ### Expression Parser
 
@@ -129,6 +130,58 @@ main() {
 }
 ```
 
+## Advanced Features
+
+### Scalar with Multiple Initialization Values
+
+B allows allocating multiple consecutive words for a scalar variable:
+
+```b
+c -345, 'foo', "bar";  /* Allocates 3 words */
+
+main() {
+    auto ptr;
+    
+    ptr = &c;
+    printf("%d*n", c);      /* Prints -345 (first value) */
+    printf("%c*n", ptr[1]); /* Prints 'foo' (second value) */
+    printf("%s*n", ptr[2]); /* Prints "bar" (third value) */
+}
+```
+
+**Memory Layout:**
+- `&c + 0`: -345
+- `&c + 8`: 'foo' (0x666F6F)
+- `&c + 16`: pointer to "bar"
+
+### Auto Arrays with Expression Sizes
+
+Array sizes can be numeric or character constants:
+
+```b
+main() {
+    auto buffer['x'];     /* Size = 120 (ASCII 'x') */
+    auto data[100];       /* Size = 100 */
+    auto temp[];          /* Size = 1 (default) */
+}
+```
+
+### Reverse Allocation Order
+
+Auto statements are allocated in reverse order on the stack:
+
+```b
+main() {
+    auto a, b;     /* Statement 1 */
+    auto c[10];    /* Statement 2 */
+    auto d, e;     /* Statement 3 */
+    
+    /* Stack allocation: d, e → c → a, b */
+}
+```
+
+Variables within one statement are allocated in forward order.
+
 ## Testing
 
 All test programs compile successfully to LLVM IR:
@@ -145,17 +198,24 @@ All test programs compile successfully to LLVM IR:
 
 # Test all operators
 ./blang -o operators.ll testdata/operators.b
+
+# Run unit tests (120 tests)
+go test
 ```
 
 ## Verified Features
 
-✅ **Operator Precedence** - All 15 levels implemented correctly
+✅ **Operator Precedence** - All 15 levels implemented correctly (28 tests)
 ✅ **Type Conversions** - Boolean (i1) → Integer (i64) automatic conversion
 ✅ **Lvalue/Rvalue** - Proper handling of addressable vs value expressions
 ✅ **Function Calls** - Including automatic external function declaration
-✅ **Control Flow** - if/else, while loops, returns
-✅ **Recursion** - Tested with factorial function
-✅ **Complex Expressions** - Nested operators, ternary, parentheses
+✅ **Control Flow** - if/else, while loops, switch/case, goto, labels
+✅ **Recursion** - Tested with factorial and fibonacci
+✅ **Complex Expressions** - Nested operators, chained comparisons, parentheses
+✅ **Scalar with Multiple Values** - `c -345, 'foo', "bar";` allocates consecutive words
+✅ **Auto Arrays** - Character constant sizes supported: `auto buf['x'];`
+✅ **Reverse Allocation** - Auto statements allocated in reverse order
+✅ **Escape Sequences** - All B escape sequences verified (10 sequences)
 
 ## Example Generated IR
 
