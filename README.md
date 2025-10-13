@@ -104,8 +104,7 @@ blang/
 │   └── README.md          # Runtime documentation
 ├── doc/                   # Documentation
 ├── testdata/              # Test programs
-├── examples/              # Example B programs
-└── c-prototype/           # Original C implementation
+└── examples/              # Example B programs
 ```
 
 ## Contributing

@@ -746,10 +746,12 @@ func parseWhile(l *Lexer, c *Compiler) error {
 		return err
 	}
 
-	// Create blocks
-	condBlock := c.NewBlock("while.cond")
-	bodyBlock := c.NewBlock("while.body")
-	endBlock := c.NewBlock("while.end")
+	// Create unique blocks for this while loop
+	whileID := c.labelID
+	c.labelID++
+	condBlock := c.NewBlock(fmt.Sprintf("while.%d.cond", whileID))
+	bodyBlock := c.NewBlock(fmt.Sprintf("while.%d.body", whileID))
+	endBlock := c.NewBlock(fmt.Sprintf("while.%d.end", whileID))
 
 	// Jump to condition
 	c.builder.NewBr(condBlock)
