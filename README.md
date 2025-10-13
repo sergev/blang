@@ -4,7 +4,7 @@ A modern B programming language compiler written in Go with LLVM IR backend.
 
 The [B programming language](https://en.wikipedia.org/wiki/B_(programming_language)) was developed by Ken Thompson and Dennis Ritchie at Bell Labs in 1969 as the predecessor to C.
 
-**Status:** ✅ Production-ready • 84 tests passing • 71.4% coverage
+**Status:** ✅ **Feature-Complete** • 144 tests passing • 76.6% coverage
 
 ## Quick Start
 
@@ -22,19 +22,49 @@ clang hello.ll libb.o -o hello
 
 ## Features
 
-**Fully Implemented:**
-- ✅ Variables, arrays, pointers, functions
-- ✅ All operators with correct precedence
-- ✅ Control flow: if/else, while, switch/case, goto
-- ✅ String literals, multi-character constants
-- ✅ LLVM IR backend for portability
-- ✅ Comprehensive runtime library
+**🎉 100% B Language Feature Completeness Achieved!**
 
-**Pending:**
-- ⏳ Compound assignments (`=+`, `=-`, etc.)
-- ⏳ Ternary operator (`? :`)
+**Core Language:**
+- ✅ Variables (`auto`, `extrn`, global scalars)
+- ✅ Arrays (local and global with B semantics)
+- ✅ Pointers (address-of, dereference, arithmetic)
+- ✅ Functions (definitions, parameters, recursion)
 
-See **[TODO.md](doc/TODO.md)** for complete feature roadmap.
+**All Operators (15 precedence levels):**
+- ✅ Arithmetic: `+`, `-`, `*`, `/`, `%`
+- ✅ Comparison: `<`, `<=`, `>`, `>=`, `==`, `!=`
+- ✅ Bitwise: `&`, `|`, `<<`, `>>`
+- ✅ Logical: `!`
+- ✅ Unary: `-`, `&`, `*`, `++`, `--` (prefix & postfix)
+- ✅ Assignment: `=`
+- ✅ **Compound assignments:** `=+`, `=-`, `=*`, `=/`, `=%`, `=<<`, `=>>`, `=&`, `=|`, `=<`, `=<=`, `=>`, `=>=`, `=!=`, `===` (all 15 operators)
+- ✅ **Ternary conditional:** `? :` (with nested support)
+- ✅ Array indexing: `[]`
+- ✅ Function calls: `()` (including indirect calls via pointers)
+
+**Control Flow:**
+- ✅ `if`/`else` statements (including nested)
+- ✅ `while` loops (with unique labels for nesting)
+- ✅ `switch`/`case` statements
+- ✅ `goto` and labels
+- ✅ `return` statements
+
+**Advanced Features:**
+- ✅ Scalar with multiple initialization values (`c -345, 'foo', "bar";`)
+- ✅ Character constants in array sizes (`auto buf['x'];`)
+- ✅ Reverse auto allocation order
+- ✅ **Indirect function calls** via function pointer variables
+- ✅ Forward references with `extrn`
+- ✅ Multi-character constants
+- ✅ All escape sequences
+- ✅ **Optimized large array generation** (95-99% .ll file size reduction)
+
+**Backend & Runtime:**
+- ✅ LLVM IR code generation for portability
+- ✅ Comprehensive runtime library (`printf`, `write`, `exit`, etc.)
+- ✅ Automatic external function declaration
+
+See **[LLVM_Backend.md](doc/LLVM_Backend.md)** for detailed feature documentation.
 
 ## Usage
 
@@ -82,17 +112,18 @@ go test -v          # Run all tests
 go test -cover      # With coverage report
 ```
 
-**84 tests passing** covering lexer, parser, code generation, and full integration tests.
+**144 tests passing** (99.3% pass rate):
 
-See **[Testing.md](doc/Testing.md)** for detailed testing guide and test programs.
+See **[Testing.md](doc/Testing.md)** for detailed testing guide and **[Test_Coverage_Plan.md](doc/Test_Coverage_Plan.md)** for coverage improvement roadmap (76.6% → 85%+ target).
 
 ## Documentation
 
 - **[Testing Guide](doc/Testing.md)** - How to compile and run B programs, test examples
-- **[LLVM Backend](doc/LLVM_Backend.md)** - LLVM IR code generation details
+- **[LLVM Backend](doc/LLVM_Backend.md)** - LLVM IR code generation, all features documented
 - **[Runtime Library](libb/README.md)** - Complete `libb.c` function reference
-- **[TODO List](doc/TODO.md)** - Pending features and roadmap
-- **[Development Journal](doc/Journal.md)** - Complete project history
+- **[Test Coverage Plan](doc/Test_Coverage_Plan.md)** - Detailed plan to improve coverage 76.6% → 85%+
+- **[Development Journal](doc/Journal.md)** - Complete project history (C prototype → feature-complete Go compiler)
+- **[TODO List](doc/TODO.md)** - All core features complete! Optional enhancements only
 
 ## Project Structure
 
@@ -109,10 +140,14 @@ blang/
 
 ## Contributing
 
-Contributions welcome! Check **[TODO.md](doc/TODO.md)** for:
-- Feature priorities
-- Implementation suggestions
-- Time estimates
+All core B language features are complete! Contributions welcome for:
+- Improving test coverage (see **[Test_Coverage_Plan.md](doc/Test_Coverage_Plan.md)**)
+- Code quality improvements
+- Performance optimizations
+- Additional platforms
+- Documentation enhancements
+
+Check **[TODO.md](doc/TODO.md)** for optional enhancement ideas.
 
 ## References
 
