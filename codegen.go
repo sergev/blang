@@ -64,6 +64,22 @@ func (c *Compiler) DeclareGlobal(name string, init constant.Constant) *ir.Global
 	return global
 }
 
+// DeclareGlobalWithMultipleValues declares a global scalar with multiple initialization values
+// This allocates N consecutive words but treats it as a scalar (not an array)
+// Example: c -345, 'foo', "bar";  allocates 3 words starting at &c
+func (c *Compiler) DeclareGlobalWithMultipleValues(name string, values []constant.Constant) *ir.Global {
+	// Create an array type to hold all values
+	arrayType := types.NewArray(uint64(len(values)), c.WordType())
+
+	// Create constant array with all values
+	arrayInit := constant.NewArray(arrayType, values...)
+
+	// Create the global - it's a scalar name but backed by array storage
+	global := c.module.NewGlobalDef(name, arrayInit)
+	c.globals[name] = global
+	return global
+}
+
 // DeclareGlobalArray declares a global array (vector)
 // In B, arrays work as follows:
 //   - name[N] creates N+1 words
@@ -208,7 +224,12 @@ func (c *Compiler) DeclareLocal(name string) value.Value {
 //   - array[N] allocates N+1 words
 //   - First word contains pointer to second word (where data starts)
 //   - This allows array[-1] to get the original pointer
+//   - Empty arrays (size 0) default to size 1
 func (c *Compiler) DeclareLocalArray(name string, size int64) value.Value {
+	// Empty arrays default to size 1
+	if size == 0 {
+		size = 1
+	}
 	arraySize := size + 1 // +1 for pointer storage in first element
 	arrayType := types.NewArray(uint64(arraySize), c.WordType())
 	alloca := c.builder.NewAlloca(arrayType)
@@ -267,8 +288,19 @@ func (c *Compiler) GetAddress(name string) (value.Value, bool) {
 	}
 
 	// Check globals
-	if val, ok := c.globals[name]; ok {
-		return val, true
+	if global, ok := c.globals[name]; ok {
+		// Check if the global is an array type (scalar with multiple values: c -345, 'foo', "bar";)
+		// If so, return pointer to first element for proper load semantics
+		if irGlobal, ok := global.(*ir.Global); ok {
+			if arrayType, ok := irGlobal.ContentType.(*types.ArrayType); ok {
+				// Get pointer to first element
+				firstElem := c.builder.NewGetElementPtr(arrayType, irGlobal,
+					constant.NewInt(types.I32, 0),
+					constant.NewInt(types.I32, 0))
+				return firstElem, true
+			}
+		}
+		return global, true
 	}
 
 	return nil, false

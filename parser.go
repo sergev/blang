@@ -83,21 +83,38 @@ func parseGlobal(l *Lexer, c *Compiler, name string) error {
 	if ch != ';' {
 		l.UnreadChar(ch)
 		// Parse initialization list
-		init, err := parseIvalConst(l, c)
-		if err != nil {
-			return err
-		}
-		c.DeclareGlobal(name, init)
+		var initVals []constant.Constant
+		for {
+			if err := l.Whitespace(); err != nil {
+				return err
+			}
+			val, err := parseIvalConst(l, c)
+			if err != nil {
+				return err
+			}
+			initVals = append(initVals, val)
 
-		if err := l.Whitespace(); err != nil {
-			return err
+			if err := l.Whitespace(); err != nil {
+				return err
+			}
+			ch, err := l.ReadChar()
+			if err != nil {
+				return err
+			}
+			if ch == ';' {
+				break
+			}
+			if ch != ',' {
+				return fmt.Errorf("expect ';' at end of declaration")
+			}
 		}
-		ch, err = l.ReadChar()
-		if err != nil {
-			return err
-		}
-		if ch != ';' {
-			return fmt.Errorf("expect ';' at end of declaration")
+
+		// If multiple values, allocate multiple words for scalar
+		// (not an array - just a scalar with consecutive initialization)
+		if len(initVals) > 1 {
+			c.DeclareGlobalWithMultipleValues(name, initVals)
+		} else {
+			c.DeclareGlobal(name, initVals[0])
 		}
 	} else {
 		c.DeclareGlobal(name, nil)
@@ -499,16 +516,30 @@ func parseAuto(l *Lexer, c *Compiler) error {
 
 		if ch == '[' {
 			// Array declaration
-			size, err := l.Number()
-			if err != nil {
-				return err
-			}
 			if err := l.Whitespace(); err != nil {
 				return err
 			}
-			if err := l.ExpectChar(']', "expect ']' after array size"); err != nil {
+
+			ch2, err := l.ReadChar()
+			if err != nil {
 				return err
 			}
+
+			var size int64 = 0
+			if ch2 != ']' {
+				l.UnreadChar(ch2)
+				size, err = l.Number()
+				if err != nil {
+					return err
+				}
+				if err := l.Whitespace(); err != nil {
+					return err
+				}
+				if err := l.ExpectChar(']', "expect ']' after array size"); err != nil {
+					return err
+				}
+			}
+
 			c.DeclareLocalArray(name, size)
 
 			if err := l.Whitespace(); err != nil {
@@ -518,16 +549,44 @@ func parseAuto(l *Lexer, c *Compiler) error {
 			if err != nil {
 				return err
 			}
-		} else {
-			// Scalar variable
-			c.DeclareLocal(name)
-		}
 
-		if ch == ';' {
-			break
-		}
-		if ch != ',' {
-			return fmt.Errorf("unexpected character '%c', expect ';' or ','", ch)
+			if ch == ';' {
+				break
+			}
+			if ch != ',' {
+				return fmt.Errorf("unexpected character '%c', expect ';' or ','", ch)
+			}
+		} else if ch == ';' || ch == ',' {
+			// Scalar variable with no initialization
+			c.DeclareLocal(name)
+			if ch == ';' {
+				break
+			}
+		} else {
+			// Scalar variable with initialization
+			l.UnreadChar(ch)
+			val, err := parseExpression(l, c)
+			if err != nil {
+				return err
+			}
+
+			// Declare and initialize
+			alloca := c.DeclareLocal(name)
+			c.builder.NewStore(val, alloca)
+
+			if err := l.Whitespace(); err != nil {
+				return err
+			}
+			ch, err = l.ReadChar()
+			if err != nil {
+				return err
+			}
+			if ch == ';' {
+				break
+			}
+			if ch != ',' {
+				return fmt.Errorf("unexpected character '%c', expect ';' or ','", ch)
+			}
 		}
 	}
 
