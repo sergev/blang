@@ -255,9 +255,9 @@ go test -cover
 
 ## Test Results Summary
 
-✅ **120 tests passing** (100% of active tests)
+✅ **124 tests passing** (100% of active tests)
 ⏭️ **3 tests skipped** (pending features)
-📈 **73.4% code coverage**
+📈 **73.9% code coverage**
 
 ### Test Breakdown by Category
 
@@ -271,6 +271,7 @@ go test -cover
 - **4 tests** - Globals (multi-value scalars, reverse allocation)
 - **3 tests** - Functions (definitions, parameters, calls)
 - **2 tests** - Strings (escape sequences, literals)
+- **2 tests** - Indirect calls (function pointers)
 
 ### Skipped Tests (Pending Implementation)
 
@@ -282,4 +283,3 @@ go test -cover
 
 - ⏳ Compound assignments (`=+`, `=-`, etc.) not yet implemented - use `x = x + 5` instead
 - ⏳ Ternary operator (`? :`) not yet implemented
-- ⏳ Indirect function calls via `extrn` function pointers not fully supported

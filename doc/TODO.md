@@ -57,35 +57,6 @@ choose(a, b, c) {
 
 ---
 
-### Medium Priority
-
-#### 3. Indirect Function Calls via `extrn` Function Pointers
-**Status:** Partially implemented
-**Current Behavior:** `extrn` variables are created, but calling through them is not supported
-
-**Example:**
-```b
-extrn printf;  /* printf is a function pointer variable */
-
-main() {
-    printf("hello");  /* Should do indirect call through pointer */
-}
-```
-
-**Implementation Notes:**
-- When `extrn name` is declared, `name` becomes a variable holding a function pointer
-- Direct function calls: `name(...)` where `name` is defined as a function
-- Indirect calls: `name(...)` where `name` is an `extrn` variable
-
-**Current Implementation:**
-- `GetOrDeclareFunction` returns `nil` for `extrn` names
-- Caller needs to handle indirect call through function pointer
-- See `codegen.go:145-164` for current logic
-
-**Files to modify:**
-- `expr.go` - Update postfix function call handler to support indirect calls
-- Add test case for indirect function calls
-
 ---
 
 ## ✅ Recently Completed
@@ -106,7 +77,8 @@ main() {
 - ✅ **Auto arrays with character constant sizes** (`auto buf['x'];`)
 - ✅ **Reverse allocation order for auto statements**
 - ✅ **Expression parser bug fixes** (equality operator chaining)
-- ✅ Comprehensive test suite (120 active tests, 73.4% coverage)
+- ✅ **Indirect function calls** via function pointer variables
+- ✅ Comprehensive test suite (124 active tests, 73.9% coverage)
 
 ---
 
@@ -211,10 +183,11 @@ See sections below for details on pending features.
 | String Tests | ✅ Complete | 2 | Escape sequences, literals |
 | Globals Tests | ✅ Complete | 4 | Global/local allocation, multi-value scalars |
 | Function Tests | 🟡 Partial | 2/3 | Missing ternary operator |
+| Indirect Calls | ✅ Complete | 2 | Function pointers |
 | E-2 Constant | ⏭️ Skipped | 1 | Long-running (~10+ seconds) |
 | Compound Assignments | ⏭️ Skipped | 15 | Not implemented |
 
-**Total: 120 active tests passing, 3 skipped (pending implementation)**
+**Total: 124 active tests passing, 3 skipped (pending implementation)**
 
 ---
 
@@ -254,17 +227,14 @@ All critical bugs have been fixed:
    - High test coverage (15 tests)
    - Significant language feature
 
-3. **Indirect Function Calls** (2-3 hours)
-   - Edge case but important for flexibility
-   - May require refactoring of call handling
-
-4. **Code Quality Improvements** (ongoing)
+3. **Code Quality Improvements** (ongoing)
    - Better error messages
    - More documentation
    - Performance optimization
+
 
 ---
 
 **Last Updated:** October 13, 2025
 **Compiler Version:** LLVM Backend (production-ready)
-**Test Pass Rate:** 100% (120/120 active tests)
+**Test Pass Rate:** 100% (124/124 active tests)

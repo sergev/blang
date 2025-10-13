@@ -56,13 +56,19 @@ This allows B programs to call C library functions **without explicit `extrn` de
 printf("hello");  /* Undefined function, auto-declared as external ✅ */
 ```
 
-**Indirect Function Calls (Pending Implementation):**
+**Indirect Function Calls (via Variables):**
 ```b
-extrn printf;           /* Declares printf as function pointer variable */
-printf("hello");        /* Should call through pointer - NOT YET SUPPORTED ⏳ */
+add(a, b) { return(a + b); }
+func_ptr;               /* Global variable */
+
+main() {
+    extrn func_ptr;     /* Declares func_ptr as external variable */
+    func_ptr = add;     /* Function name is its address */
+    printf("%d", func_ptr(3, 5));  /* Indirect call through pointer ✅ */
+}
 ```
 
-**Recommendation:** Use direct function calls (no `extrn` for functions) until indirect calls are implemented.
+**Note:** Function names are automatically their addresses in B (no `&` operator needed).
 
 ## Compiling and Linking
 
@@ -141,7 +147,7 @@ c -345, 'foo', "bar";  /* Allocates 3 words */
 
 main() {
     auto ptr;
-    
+
     ptr = &c;
     printf("%d*n", c);      /* Prints -345 (first value) */
     printf("%c*n", ptr[1]); /* Prints 'foo' (second value) */
@@ -175,12 +181,39 @@ main() {
     auto a, b;     /* Statement 1 */
     auto c[10];    /* Statement 2 */
     auto d, e;     /* Statement 3 */
-    
+
     /* Stack allocation: d, e → c → a, b */
 }
 ```
 
 Variables within one statement are allocated in forward order.
+
+### Indirect Function Calls
+
+Function pointers can be stored in variables and called indirectly:
+
+```b
+add(a, b) { return(a + b); }
+sub(a, b) { return(a - b); }
+
+operation;  /* Global variable to hold function pointer */
+
+main() {
+    extrn operation;
+
+    operation = add;
+    printf("add: %d*n", operation(10, 5));  /* Prints: add: 15 */
+
+    operation = sub;
+    printf("sub: %d*n", operation(10, 5));  /* Prints: sub: 5 */
+}
+```
+
+**Key Points:**
+- Function names are automatically their addresses (no `&` needed)
+- Variables hold function pointers as `i64` values
+- Calls through variables use LLVM indirect call mechanism
+- Supports variadic function pointers
 
 ## Testing
 
@@ -216,6 +249,7 @@ go test
 ✅ **Auto Arrays** - Character constant sizes supported: `auto buf['x'];`
 ✅ **Reverse Allocation** - Auto statements allocated in reverse order
 ✅ **Escape Sequences** - All B escape sequences verified (10 sequences)
+✅ **Indirect Function Calls** - Function pointers stored in variables and called through them
 
 ## Example Generated IR
 

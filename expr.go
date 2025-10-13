@@ -564,11 +564,19 @@ func parsePostfix(l *Lexer, c *Compiler) (value.Value, bool, error) {
 				result = c.builder.NewCall(fnDirect, args...)
 			} else {
 				// Indirect call through function pointer
-				// fn is an i64 value containing the function address
-				// We need to cast it to function pointer type and call
-				// For simplicity, we'll create a generic function type
-				// This is a limitation - proper implementation would need better type tracking
-				return nil, false, fmt.Errorf("indirect function calls through pointers not yet fully supported - use direct function names")
+				// fn is the address of a variable containing the function address
+				// Since it's marked as lvalue, load it to get the i64 function address
+				fnAddr := c.builder.NewLoad(c.WordType(), fn)
+
+				// Convert i64 to function pointer
+				// Create variadic function type: i64 (i64, ...)*
+				fnType := types.NewFunc(c.WordType())
+				fnType.Variadic = true
+				fnPtrType := types.NewPointer(fnType)
+				fnPtr := c.builder.NewIntToPtr(fnAddr, fnPtrType)
+
+				// Call through the pointer
+				result = c.builder.NewCall(fnPtr, args...)
 			}
 			val = result
 			isLvalue = false
@@ -704,9 +712,10 @@ func parsePrimary(l *Lexer, c *Compiler) (value.Value, bool, error) {
 
 			// Check if it's an extrn variable (function pointer)
 			if ptr, ok := c.globals[name]; ok {
-				// It's a function pointer variable - return the loaded value
-				// The caller (postfix handler) will do an indirect call
-				return ptr, true, nil // Return as lvalue so it gets loaded
+				// It's a function pointer variable
+				// Return as lvalue WITHOUT the isLvalue flag for calls
+				// The call handler expects fn to be the variable address
+				return ptr, false, nil
 			}
 
 			// Not found anywhere - auto-declare as external function
@@ -723,9 +732,12 @@ func parsePrimary(l *Lexer, c *Compiler) (value.Value, bool, error) {
 			return nil, false, fmt.Errorf("undefined identifier '%s'", name)
 		}
 
-		// Check if it's a function (shouldn't be called without ())
+		// Check if it's a function
 		if fn, ok := addr.(*ir.Func); ok {
-			return fn, false, nil
+			// Function used as value (not called) - return its address as i64
+			// This allows: func_ptr = add; (storing function address)
+			fnPtr := c.builder.NewPtrToInt(fn, c.WordType())
+			return fnPtr, false, nil
 		}
 
 		// It's a variable - return as lvalue

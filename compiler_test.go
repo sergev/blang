@@ -1136,6 +1136,108 @@ address = 0, 8, 16
 	}
 }
 
+// TestIndirectCalls tests indirect function calls through function pointers
+func TestIndirectCalls(t *testing.T) {
+	// Check if clang is available
+	if _, err := os.Stat("libb.o"); err != nil {
+		t.Skip("libb.o not found, run 'make' first")
+	}
+
+	tests := []struct {
+		name       string
+		code       string
+		wantStdout string
+	}{
+		{
+			name: "indirect_call_basic",
+			code: `add(a, b) {
+				return(a + b);
+			}
+
+			func_ptr;
+
+			main() {
+				extrn func_ptr;
+
+				func_ptr = add;
+				printf("Result: %d*n", func_ptr(3, 5));
+			}`,
+			wantStdout: "Result: 8\n",
+		},
+		{
+			name: "indirect_call_multiple",
+			code: `add(a, b) { return(a + b); }
+			sub(a, b) { return(a - b); }
+			mul(a, b) { return(a * b); }
+
+			op;
+
+			main() {
+				extrn op;
+
+				op = add;
+				printf("add: %d*n", op(10, 5));
+
+				op = sub;
+				printf("sub: %d*n", op(10, 5));
+
+				op = mul;
+				printf("mul: %d*n", op(10, 5));
+			}`,
+			wantStdout: `add: 15
+sub: 5
+mul: 50
+`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			inputFile := filepath.Join(tmpDir, "test.b")
+			llFile := filepath.Join(tmpDir, "test.ll")
+			exeFile := filepath.Join(tmpDir, "test")
+
+			// Write test code to file
+			err := os.WriteFile(inputFile, []byte(tt.code), 0644)
+			if err != nil {
+				t.Fatalf("Failed to write test file: %v", err)
+			}
+
+			// Step 1: Compile B program to LLVM IR
+			args := NewCompileOptions("blang", []string{inputFile})
+			args.OutputFile = llFile
+
+			err = Compile(args)
+			if err != nil {
+				t.Fatalf("Compile failed: %v", err)
+			}
+
+			// Step 2: Link with libb.o using clang
+			linkCmd := exec.Command("clang", llFile, "libb.o", "-o", exeFile)
+			linkOutput, err := linkCmd.CombinedOutput()
+			if err != nil {
+				t.Fatalf("Linking failed: %v\nOutput: %s", err, linkOutput)
+			}
+
+			// Step 3: Run the executable
+			runCmd := exec.Command(exeFile)
+			stdout, err := runCmd.Output()
+			if err != nil {
+				if _, ok := err.(*exec.ExitError); !ok {
+					t.Fatalf("Failed to run executable: %v", err)
+				}
+			}
+
+			// Check stdout
+			gotStdout := string(stdout)
+			if gotStdout != tt.wantStdout {
+				t.Errorf("Stdout mismatch:\nGot:\n%s\nWant:\n%s", gotStdout, tt.wantStdout)
+			}
+		})
+	}
+}
+
 // TestFunctions tests various function features (from oldtests/func_test.cpp)
 func TestFunctions(t *testing.T) {
 	// Check if clang is available

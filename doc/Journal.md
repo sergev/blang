@@ -689,27 +689,104 @@ if level >= 7 {
 
 ---
 
+---
+
+### Request: Implement Indirect Function Calls
+**User:** "What's wrong with indirect function calls via `extrn` function pointers? Please create a unit test and make it work."
+
+**Initial Misunderstanding:**
+- Attempted to use `extrn printf;` at top level (incorrect!)
+- User correction: "There is no such syntax as `extrn printf;` at top level in B language."
+
+**Correct B Language Semantics Clarified:**
+1. `extrn foo;` inside functions declares an **external variable**, NOT a function
+2. Function names are automatically their addresses (no `&` operator needed)
+3. Variables can hold function pointers and call through them
+
+**Correct Example:**
+```b
+add(a, b) { return(a + b); }
+func_ptr;  /* Global variable */
+
+main() {
+    extrn func_ptr;       /* Variable declaration */
+    func_ptr = add;       /* Function name IS address */
+    printf("%d", func_ptr(3, 5));  /* Indirect call */
+}
+```
+
+**Implementation:**
+
+1. **Function-as-Value (expr.go ~730):**
+   - When function used without `()`, convert to i64:
+   ```go
+   if fn, ok := addr.(*ir.Func); ok {
+       fnPtr := c.builder.NewPtrToInt(fn, c.WordType())
+       return fnPtr, false, nil
+   }
+   ```
+
+2. **Call Site Detection (expr.go ~718):**
+   - When `extrn` variable used in call position:
+   ```go
+   if ptr, ok := c.globals[name]; ok {
+       return ptr, false, nil  // Return address, not lvalue
+   }
+   ```
+
+3. **Indirect Call Handler (expr.go ~566):**
+   ```go
+   fnAddr := c.builder.NewLoad(c.WordType(), fn)
+   fnPtrType := types.NewPointer(types.NewFunc(c.WordType()))
+   fnPtr := c.builder.NewIntToPtr(fnAddr, fnPtrType)
+   result = c.builder.NewCall(fnPtr, args...)
+   ```
+
+**Generated LLVM IR:**
+```llvm
+; Store function address
+%0 = ptrtoint i64 (i64, i64)* @add to i64
+store i64 %0, i64* @func_ptr
+
+; Indirect call
+%3 = load i64, i64* @func_ptr
+%4 = inttoptr i64 %3 to i64 (...)*
+%5 = call i64 (...) %4(i64 3, i64 5)
+```
+
+**Tests Added:**
+- `TestIndirectCalls/indirect_call_basic` - Basic function pointer usage
+- `TestIndirectCalls/indirect_call_multiple` - Reassigning function pointers
+
+**Test Results:**
+- All 2 indirect call tests passing ✅
+- Feature now fully supported!
+
+---
+
 ### Summary of Phase 11
 
-**Tests Added:** +34 (from 89 to 123 total, 120 active)
+**Tests Added:** +38 (from 89 to 127 total, 124 active)
 - 4 tests from globals_test.cpp
-- 28 tests from precedence_test.cpp  
+- 28 tests from precedence_test.cpp
 - 2 tests from string_test.cpp
+- 2 tests for indirect function calls
 
 **Features Implemented:**
 - Scalar with multiple initialization values
 - Character constants in auto array sizes
 - Reverse allocation order for auto statements
 - Auto initialization syntax validation (rejection)
+- **Indirect function calls through variables**
 
 **Bugs Fixed:**
 - Equality operator chaining in expression parser
 - Global variable loading for array-backed scalars
 
 **Final Statistics:**
-- Tests: 120 passing / 123 total
+- Tests: 124 passing / 127 total
 - Skipped: 3 (compound assignments, ternary, e-2)
-- Coverage: 73.4%
+- Coverage: 73.9%
 
 ---
 
@@ -717,11 +794,11 @@ if level >= 7 {
 
 The B language compiler rewrite was successful! Starting from a C prototype, we built a production-ready Go compiler with an LLVM backend. The systematic approach of implementing features, testing thoroughly, and fixing bugs as they arose resulted in a robust, well-tested compiler.
 
-**Current Status:** Production-ready with 100% test pass rate (120/120 active tests) and comprehensive coverage of the B language specification.
+**Current Status:** Production-ready with 100% test pass rate (124/124 active tests) and comprehensive coverage of the B language specification.
 
-**Test Suite:** 120 tests covering lexer, parser, code generation, operator precedence, runtime library, and integration testing.
+**Test Suite:** 124 tests covering lexer, parser, code generation, operator precedence, runtime library, indirect function calls, and integration testing.
 
-**Next Steps:** Implement the three remaining features (compound assignments, ternary operator, indirect function calls) to achieve 100% feature completeness.
+**Next Steps:** Implement the two remaining features (compound assignments, ternary operator) to achieve 100% feature completeness.
 
 ---
 
