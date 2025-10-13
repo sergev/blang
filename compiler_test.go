@@ -1238,6 +1238,179 @@ address = 0, 8, 16
 	}
 }
 
+// TestUnaryOperators tests comprehensive unary operator functionality
+func TestUnaryOperators(t *testing.T) {
+	// Check if clang is available
+	if _, err := os.Stat("libb.o"); err != nil {
+		t.Skip("libb.o not found, run 'make' first")
+	}
+
+	tests := []struct {
+		name       string
+		code       string
+		wantStdout string
+	}{
+		{
+			name: "prefix_increment",
+			code: `main() {
+				auto x;
+				x = 5;
+				printf("%d*n", ++x);  /* Should print 6 */
+				printf("%d*n", x);    /* Should print 6 */
+			}`,
+			wantStdout: "6\n6\n",
+		},
+		{
+			name: "prefix_decrement",
+			code: `main() {
+				auto x;
+				x = 10;
+				printf("%d*n", --x);  /* Should print 9 */
+				printf("%d*n", x);    /* Should print 9 */
+			}`,
+			wantStdout: "9\n9\n",
+		},
+		{
+			name: "prefix_increment_global",
+			code: `main() {
+				extrn x;
+				x = 15;
+				printf("%d*n", ++x);  /* Should print 16 */
+				printf("%d*n", x);    /* Should print 16 */
+			}
+			x 0;`,
+			wantStdout: "16\n16\n",
+		},
+		{
+			name: "prefix_decrement_global",
+			code: `main() {
+				extrn x;
+				x = 20;
+				printf("%d*n", --x);  /* Should print 19 */
+				printf("%d*n", x);    /* Should print 19 */
+			}
+			x 0;`,
+			wantStdout: "19\n19\n",
+		},
+		{
+			name: "nested_unary_operators",
+			code: `main() {
+				auto x;
+				x = 5;
+				printf("%d*n", !!x);     /* Double negation: !(!5) = !0 = 1 */
+				printf("%d*n", -(-x));   /* Double negation: -(-5) = 5 */
+				++x;                     /* Increment x: 5 -> 6 */
+				++x;                     /* Increment x: 6 -> 7 */
+				printf("%d*n", x);       /* Final value: 7 */
+			}`,
+			wantStdout: "1\n5\n7\n",
+		},
+		{
+			name: "unary_on_expressions",
+			code: `main() {
+				auto x, y, sum;
+				x = 3; y = 4;
+				printf("%d*n", -(x + y));  /* Negate sum: -(3+4) = -7 */
+				printf("%d*n", !(x * y));  /* Logical not: !(3*4) = !12 = 0 */
+				sum = x + y;               /* Store sum: 3+4 = 7 */
+				++sum;                     /* Increment sum: 7 -> 8 */
+				printf("%d*n", sum);       /* Final sum: 8 */
+			}`,
+			wantStdout: "-7\n0\n8\n",
+		},
+		{
+			name: "unary_with_pointers",
+			code: `main() {
+				auto x;
+				auto p;
+				x = 100;
+				p = &x;
+				printf("%d*n", *p);       /* Dereference: *(&x) = 100 */
+				++x;                      /* Increment original variable: ++100 = 101 */
+				printf("%d*n", *p);       /* Dereferenced value: 101 */
+				printf("%d*n", x);        /* Original variable: 101 */
+			}`,
+			wantStdout: "100\n101\n101\n",
+		},
+		{
+			name: "unary_with_arrays",
+			code: `main() {
+				auto arr[3];
+				auto i;
+				arr[0] = 10;
+				arr[1] = 20;
+				i = 0;
+				printf("%d*n", ++arr[i]);     /* Increment arr[0]: ++10 = 11 */
+				printf("%d*n", arr[0]);       /* Check arr[0]: 11 */
+				printf("%d*n", --arr[++i]);   /* Decrement arr[1]: --20 = 19 */
+				printf("%d*n", arr[1]);       /* Check arr[1]: 19 */
+			}`,
+			wantStdout: "11\n11\n19\n19\n",
+		},
+		{
+			name: "unary_edge_cases",
+			code: `main() {
+				auto x, y;
+				x = 0;
+				y = 1;
+				printf("%d*n", ++x);  /* Increment 0: ++0 = 1 */
+				printf("%d*n", --x);  /* Decrement 1: --1 = 0 */
+				printf("%d*n", !x);   /* Logical not 0: !0 = 1 */
+				printf("%d*n", !y);   /* Logical not 1: !1 = 0 */
+				printf("%d*n", -x);   /* Negate 0: -0 = 0 */
+				printf("%d*n", -y);   /* Negate 1: -1 = -1 */
+			}`,
+			wantStdout: "1\n0\n1\n0\n0\n-1\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			llFile := filepath.Join(tmpDir, tt.name+".ll")
+			exeFile := filepath.Join(tmpDir, tt.name)
+
+			// Create temporary B file
+			bFile := filepath.Join(tmpDir, tt.name+".b")
+			err := os.WriteFile(bFile, []byte(tt.code), 0644)
+			if err != nil {
+				t.Fatalf("Failed to create test file: %v", err)
+			}
+
+			// Step 1: Compile B program to LLVM IR
+			args := NewCompileOptions("blang", []string{bFile})
+			args.OutputFile = llFile
+
+			err = Compile(args)
+			if err != nil {
+				t.Fatalf("Compilation failed: %v", err)
+			}
+
+			// Step 2: Link with libb.o using clang
+			linkCmd := exec.Command("clang", llFile, "libb.o", "-o", exeFile)
+			linkOutput, err := linkCmd.CombinedOutput()
+			if err != nil {
+				t.Fatalf("Linking failed: %v\nOutput: %s", err, linkOutput)
+			}
+
+			// Step 3: Run the executable
+			runCmd := exec.Command(exeFile)
+			stdout, err := runCmd.Output()
+			if err != nil {
+				if _, ok := err.(*exec.ExitError); !ok {
+					t.Fatalf("Failed to run executable: %v", err)
+				}
+			}
+
+			// Check stdout
+			gotStdout := string(stdout)
+			if gotStdout != tt.wantStdout {
+				t.Errorf("Stdout mismatch.\nGot:\n%s\nWant:\n%s", gotStdout, tt.wantStdout)
+			}
+		})
+	}
+}
+
 // TestIndirectCalls tests indirect function calls through function pointers
 func TestIndirectCalls(t *testing.T) {
 	// Check if clang is available
