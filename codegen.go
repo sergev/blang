@@ -96,7 +96,7 @@ func (c *Compiler) DeclareGlobalArray(name string, size int64, init []constant.C
 	elemType := c.WordType()
 
 	// For large arrays without initializers, use compact two-global representation
-	if (init == nil || len(init) == 0) && size > 10 {
+	if len(init) == 0 && size > 10 {
 		// Create the data array with zeroinitializer (compact!)
 		dataArrayType := types.NewArray(uint64(size), elemType)
 		dataGlobal := c.module.NewGlobalDef(name+".data", constant.NewZeroInitializer(dataArrayType))
@@ -274,27 +274,6 @@ func (c *Compiler) DeclareLocalArray(name string, size int64) value.Value {
 	return firstSlotPtr
 }
 
-// LoadValue loads a value (handles both locals and globals)
-func (c *Compiler) LoadValue(name string) (value.Value, error) {
-	// Check locals first
-	if val, ok := c.locals[name]; ok {
-		return c.builder.NewLoad(c.WordType(), val), nil
-	}
-
-	// Check globals
-	if val, ok := c.globals[name]; ok {
-		return c.builder.NewLoad(c.WordType(), val), nil
-	}
-
-	// Check if it's a function (return as pointer)
-	if fn, ok := c.functions[name]; ok {
-		return fn, nil
-	}
-
-	// Not found - will be declared later if it's a function call
-	return nil, fmt.Errorf("undefined identifier '%s'", name)
-}
-
 // GetAddress gets the address of a variable (for lvalue operations)
 // Returns nil if not found (will be handled as function call)
 func (c *Compiler) GetAddress(name string) (value.Value, bool) {
@@ -326,16 +305,6 @@ func (c *Compiler) GetAddress(name string) (value.Value, bool) {
 	}
 
 	return nil, false
-}
-
-// StoreValue stores a value to a variable
-func (c *Compiler) StoreValue(name string, val value.Value) error {
-	addr, found := c.GetAddress(name)
-	if !found {
-		return fmt.Errorf("undefined identifier '%s'", name)
-	}
-	c.builder.NewStore(val, addr)
-	return nil
 }
 
 // CreateStringConstant creates a global string constant

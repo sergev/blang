@@ -2,7 +2,7 @@
 
 A modern B programming language compiler written in Go with LLVM IR backend.
 
-**Status:** ✅ **Feature-Complete** • 157 tests passing • 78.5% coverage
+**Status:** ✅ **Feature-Complete** • 153 tests passing • 80.0% coverage
 
 ## Quick Start
 
@@ -20,7 +20,7 @@ clang hello.ll libb.o -o hello
 
 - **Complete B Language Support**: All B language features implemented
 - **LLVM IR Backend**: Portable, optimized code generation
-- **Comprehensive Testing**: 157 tests across 10 organized test files
+- **Comprehensive Testing**: 153 tests across 10 organized test files
 - **Modern Go Implementation**: Clean, maintainable codebase
 
 ## Example Programs

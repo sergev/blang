@@ -271,16 +271,6 @@ func (l *Lexer) String() (string, error) {
 	}
 }
 
-// PeekChar looks at the next character without consuming it
-func (l *Lexer) PeekChar() (rune, error) {
-	c, err := l.ReadChar()
-	if err != nil {
-		return 0, err
-	}
-	l.UnreadChar(c)
-	return c, nil
-}
-
 // ExpectChar reads a character and checks if it matches expected
 func (l *Lexer) ExpectChar(expected rune, msg string) error {
 	c, err := l.ReadChar()
@@ -296,16 +286,4 @@ func (l *Lexer) ExpectChar(expected rune, msg string) error {
 	}
 
 	return nil
-}
-
-// IsEOF checks if we're at end of file
-func (l *Lexer) IsEOF() bool {
-	c, err := l.ReadChar()
-	if err == io.EOF {
-		return true
-	}
-	if err == nil {
-		l.UnreadChar(c)
-	}
-	return false
 }

@@ -2,8 +2,8 @@
 
 ## Current Status
 
-**Coverage**: 78.5%  
-**Tests**: 157 tests  
+**Coverage**: 80.0%  
+**Tests**: 153 tests  
 **Target**: 85%+
 
 ## Test Organization
@@ -24,10 +24,6 @@
 | `strings_test.go` | 104 | String handling |
 
 ## Coverage Gaps
-
-### High Priority (0% Coverage)
-- `LoadValue` / `StoreValue` (codegen.go)
-- `PeekChar` / `IsEOF` (lexer.go)
 
 ### Medium Priority (50-70% Coverage)
 - Error handling paths

@@ -388,11 +388,6 @@ func parseStatementWithSwitch(l *Lexer, c *Compiler, switchID int64, cases *[]in
 	return nil
 }
 
-// parseKeywordOrExpression handles keywords and expressions
-func parseKeywordOrExpression(l *Lexer, c *Compiler) error {
-	return parseKeywordOrExpressionWithSwitch(l, c, -1, nil)
-}
-
 func parseKeywordOrExpressionWithSwitch(l *Lexer, c *Compiler, switchID int64, cases *[]int64) error {
 	name, err := l.Identifier()
 	if err != nil {
