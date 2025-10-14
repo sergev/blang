@@ -28,33 +28,7 @@ func BenchmarkCompile(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		// Use inline arithmetic test instead of file
-		arithmeticCode := `add(a, b) {
-    return(a + b);
-}
-sub(a, b) {
-    return(a - b);
-}
-mul(a, b) {
-    return(a * b);
-}
-main() {
-    auto x, y, z;
-    x = 10;
-    y = 20;
-    z = add(x, y);
-    z = sub(z, 5);
-    z = mul(z, 2);
-    return(z);
-}`
-
-		inputFile := filepath.Join(tmpDir, "test.b")
-		err := os.WriteFile(inputFile, []byte(arithmeticCode), 0644)
-		if err != nil {
-			b.Fatalf("Failed to write test file: %v", err)
-		}
-
-		args := NewCompileOptions("blang", []string{inputFile})
+		args := NewCompileOptions("blang", []string{"examples/e-2.b"})
 		args.OutputFile = outputFile
 		Compile(args)
 	}

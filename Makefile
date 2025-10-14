@@ -1,6 +1,6 @@
 PROG = blang
 
-.PHONY: all install clean test
+.PHONY: all install clean test cover bench
 
 all: libb.o
 	go build
@@ -23,3 +23,9 @@ test:
 
 cover:
 	gotestsum -- -cover .
+
+#
+# Run benchmark
+#
+bench:
+	go test -bench=BenchmarkCompile -benchmem
