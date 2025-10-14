@@ -206,6 +206,7 @@ func TestCompoundAssignments(t *testing.T) {
 			// Step 1: Compile B program to LLVM IR
 			args := NewCompileOptions("blang", []string{inputFile})
 			args.OutputFile = llFile
+			args.OutputType = OutputIR
 
 			err = Compile(args)
 			if err != nil {

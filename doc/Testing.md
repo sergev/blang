@@ -11,7 +11,7 @@ go test -run TestExpressions
 
 ## Test Structure
 
-**157 tests** across **10 organized files** with **78.5% coverage**:
+**186 tests** across **11 organized files** with **78.5% coverage**:
 
 | File | Purpose | Tests |
 |------|---------|-------|
@@ -25,6 +25,7 @@ go test -run TestExpressions
 | `control_flow_test.go` | Loops & control | ~8 |
 | `strings_test.go` | String handling | ~5 |
 | `lexer_test.go` | Token parsing | ~15 |
+| `cli_test.go` | **CLI interface** | **~33** |
 
 ## Example Programs
 
@@ -47,6 +48,48 @@ go test -run TestExpressions
 - `testdata/switch.b` - Switch/case statements
 - `testdata/goto.b` - Goto and labels
 - `testdata/comprehensive_ptr.b` - Complex pointer operations
+
+## CLI Testing
+
+The CLI test suite (`cli_test.go`) provides comprehensive testing of the command-line interface:
+
+### Test Categories
+
+| Test Function | Purpose | Test Count |
+|---------------|---------|------------|
+| `TestCLIBasicOptions` | Help, version, error handling | 5 tests |
+| `TestCLIOutputFormats` | Different output formats | 5 tests |
+| `TestCLIOptimizationFlags` | Optimization levels | 5 tests |
+| `TestCLIDebugAndVerbose` | Debug and verbose options | 3 tests |
+| `TestCLIWarningFlags` | Warning options | 3 tests |
+| `TestCLIPathFlags` | Include/library paths | 4 tests |
+| `TestCLIStandardFlag` | Language standard | 2 tests |
+| `TestCLISaveTemps` | Temporary file handling | 2 tests |
+| `TestCLIExecutableGeneration` | End-to-end compilation | 1 test |
+| `TestCLICombinedFlags` | Complex flag combinations | 3 tests |
+
+### Running CLI Tests
+
+```bash
+# Run all CLI tests
+go test -v -run TestCLI
+
+# Run specific CLI test categories
+go test -v -run TestCLIBasicOptions
+go test -v -run TestCLIOutputFormats
+go test -v -run TestCLIOptimizationFlags
+
+# Run CLI tests with coverage
+go test -v -run TestCLI -cover
+```
+
+### CLI Test Features
+
+- **Comprehensive flag testing**: Every CLI option is tested
+- **Error condition testing**: Invalid inputs and error handling
+- **File system testing**: Output file generation and cleanup
+- **Executable verification**: End-to-end testing with real execution
+- **Integration testing**: Works with actual `libb.o` runtime library
 
 ## Coverage
 

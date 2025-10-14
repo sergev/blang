@@ -254,6 +254,7 @@ skip:
 			// Compile the input
 			args := NewCompileOptions("blang", []string{inputFile})
 			args.OutputFile = outputFile
+			args.OutputType = OutputIR
 
 			err = Compile(args)
 			if err != nil {
@@ -399,6 +400,7 @@ func TestCompileMultipleFiles(t *testing.T) {
 	outputFile := filepath.Join(tmpDir, "output.ll")
 	args := NewCompileOptions("blang", []string{file1, file2})
 	args.OutputFile = outputFile
+	args.OutputType = OutputIR
 
 	err = Compile(args)
 	if err != nil {

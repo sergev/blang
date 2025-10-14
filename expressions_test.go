@@ -233,6 +233,7 @@ func TestPrecedence(t *testing.T) {
 			// Step 1: Compile B program to LLVM IR
 			args := NewCompileOptions("blang", []string{inputFile})
 			args.OutputFile = llFile
+			args.OutputType = OutputIR
 
 			err = Compile(args)
 			if err != nil {
@@ -587,6 +588,7 @@ address = 0, 8, 16
 			// Step 1: Compile B program to LLVM IR
 			args := NewCompileOptions("blang", []string{inputFile})
 			args.OutputFile = llFile
+			args.OutputType = OutputIR
 
 			err = Compile(args)
 			if err != nil {
@@ -760,6 +762,7 @@ func TestUnaryOperators(t *testing.T) {
 			// Step 1: Compile B program to LLVM IR
 			args := NewCompileOptions("blang", []string{bFile})
 			args.OutputFile = llFile
+			args.OutputType = OutputIR
 
 			err = Compile(args)
 			if err != nil {
