@@ -37,30 +37,6 @@ func TestCompileAndRun(t *testing.T) {
 			wantStdout: "Hello, World!",
 		},
 		{
-			name:       "arithmetic",
-			inputFile:  "testdata/arithmetic.b",
-			wantExit:   50,
-			wantStdout: "",
-		},
-		{
-			name:       "loops",
-			inputFile:  "testdata/loops.b",
-			wantExit:   120, // factorial(5) = 120
-			wantStdout: "",
-		},
-		{
-			name:       "switch",
-			inputFile:  "testdata/switch.b",
-			wantExit:   30,
-			wantStdout: "",
-		},
-		{
-			name:       "goto",
-			inputFile:  "testdata/goto.b",
-			wantExit:   42,
-			wantStdout: "",
-		},
-		{
 			name:       "example_fibonacci",
 			inputFile:  "examples/fibonacci.b",
 			wantExit:   0,

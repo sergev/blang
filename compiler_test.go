@@ -28,7 +28,33 @@ func BenchmarkCompile(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		args := NewCompileOptions("blang", []string{"testdata/arithmetic.b"})
+		// Use inline arithmetic test instead of file
+		arithmeticCode := `add(a, b) {
+    return(a + b);
+}
+sub(a, b) {
+    return(a - b);
+}
+mul(a, b) {
+    return(a * b);
+}
+main() {
+    auto x, y, z;
+    x = 10;
+    y = 20;
+    z = add(x, y);
+    z = sub(z, 5);
+    z = mul(z, 2);
+    return(z);
+}`
+
+		inputFile := filepath.Join(tmpDir, "test.b")
+		err := os.WriteFile(inputFile, []byte(arithmeticCode), 0644)
+		if err != nil {
+			b.Fatalf("Failed to write test file: %v", err)
+		}
+
+		args := NewCompileOptions("blang", []string{inputFile})
 		args.OutputFile = outputFile
 		Compile(args)
 	}
@@ -37,34 +63,227 @@ func BenchmarkCompile(b *testing.B) {
 // TestCompile tests the full compilation pipeline
 func TestCompile(t *testing.T) {
 	tests := []struct {
-		name      string
-		inputFile string
-		wantFunc  string // Function name that should exist in output
+		name     string
+		code     string
+		wantFunc string // Function name that should exist in output
 	}{
-		{"hello", "examples/hello.b", "@main"},
-		{"arithmetic", "testdata/arithmetic.b", "@main"},
-		{"globals", "testdata/globals.b", "@main"},
-		{"conditionals", "testdata/conditionals.b", "@main"},
-		{"loops", "testdata/loops.b", "@factorial"},
-		{"strings", "testdata/strings.b", "@main"},
-		{"arrays", "testdata/arrays.b", "@sum"},
-		{"pointers", "testdata/pointers.b", "@main"},
-		{"switch", "testdata/switch.b", "@classify"},
-		{"goto", "testdata/goto.b", "@main"},
+		{
+			name: "hello",
+			code: `main() {
+    printf("Hello, World!*n");
+}`,
+			wantFunc: "@main",
+		},
+		{
+			name: "arithmetic",
+			code: `add(a, b) {
+    return(a + b);
+}
+sub(a, b) {
+    return(a - b);
+}
+mul(a, b) {
+    return(a * b);
+}
+main() {
+    auto x, y, z;
+    x = 10;
+    y = 20;
+    z = add(x, y);
+    z = sub(z, 5);
+    z = mul(z, 2);
+    return(z);
+}`,
+			wantFunc: "@main",
+		},
+		{
+			name: "globals",
+			code: `counter 0;
+values[3] 10, 20, 30;
+
+increment() {
+    extrn counter;
+    counter = counter + 1;
+}
+
+sum_values() {
+    extrn values;
+    auto i, total;
+    total = 0;
+    i = 0;
+    while (i < 3) {
+        total = total + values[i];
+        i++;
+    }
+    return(total);
+}
+
+main() {
+    increment();
+    increment();
+    return(sum_values());
+}`,
+			wantFunc: "@main",
+		},
+		{
+			name: "conditionals",
+			code: `max(a, b) {
+    if (a > b)
+        return(a);
+    else
+        return(b);
+}
+
+abs(n) {
+    if (n < 0)
+        return(-n);
+    return(n);
+}
+
+main() {
+    auto x, y;
+    x = max(10, 20);
+    y = abs(-15);
+    return(x + y);
+}`,
+			wantFunc: "@main",
+		},
+		{
+			name: "loops",
+			code: `factorial(n) {
+    auto result, i;
+    result = 1;
+    i = 1;
+    while (i <= n) {
+        result = result * i;
+        i++;
+    }
+    return(result);
+}
+
+main() {
+    return(factorial(5));
+}`,
+			wantFunc: "@factorial",
+		},
+		{
+			name: "strings",
+			code: `messages[3] "Hello", "World", "Test";
+
+main() {
+    extrn messages;
+    printf("%s*n", messages[0]);
+    printf("%s*n", messages[1]);
+    printf("%s*n", messages[2]);
+}`,
+			wantFunc: "@main",
+		},
+		{
+			name: "arrays",
+			code: `sum_array(arr, n) {
+    auto i, sum;
+    sum = 0;
+    i = 0;
+    while (i < n) {
+        sum = sum + arr[i];
+        i++;
+    }
+    return(sum);
+}
+
+main() {
+    auto numbers[5];
+    auto i, total;
+
+    /* Initialize array */
+    i = 0;
+    while (i < 5) {
+        numbers[i] = (i + 1) * 10;
+        i++;
+    }
+
+    /* Sum using function */
+    total = sum_array(numbers, 5);
+
+    return(total);  /* Should be 10+20+30+40+50 = 150 */
+}`,
+			wantFunc: "@sum_array",
+		},
+		{
+			name: "pointers",
+			code: `main() {
+    auto x, y, ptr;
+    x = 100;
+    y = 200;
+
+    ptr = &x;
+    printf("x = %d*n", *ptr);
+
+    ptr = &y;
+    printf("y = %d*n", *ptr);
+
+    return(*ptr);
+}`,
+			wantFunc: "@main",
+		},
+		{
+			name: "switch",
+			code: `classify(n) {
+    switch (n) {
+        case 0:
+            return(0);
+        case 1:
+            return(1);
+        case 2:
+            return(4);
+        default:
+            return(9);
+    }
+}
+
+main() {
+    return(classify(2));
+}`,
+			wantFunc: "@classify",
+		},
+		{
+			name: "goto",
+			code: `main() {
+    auto x;
+    x = 10;
+
+    if (x > 5)
+        goto skip;
+
+    x = 20;
+
+skip:
+    return(x);
+}`,
+			wantFunc: "@main",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create temporary output file
-			outputFile := filepath.Join(t.TempDir(), "output.ll")
+			// Create temporary input and output files
+			tmpDir := t.TempDir()
+			inputFile := filepath.Join(tmpDir, "test.b")
+			outputFile := filepath.Join(tmpDir, "output.ll")
+
+			// Write test code to input file
+			err := os.WriteFile(inputFile, []byte(tt.code), 0644)
+			if err != nil {
+				t.Fatalf("Failed to write test file: %v", err)
+			}
 
 			// Compile the input
-			args := NewCompileOptions("blang", []string{tt.inputFile})
+			args := NewCompileOptions("blang", []string{inputFile})
 			args.OutputFile = outputFile
 
-			err := Compile(args)
+			err = Compile(args)
 			if err != nil {
-				t.Fatalf("Compile(%s) failed: %v", tt.inputFile, err)
+				t.Fatalf("Compile(%s) failed: %v", tt.name, err)
 			}
 
 			// Read generated output
