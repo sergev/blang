@@ -24,17 +24,31 @@
 
 static inline SYSCALL_TYPE syscall(SYSCALL_TYPE n, SYSCALL_TYPE a1, SYSCALL_TYPE a2, SYSCALL_TYPE a3)
 {
-    SYSCALL_TYPE ret;
 #ifdef __APPLE__
     n |= 0x2000000;
 #endif
-    __asm__ __volatile__ (
-        "syscall"
-        : "=a"(ret)
-        : "a"(n), "D"(a1), "S"(a2), "d"(a3)
-        : "rcx", "r11", "memory"
+#ifdef __aarch64__
+    register long x0 asm("x0") = a1;
+    register long x1 asm("x1") = a2;
+    register long x2 asm("x2") = a3;
+    register long x8 asm("x8") = n; // syscall number goes in x8
+
+    // svc #0 invokes the kernel. x0 is used for return value.
+    asm volatile("svc #0"
+                 : "+r"(x0)                  // x0 is input/output (return)
+                 : "r"(x1), "r"(x2), "r"(x8) // inputs
+                 : "memory");
+    return x0;
+#endif
+#ifdef __x86_64__
+    long ret;
+    asm volatile("syscall"
+                 : "=a"(ret)                         // output: rax <- return
+                 : "a"(n), "D"(a1), "S"(a2), "d"(a3) // inputs: rax, rdi, rsi, rdx
+                 : "rcx", "r11", "memory"            // syscall clobbers
     );
     return ret;
+#endif
 }
 
 //
