@@ -1,12 +1,9 @@
-PROG    = blang
-SRC     = codegen.go compiler.go control.go expr.go lexer.go main.go parser.go
+PROG = blang
 
 .PHONY: all install clean test
 
-all: ${PROG} libb.o
-
-test:
-	go test -v
+all: libb.o
+	go build
 
 install: all
 	install -m 555 ${PROG} /usr/local/bin/${PROG}
@@ -14,8 +11,13 @@ install: all
 clean:
 	rm -f ${PROG} *.o *.ll
 
-${PROG}: ${SRC}
-	go build
-
 libb.o: libb/libb.c
 	$(CC) -c -ffreestanding $< -o $@
+
+#
+# For testing, please install gotestsum:
+#	go install gotest.tools/gotestsum@latest
+#
+test:
+	gotestsum --format dots
+	gotestsum -- -cover .
