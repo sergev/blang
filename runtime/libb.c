@@ -116,13 +116,20 @@ void B_FN(writeb)(B_TYPE c) {
 //
 // One or more characters are written on the standard output file.
 //
-void B_FN(write)(B_TYPE c) {
-    B_TYPE a;
+void B_FN(write)(B_TYPE ch) {
+    char buf[sizeof(B_TYPE)];
+    char *p = buf;
+    uintptr_t input = ch;
+    unsigned len;
 
-    if ((a = (uintptr_t)c >> 8))
-        B_FN(write)(a);
+    for (len = 0; len < sizeof(B_TYPE); len++, input <<= 8) {
+        uint8_t byte = input >> ((sizeof(B_TYPE) - 1) * 8);
 
-    writeb(c);
+        if (byte != 0 || p != buf || len == sizeof(B_TYPE) - 1) {
+            *p++ = byte;
+        }
+    }
+    syscall(SYS_write, fout + 1, (B_TYPE)buf, p - buf);
 }
 
 /* Count bytes are written out of the vector buffer on the
