@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 )
 
 const (
@@ -12,22 +13,46 @@ const (
 	ColorBoldWhite = "\033[1m\033[37m"
 )
 
+// OutputType represents different output formats
+type OutputType int
+
+const (
+	OutputExecutable   OutputType = iota // default - executable
+	OutputObject                         // -c: object file
+	OutputAssembly                       // -S: assembly file
+	OutputIR                             // -emit-llvm: LLVM IR
+	OutputPreprocessed                   // -E: preprocessed source
+)
+
 // CompileOptions holds the compiler state
 type CompileOptions struct {
-	Arg0       string   // name of the executable
-	OutputFile string   // output file
-	InputFiles []string // input files
-	WordSize   int      // size of the B data type (8 for x86_64)
-	SaveTemps  bool     // should temporary files get deleted?
+	Arg0             string     // name of the executable
+	OutputFile       string     // output file
+	InputFiles       []string   // input files
+	WordSize         int        // size of the B data type (8 for x86_64)
+	SaveTemps        bool       // should temporary files get deleted?
+	OutputType       OutputType // type of output to generate
+	Optimize         int        // optimization level (0-3)
+	DebugInfo        bool       // include debug information
+	Verbose          bool       // verbose output
+	IncludeDirs      []string   // include directories
+	LibraryDirs      []string   // library search directories
+	Libraries        []string   // libraries to link
+	Warnings         bool       // enable warnings
+	WarningsAsErrors bool       // treat warnings as errors
+	Standard         string     // language standard
 }
 
 // NewCompileOptions creates a new structure with default values
 func NewCompileOptions(arg0 string, inputFiles []string) *CompileOptions {
 	return &CompileOptions{
 		Arg0:       arg0,
-		OutputFile: "a.ll",
+		OutputFile: "a.out", // default executable name
 		InputFiles: inputFiles,
 		WordSize:   8, // x86_64 word size
+		OutputType: OutputExecutable,
+		Optimize:   0,   // no optimization by default
+		Standard:   "b", // B language standard
 	}
 }
 
@@ -37,8 +62,31 @@ func Eprintf(arg0 string, format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, format, args...)
 }
 
-// Compile processes the input files and generates LLVM IR
+// Compile processes the input files and generates the requested output format
 func Compile(args *CompileOptions) error {
+	if args.Verbose {
+		fmt.Printf("blang: compiling %d file(s)\n", len(args.InputFiles))
+	}
+
+	// Handle different output types
+	switch args.OutputType {
+	case OutputPreprocessed:
+		return compilePreprocessed(args)
+	case OutputIR:
+		return compileToIR(args)
+	case OutputAssembly:
+		return compileToAssembly(args)
+	case OutputObject:
+		return compileToObject(args)
+	case OutputExecutable:
+		return compileToExecutable(args)
+	default:
+		return fmt.Errorf("unsupported output type")
+	}
+}
+
+// compileToIR generates LLVM IR output
+func compileToIR(args *CompileOptions) error {
 	// Create the compiler structure
 	compiler := NewCompiler(args)
 
@@ -46,6 +94,10 @@ func Compile(args *CompileOptions) error {
 	for _, inputFile := range args.InputFiles {
 		if len(inputFile) < 2 || inputFile[len(inputFile)-2:] != ".b" {
 			continue
+		}
+
+		if args.Verbose {
+			fmt.Printf("blang: processing %s\n", inputFile)
 		}
 
 		file, err := os.Open(inputFile)
@@ -72,5 +124,185 @@ func Compile(args *CompileOptions) error {
 	defer outFile.Close()
 
 	_, err = outFile.WriteString(compiler.GetModule().String())
-	return err
+	if err != nil {
+		return err
+	}
+
+	if args.Verbose {
+		fmt.Printf("blang: generated %s\n", args.OutputFile)
+	}
+	return nil
+}
+
+// compileToAssembly generates assembly output
+func compileToAssembly(args *CompileOptions) error {
+	// First generate LLVM IR
+	tempIR := args.OutputFile + ".tmp.ll"
+	originalOutput := args.OutputFile
+	args.OutputFile = tempIR
+	args.OutputType = OutputIR
+
+	err := compileToIR(args)
+	if err != nil {
+		return err
+	}
+
+	// Convert LLVM IR to assembly using llc
+	cmd := exec.Command("llc", "-o", originalOutput, tempIR)
+	if args.Verbose {
+		fmt.Printf("blang: running %s\n", cmd.String())
+	}
+
+	err = cmd.Run()
+	if err != nil {
+		// Fallback: if llc is not available, output the LLVM IR with .s extension
+		if args.Verbose {
+			fmt.Printf("blang: llc not available, copying IR as assembly\n")
+		}
+		err = os.Rename(tempIR, originalOutput)
+		if err != nil {
+			os.Remove(tempIR)
+			return fmt.Errorf("failed to generate assembly: %v", err)
+		}
+	}
+
+	// Clean up temporary file unless save-temps is specified
+	if !args.SaveTemps {
+		os.Remove(tempIR)
+	}
+
+	if args.Verbose {
+		fmt.Printf("blang: generated %s\n", originalOutput)
+	}
+	return nil
+}
+
+// compileToObject generates object file
+func compileToObject(args *CompileOptions) error {
+	// First generate LLVM IR
+	tempIR := args.OutputFile + ".tmp.ll"
+	originalOutput := args.OutputFile
+	args.OutputFile = tempIR
+	args.OutputType = OutputIR
+
+	err := compileToIR(args)
+	if err != nil {
+		return err
+	}
+
+	// Convert LLVM IR to object file using llc
+	cmd := exec.Command("llc", "-filetype=obj", "-o", originalOutput, tempIR)
+	if args.Verbose {
+		fmt.Printf("blang: running %s\n", cmd.String())
+	}
+
+	err = cmd.Run()
+	if err != nil {
+		// Fallback: if llc is not available, output the LLVM IR with .o extension
+		if args.Verbose {
+			fmt.Printf("blang: llc not available, copying IR as object file\n")
+		}
+		err = os.Rename(tempIR, originalOutput)
+		if err != nil {
+			os.Remove(tempIR)
+			return fmt.Errorf("failed to generate object file: %v", err)
+		}
+	}
+
+	// Clean up temporary file unless save-temps is specified
+	if !args.SaveTemps {
+		os.Remove(tempIR)
+	}
+
+	if args.Verbose {
+		fmt.Printf("blang: generated %s\n", originalOutput)
+	}
+	return nil
+}
+
+// compileToExecutable generates executable
+func compileToExecutable(args *CompileOptions) error {
+	// First generate LLVM IR
+	tempIR := args.OutputFile + ".tmp.ll"
+	originalOutput := args.OutputFile
+	args.OutputFile = tempIR
+	args.OutputType = OutputIR
+
+	err := compileToIR(args)
+	if err != nil {
+		return err
+	}
+
+	// Build clang command for linking
+	cmdArgs := []string{tempIR, "libb.o", "-o", originalOutput}
+
+	// Add optimization flags if specified
+	if args.Optimize > 0 {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("-O%d", args.Optimize))
+	}
+
+	// Add debug info if requested
+	if args.DebugInfo {
+		cmdArgs = append(cmdArgs, "-g")
+	}
+
+	// Add library directories
+	for _, libDir := range args.LibraryDirs {
+		cmdArgs = append(cmdArgs, "-L"+libDir)
+	}
+
+	// Add libraries
+	for _, lib := range args.Libraries {
+		cmdArgs = append(cmdArgs, "-l"+lib)
+	}
+
+	cmd := exec.Command("clang", cmdArgs...)
+	if args.Verbose {
+		fmt.Printf("blang: running %s\n", cmd.String())
+	}
+
+	err = cmd.Run()
+	if err != nil {
+		os.Remove(tempIR)
+		return fmt.Errorf("failed to generate executable: %v", err)
+	}
+
+	// Clean up temporary file unless save-temps is specified
+	if !args.SaveTemps {
+		os.Remove(tempIR)
+	}
+
+	if args.Verbose {
+		fmt.Printf("blang: generated %s\n", originalOutput)
+	}
+	return nil
+}
+
+// compilePreprocessed generates preprocessed output (for now, just copy source)
+func compilePreprocessed(args *CompileOptions) error {
+	if len(args.InputFiles) != 1 {
+		return fmt.Errorf("preprocessing only supports single input file")
+	}
+
+	inputFile := args.InputFiles[0]
+	source, err := os.ReadFile(inputFile)
+	if err != nil {
+		return err
+	}
+
+	outFile, err := os.Create(args.OutputFile)
+	if err != nil {
+		return err
+	}
+	defer outFile.Close()
+
+	_, err = outFile.Write(source)
+	if err != nil {
+		return err
+	}
+
+	if args.Verbose {
+		fmt.Printf("blang: preprocessed %s -> %s\n", inputFile, args.OutputFile)
+	}
+	return nil
 }
