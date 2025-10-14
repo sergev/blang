@@ -262,14 +262,14 @@ File output descriptor offset. Used by `writeb()` to determine output file:
 
 ### macOS
 ```bash
-cc -c -ffreestanding libb/libb.c -o libb.o
+cc -c -ffreestanding runtime/libb.c -o libb.o
 ```
 
 **Required Flag:** `-ffreestanding` tells the compiler not to assume standard library is available.
 
 ### Linux
 ```bash
-gcc -c libb/libb.c -o libb.o
+gcc -c runtime/libb.c -o libb.o
 ```
 
 **Note:** The `-ffreestanding` flag is required on macOS but may not be needed on Linux.
@@ -585,7 +585,7 @@ Some functions may be extensions beyond the original B specification:
 #### 1. Compilation Error: "standard library not found"
 **Solution:** Use `-ffreestanding` flag (macOS)
 ```bash
-cc -c -ffreestanding libb/libb.c -o libb.o
+cc -c -ffreestanding runtime/libb.c -o libb.o
 ```
 
 #### 2. Linking Error: "undefined reference to printf"
@@ -618,8 +618,8 @@ clang program.ll -o program         # Wrong - missing libb.o
 ### Makefile Target
 
 ```makefile
-libb.o: libb/libb.c
-	cc -c -ffreestanding libb/libb.c -o libb.o
+libb.o: runtime/libb.c
+	cc -c -ffreestanding runtime/libb.c -o libb.o
 ```
 
 ### Clean Target

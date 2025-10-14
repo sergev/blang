@@ -115,7 +115,7 @@ This journal documents the complete rewrite of the B language compiler from C to
 ## Phase 6: Runtime Library Integration
 
 ### Request: Link with libb.c
-**User:** "I've added file `libb/libb.c`. It implements `write()` function and others. You need to link this file to the compiled B code."
+**User:** "I've added file `runtime/libb.c`. It implements `write()` function and others. You need to link this file to the compiled B code."
 
 **Discussion: External Functions**
 - User clarified: "No need to declare `extrn printf;` in B code. Any undefined name followed by '(' is treated as external function in B."

@@ -11,7 +11,7 @@ install: all
 clean:
 	rm -f ${PROG} *.o *.ll
 
-libb.o: libb/libb.c
+libb.o: runtime/libb.c
 	$(CC) -c -ffreestanding $< -o $@
 
 #
@@ -20,4 +20,6 @@ libb.o: libb/libb.c
 #
 test:
 	gotestsum --format dots
+
+cover:
 	gotestsum -- -cover .
