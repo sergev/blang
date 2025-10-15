@@ -144,23 +144,16 @@ func compileToAssembly(args *CompileOptions) error {
 		return err
 	}
 
-	// Convert LLVM IR to assembly using llc
-	cmd := exec.Command("llc", "-o", originalOutput, tempIR)
+	// Convert LLVM IR to assembly using clang
+	cmd := exec.Command("clang", "-S", "-o", originalOutput, tempIR)
 	if args.Verbose {
 		fmt.Printf("blang: running %s\n", cmd.String())
 	}
 
 	err = cmd.Run()
 	if err != nil {
-		// Fallback: if llc is not available, output the LLVM IR with .s extension
-		if args.Verbose {
-			fmt.Printf("blang: llc not available, copying IR as assembly\n")
-		}
-		err = os.Rename(tempIR, originalOutput)
-		if err != nil {
-			os.Remove(tempIR)
-			return fmt.Errorf("failed to generate assembly: %v", err)
-		}
+		os.Remove(tempIR)
+		return fmt.Errorf("failed to generate assembly: %v", err)
 	}
 
 	// Clean up temporary file unless save-temps is specified
@@ -187,23 +180,16 @@ func compileToObject(args *CompileOptions) error {
 		return err
 	}
 
-	// Convert LLVM IR to object file using llc
-	cmd := exec.Command("llc", "-filetype=obj", "-o", originalOutput, tempIR)
+	// Convert LLVM IR to object file using clang
+	cmd := exec.Command("clang", "-c", "-o", originalOutput, tempIR)
 	if args.Verbose {
 		fmt.Printf("blang: running %s\n", cmd.String())
 	}
 
 	err = cmd.Run()
 	if err != nil {
-		// Fallback: if llc is not available, output the LLVM IR with .o extension
-		if args.Verbose {
-			fmt.Printf("blang: llc not available, copying IR as object file\n")
-		}
-		err = os.Rename(tempIR, originalOutput)
-		if err != nil {
-			os.Remove(tempIR)
-			return fmt.Errorf("failed to generate object file: %v", err)
-		}
+		os.Remove(tempIR)
+		return fmt.Errorf("failed to generate object file: %v", err)
 	}
 
 	// Clean up temporary file unless save-temps is specified
