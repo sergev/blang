@@ -400,6 +400,11 @@ func TestCLIPathFlags(t *testing.T) {
 			args:     []string{"-l", "c", "-o", filepath.Join(tmpDir, "test_lib"), testFile},
 			wantExit: 0,
 		},
+		{
+			name:     "multiple_library_dirs",
+			args:     []string{"-L", "/usr/lib", "-L", "/usr/local/lib", "-o", filepath.Join(tmpDir, "test_multi_libpath"), testFile},
+			wantExit: 0,
+		},
 	}
 
 	for _, tt := range tests {

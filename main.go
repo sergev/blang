@@ -47,8 +47,8 @@ func main() {
 	var verbose bool
 
 	// Path flags
-	var libraryDirs string
-	var libraries string
+	var libraryDirs []string
+	var libraries []string
 
 	// Output control
 	pflag.StringVarP(&output, "output", "o", "", "place the output into <file>")
@@ -65,8 +65,8 @@ func main() {
 	pflag.BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	// Paths and libraries
-	pflag.StringVarP(&libraryDirs, "library-dir", "L", "", "add directory to library search path (comma-separated)")
-	pflag.StringVarP(&libraries, "library", "l", "", "link with library (comma-separated)")
+	pflag.StringSliceVarP(&libraryDirs, "library-dir", "L", []string{}, "add directory to library search path")
+	pflag.StringSliceVarP(&libraries, "library", "l", []string{}, "link with library")
 
 	// Help and version
 	pflag.BoolVarP(&showVersion, "version", "V", false, "display compiler version information")
@@ -145,15 +145,11 @@ func main() {
 	args.DebugInfo = debugInfo
 	args.Verbose = verbose
 
-	// Parse library directories
-	if libraryDirs != "" {
-		args.LibraryDirs = strings.Split(libraryDirs, ",")
-	}
+	// Set library directories
+	args.LibraryDirs = libraryDirs
 
-	// Parse libraries
-	if libraries != "" {
-		args.Libraries = strings.Split(libraries, ",")
-	}
+	// Set libraries
+	args.Libraries = libraries
 
 	// Set output file
 	if output != "" {
