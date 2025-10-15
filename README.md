@@ -124,8 +124,6 @@ go test -v -run TestCLIOutputFormats
 ## Documentation
 
 - [CLI Usage Guide](doc/CLI.md) - Comprehensive command-line interface guide
-- [Testing Guide](doc/Testing.md) - How to run tests and CLI test suite
-- [TODO](doc/TODO.md) - Future enhancements
 - [B Language Reference](https://github.com/sergev/blang/raw/refs/heads/main/doc/bref.pdf) - Original manual by S.C.Johnson
 - [B Tutorial](https://github.com/sergev/blang/raw/refs/heads/main/doc/btut.pdf) - A tutorial introduction by B.W.Kernighan
 - [Users' Reference to B](https://github.com/sergev/blang/raw/refs/heads/main/doc/kbman.pdf) - Ken Thompson's guide
