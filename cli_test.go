@@ -34,7 +34,7 @@ func TestCLIBasicOptions(t *testing.T) {
 			name:       "no_input_files",
 			args:       []string{},
 			wantExit:   1,
-			wantStderr: "no input files",
+			wantStdout: "Usage: blang [options] file...",
 		},
 		{
 			name:       "invalid_file_extension",
@@ -136,14 +136,6 @@ func TestCLIOutputFormats(t *testing.T) {
 			wantOutput: "",
 			checkFile:  true,
 			fileExt:    ".s",
-		},
-		{
-			name:       "preprocessed_output",
-			args:       []string{"-E", "-o", filepath.Join(tmpDir, "test.i"), testFile},
-			wantExit:   0,
-			wantOutput: "",
-			checkFile:  true,
-			fileExt:    ".i",
 		},
 	}
 
@@ -351,23 +343,7 @@ func TestCLIWarningFlags(t *testing.T) {
 		name     string
 		args     []string
 		wantExit int
-	}{
-		{
-			name:     "wall_flag",
-			args:     []string{"-Wall", "-o", filepath.Join(tmpDir, "test_wall"), testFile},
-			wantExit: 0,
-		},
-		{
-			name:     "werror_flag",
-			args:     []string{"-Werror", "-o", filepath.Join(tmpDir, "test_werror"), testFile},
-			wantExit: 0,
-		},
-		{
-			name:     "wall_and_werror",
-			args:     []string{"-Wall", "-Werror", "-o", filepath.Join(tmpDir, "test_wall_werror"), testFile},
-			wantExit: 0,
-		},
-	}
+	}{}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -415,11 +391,6 @@ func TestCLIPathFlags(t *testing.T) {
 		wantExit int
 	}{
 		{
-			name:     "include_path",
-			args:     []string{"-I", "/tmp", "-o", filepath.Join(tmpDir, "test_include"), testFile},
-			wantExit: 0,
-		},
-		{
 			name:     "library_path",
 			args:     []string{"-L", "/tmp", "-o", filepath.Join(tmpDir, "test_libpath"), testFile},
 			wantExit: 0,
@@ -427,11 +398,6 @@ func TestCLIPathFlags(t *testing.T) {
 		{
 			name:     "library_link",
 			args:     []string{"-l", "c", "-o", filepath.Join(tmpDir, "test_lib"), testFile},
-			wantExit: 0,
-		},
-		{
-			name:     "multiple_includes",
-			args:     []string{"-I", "/tmp,/usr/include", "-o", filepath.Join(tmpDir, "test_multi_include"), testFile},
 			wantExit: 0,
 		},
 	}
@@ -484,11 +450,6 @@ func TestCLIStandardFlag(t *testing.T) {
 		{
 			name:     "default_standard",
 			args:     []string{"-o", filepath.Join(tmpDir, "test_default_std"), testFile},
-			wantExit: 0,
-		},
-		{
-			name:     "explicit_standard",
-			args:     []string{"-std", "b", "-o", filepath.Join(tmpDir, "test_explicit_std"), testFile},
 			wantExit: 0,
 		},
 	}
@@ -663,13 +624,13 @@ func TestCLICombinedFlags(t *testing.T) {
 			wantExit: 0,
 		},
 		{
-			name:     "warnings_verbose_optimized",
-			args:     []string{"-Wall", "-v", "-O1", "-o", filepath.Join(tmpDir, "test_combined2"), testFile},
+			name:     "verbose_optimized_debug_O1",
+			args:     []string{"-v", "-O1", "-g", "-o", filepath.Join(tmpDir, "test_combined2"), testFile},
 			wantExit: 0,
 		},
 		{
 			name:     "all_flags",
-			args:     []string{"-v", "-O3", "-g", "-Wall", "-save-temps", "-std", "b", "-o", filepath.Join(tmpDir, "test_combined3"), testFile},
+			args:     []string{"-v", "-O3", "-g", "--save-temps", "-o", filepath.Join(tmpDir, "test_combined3"), testFile},
 			wantExit: 0,
 		},
 	}

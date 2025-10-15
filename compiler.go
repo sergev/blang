@@ -17,11 +17,10 @@ const (
 type OutputType int
 
 const (
-	OutputExecutable   OutputType = iota // default - executable
-	OutputObject                         // -c: object file
-	OutputAssembly                       // -S: assembly file
-	OutputIR                             // -emit-llvm: LLVM IR
-	OutputPreprocessed                   // -E: preprocessed source
+	OutputExecutable OutputType = iota // default - executable
+	OutputObject                       // -c: object file
+	OutputAssembly                     // -S: assembly file
+	OutputIR                           // -emit-llvm: LLVM IR
 )
 
 // CompileOptions holds the compiler state
@@ -70,8 +69,6 @@ func Compile(args *CompileOptions) error {
 
 	// Handle different output types
 	switch args.OutputType {
-	case OutputPreprocessed:
-		return compilePreprocessed(args)
 	case OutputIR:
 		return compileToIR(args)
 	case OutputAssembly:
@@ -274,35 +271,6 @@ func compileToExecutable(args *CompileOptions) error {
 
 	if args.Verbose {
 		fmt.Printf("blang: generated %s\n", originalOutput)
-	}
-	return nil
-}
-
-// compilePreprocessed generates preprocessed output (for now, just copy source)
-func compilePreprocessed(args *CompileOptions) error {
-	if len(args.InputFiles) != 1 {
-		return fmt.Errorf("preprocessing only supports single input file")
-	}
-
-	inputFile := args.InputFiles[0]
-	source, err := os.ReadFile(inputFile)
-	if err != nil {
-		return err
-	}
-
-	outFile, err := os.Create(args.OutputFile)
-	if err != nil {
-		return err
-	}
-	defer outFile.Close()
-
-	_, err = outFile.Write(source)
-	if err != nil {
-		return err
-	}
-
-	if args.Verbose {
-		fmt.Printf("blang: preprocessed %s -> %s\n", inputFile, args.OutputFile)
 	}
 	return nil
 }
