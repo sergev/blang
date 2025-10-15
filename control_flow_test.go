@@ -1,18 +1,12 @@
 package main
 
 import (
-	"os"
-	"os/exec"
-	"path/filepath"
 	"testing"
 )
 
 // TestNestedLoops tests nested while loops with unique labels
 func TestNestedLoops(t *testing.T) {
-	// Check if clang is available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	ensureLibbOrSkip(t)
 
 	tests := []struct {
 		name       string
@@ -67,45 +61,7 @@ func TestNestedLoops(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tmpDir := t.TempDir()
-			inputFile := filepath.Join(tmpDir, "test.b")
-			llFile := filepath.Join(tmpDir, "test.ll")
-			exeFile := filepath.Join(tmpDir, "test")
-
-			// Write test code to file
-			err := os.WriteFile(inputFile, []byte(tt.code), 0644)
-			if err != nil {
-				t.Fatalf("Failed to write test file: %v", err)
-			}
-
-			// Step 1: Compile B program to LLVM IR
-			args := NewCompileOptions("blang", []string{inputFile})
-			args.OutputFile = llFile
-			args.OutputType = OutputIR
-
-			err = Compile(args)
-			if err != nil {
-				t.Fatalf("Compile failed: %v", err)
-			}
-
-			// Step 2: Link with libb.o using clang
-			linkCmd := exec.Command("clang", llFile, "libb.o", "-o", exeFile)
-			linkOutput, err := linkCmd.CombinedOutput()
-			if err != nil {
-				t.Fatalf("Linking failed: %v\nOutput: %s", err, linkOutput)
-			}
-
-			// Step 3: Run the executable
-			runCmd := exec.Command(exeFile)
-			stdout, err := runCmd.Output()
-			if err != nil {
-				if _, ok := err.(*exec.ExitError); !ok {
-					t.Fatalf("Failed to run executable: %v", err)
-				}
-			}
-
-			// Check stdout
-			gotStdout := string(stdout)
+			gotStdout := compileLinkRunFromCode(t, tt.name, tt.code)
 			if gotStdout != tt.wantStdout {
 				t.Errorf("Stdout mismatch:\nGot:\n%s\nWant:\n%s", gotStdout, tt.wantStdout)
 			}

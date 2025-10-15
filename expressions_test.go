@@ -1,18 +1,12 @@
 package main
 
 import (
-	"os"
-	"os/exec"
-	"path/filepath"
 	"testing"
 )
 
 // TestPrecedence tests operator precedence (from oldtests/precedence_test.cpp)
 func TestPrecedence(t *testing.T) {
-	// Check if clang is available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	ensureLibbOrSkip(t)
 
 	tests := []struct {
 		name       string
@@ -219,45 +213,7 @@ func TestPrecedence(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tmpDir := t.TempDir()
-			inputFile := filepath.Join(tmpDir, "test.b")
-			llFile := filepath.Join(tmpDir, "test.ll")
-			exeFile := filepath.Join(tmpDir, "test")
-
-			// Write test code to file
-			err := os.WriteFile(inputFile, []byte(tt.code), 0644)
-			if err != nil {
-				t.Fatalf("Failed to write test file: %v", err)
-			}
-
-			// Step 1: Compile B program to LLVM IR
-			args := NewCompileOptions("blang", []string{inputFile})
-			args.OutputFile = llFile
-			args.OutputType = OutputIR
-
-			err = Compile(args)
-			if err != nil {
-				t.Fatalf("Compile failed: %v", err)
-			}
-
-			// Step 2: Link with libb.o using clang
-			linkCmd := exec.Command("clang", llFile, "libb.o", "-o", exeFile)
-			linkOutput, err := linkCmd.CombinedOutput()
-			if err != nil {
-				t.Fatalf("Linking failed: %v\nOutput: %s", err, linkOutput)
-			}
-
-			// Step 3: Run the executable
-			runCmd := exec.Command(exeFile)
-			stdout, err := runCmd.Output()
-			if err != nil {
-				if _, ok := err.(*exec.ExitError); !ok {
-					t.Fatalf("Failed to run executable: %v", err)
-				}
-			}
-
-			// Check stdout
-			gotStdout := string(stdout)
+			gotStdout := compileLinkRunFromCode(t, tt.name, tt.code)
 			if gotStdout != tt.wantStdout {
 				t.Errorf("Stdout mismatch:\nGot:\n%s\nWant:\n%s", gotStdout, tt.wantStdout)
 			}
@@ -267,10 +223,7 @@ func TestPrecedence(t *testing.T) {
 
 // TestExpressions tests various expression features (from oldtests/expr_test.cpp)
 func TestExpressions(t *testing.T) {
-	// Check if clang is available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	ensureLibbOrSkip(t)
 
 	tests := []struct {
 		name       string
@@ -574,45 +527,7 @@ address = 0, 8, 16
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tmpDir := t.TempDir()
-			inputFile := filepath.Join(tmpDir, "test.b")
-			llFile := filepath.Join(tmpDir, "test.ll")
-			exeFile := filepath.Join(tmpDir, "test")
-
-			// Write test code to file
-			err := os.WriteFile(inputFile, []byte(tt.code), 0644)
-			if err != nil {
-				t.Fatalf("Failed to write test file: %v", err)
-			}
-
-			// Step 1: Compile B program to LLVM IR
-			args := NewCompileOptions("blang", []string{inputFile})
-			args.OutputFile = llFile
-			args.OutputType = OutputIR
-
-			err = Compile(args)
-			if err != nil {
-				t.Fatalf("Compile failed: %v", err)
-			}
-
-			// Step 2: Link with libb.o using clang
-			linkCmd := exec.Command("clang", llFile, "libb.o", "-o", exeFile)
-			linkOutput, err := linkCmd.CombinedOutput()
-			if err != nil {
-				t.Fatalf("Linking failed: %v\nOutput: %s", err, linkOutput)
-			}
-
-			// Step 3: Run the executable
-			runCmd := exec.Command(exeFile)
-			stdout, err := runCmd.Output()
-			if err != nil {
-				if _, ok := err.(*exec.ExitError); !ok {
-					t.Fatalf("Failed to run executable: %v", err)
-				}
-			}
-
-			// Check stdout
-			gotStdout := string(stdout)
+			gotStdout := compileLinkRunFromCode(t, tt.name, tt.code)
 			if gotStdout != tt.wantStdout {
 				t.Errorf("Stdout mismatch:\nGot:\n%s\nWant:\n%s", gotStdout, tt.wantStdout)
 			}
@@ -622,10 +537,7 @@ address = 0, 8, 16
 
 // TestUnaryOperators tests comprehensive unary operator functionality
 func TestUnaryOperators(t *testing.T) {
-	// Check if clang is available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	ensureLibbOrSkip(t)
 
 	tests := []struct {
 		name       string
@@ -748,45 +660,7 @@ func TestUnaryOperators(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tmpDir := t.TempDir()
-			llFile := filepath.Join(tmpDir, tt.name+".ll")
-			exeFile := filepath.Join(tmpDir, tt.name)
-
-			// Create temporary B file
-			bFile := filepath.Join(tmpDir, tt.name+".b")
-			err := os.WriteFile(bFile, []byte(tt.code), 0644)
-			if err != nil {
-				t.Fatalf("Failed to create test file: %v", err)
-			}
-
-			// Step 1: Compile B program to LLVM IR
-			args := NewCompileOptions("blang", []string{bFile})
-			args.OutputFile = llFile
-			args.OutputType = OutputIR
-
-			err = Compile(args)
-			if err != nil {
-				t.Fatalf("Compilation failed: %v", err)
-			}
-
-			// Step 2: Link with libb.o using clang
-			linkCmd := exec.Command("clang", llFile, "libb.o", "-o", exeFile)
-			linkOutput, err := linkCmd.CombinedOutput()
-			if err != nil {
-				t.Fatalf("Linking failed: %v\nOutput: %s", err, linkOutput)
-			}
-
-			// Step 3: Run the executable
-			runCmd := exec.Command(exeFile)
-			stdout, err := runCmd.Output()
-			if err != nil {
-				if _, ok := err.(*exec.ExitError); !ok {
-					t.Fatalf("Failed to run executable: %v", err)
-				}
-			}
-
-			// Check stdout
-			gotStdout := string(stdout)
+			gotStdout := compileLinkRunFromCode(t, tt.name, tt.code)
 			if gotStdout != tt.wantStdout {
 				t.Errorf("Stdout mismatch.\nGot:\n%s\nWant:\n%s", gotStdout, tt.wantStdout)
 			}

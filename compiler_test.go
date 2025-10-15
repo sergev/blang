@@ -6,20 +6,7 @@ import (
 	"testing"
 )
 
-// contains checks if a string contains a substring (case-insensitive)
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) &&
-		(hasSubstring(s, substr)))
-}
-
-func hasSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
+// contains and hasSubstring are provided by test_utils.go
 
 // BenchmarkCompile benchmarks the compilation process
 func BenchmarkCompile(b *testing.B) {
@@ -252,14 +239,7 @@ skip:
 			}
 
 			// Compile the input
-			args := NewCompileOptions("blang", []string{inputFile})
-			args.OutputFile = outputFile
-			args.OutputType = OutputIR
-
-			err = Compile(args)
-			if err != nil {
-				t.Fatalf("Compile(%s) failed: %v", tt.name, err)
-			}
+			compileToLL(t, inputFile, outputFile)
 
 			// Read generated output
 			got, err := os.ReadFile(outputFile)

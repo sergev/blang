@@ -10,6 +10,7 @@ import (
 
 // TestCLIBasicOptions tests basic CLI options like help, version, and output
 func TestCLIBasicOptions(t *testing.T) {
+	ensureBlangOrSkip(t)
 	tests := []struct {
 		name        string
 		args        []string
@@ -80,10 +81,8 @@ func TestCLIBasicOptions(t *testing.T) {
 
 // TestCLIOutputFormats tests different output format options
 func TestCLIOutputFormats(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	ensureBlangOrSkip(t)
+	ensureLibbOrSkip(t)
 
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.b")
@@ -174,10 +173,8 @@ func TestCLIOutputFormats(t *testing.T) {
 
 // TestCLIOptimizationFlags tests optimization level flags
 func TestCLIOptimizationFlags(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	ensureBlangOrSkip(t)
+	ensureLibbOrSkip(t)
 
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.b")
@@ -248,10 +245,8 @@ func TestCLIOptimizationFlags(t *testing.T) {
 
 // TestCLIDebugAndVerbose tests debug and verbose flags
 func TestCLIDebugAndVerbose(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	ensureBlangOrSkip(t)
+	ensureLibbOrSkip(t)
 
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.b")
@@ -322,10 +317,8 @@ func TestCLIDebugAndVerbose(t *testing.T) {
 
 // TestCLIWarningFlags tests warning flags
 func TestCLIWarningFlags(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	ensureBlangOrSkip(t)
+	ensureLibbOrSkip(t)
 
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.b")
@@ -368,10 +361,8 @@ func TestCLIWarningFlags(t *testing.T) {
 
 // TestCLIPathFlags tests include and library path flags
 func TestCLIPathFlags(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	ensureBlangOrSkip(t)
+	ensureLibbOrSkip(t)
 
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.b")
@@ -430,10 +421,8 @@ func TestCLIPathFlags(t *testing.T) {
 
 // TestCLIStandardFlag tests the language standard flag
 func TestCLIStandardFlag(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	ensureBlangOrSkip(t)
+	ensureLibbOrSkip(t)
 
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.b")
@@ -482,10 +471,8 @@ func TestCLIStandardFlag(t *testing.T) {
 
 // TestCLISaveTemps tests the save-temps flag
 func TestCLISaveTemps(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	ensureBlangOrSkip(t)
+	ensureLibbOrSkip(t)
 
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.b")
@@ -555,10 +542,8 @@ func TestCLISaveTemps(t *testing.T) {
 
 // TestCLIExecutableGeneration tests that generated executables actually work
 func TestCLIExecutableGeneration(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	ensureBlangOrSkip(t)
+	ensureLibbOrSkip(t)
 
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.b")
@@ -601,10 +586,8 @@ func TestCLIExecutableGeneration(t *testing.T) {
 
 // TestCLICombinedFlags tests combinations of multiple flags
 func TestCLICombinedFlags(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	ensureBlangOrSkip(t)
+	ensureLibbOrSkip(t)
 
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.b")
