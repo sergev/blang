@@ -1,10 +1,11 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/spf13/pflag"
 )
 
 func usage() {
@@ -14,7 +15,7 @@ blang is a compiler for .b files.
 
 Options:
 `)
-	flag.PrintDefaults()
+	pflag.PrintDefaults()
 	fmt.Fprintf(os.Stderr, `
 Examples:
   blang -o hello hello.b              # Compile to executable
@@ -23,6 +24,7 @@ Examples:
   blang -emit-llvm hello.b            # Output LLVM IR
   blang -O2 -g -o optimized hello.b   # Optimized with debug info
   blang -Wall -Wextra hello.b         # Enable warnings
+  blang hello.b -o output -O2         # Options can be placed after arguments
 
 `)
 	os.Exit(0)
@@ -32,7 +34,9 @@ func main() {
 	var output string
 	var saveTemps bool
 	var showVersion bool
+	var showVersionShort bool
 	var showHelp bool
+	var showHelpShort bool
 
 	// Output format flags
 	var compileOnly bool
@@ -58,58 +62,62 @@ func main() {
 	var standard string
 
 	// Output control
-	flag.StringVar(&output, "o", "", "place the output into <file>")
-	flag.BoolVar(&saveTemps, "save-temps", false, "do not delete intermediate files")
-	flag.BoolVar(&emitLLVM, "emit-llvm", false, "emit LLVM IR instead of executable")
+	pflag.StringVarP(&output, "output", "o", "", "place the output into <file>")
+	pflag.BoolVar(&saveTemps, "save-temps", false, "do not delete intermediate files")
+	pflag.BoolVar(&emitLLVM, "emit-llvm", false, "emit LLVM IR instead of executable")
 
 	// Compilation stages
-	flag.BoolVar(&compileOnly, "c", false, "compile and assemble, but do not link")
-	flag.BoolVar(&assemblyOnly, "S", false, "compile only; do not assemble or link")
-	flag.BoolVar(&preprocess, "E", false, "preprocess only; do not compile, assemble or link")
+	pflag.BoolVarP(&compileOnly, "compile", "c", false, "compile and assemble, but do not link")
+	pflag.BoolVarP(&assemblyOnly, "assemble", "S", false, "compile only; do not assemble or link")
+	pflag.BoolVarP(&preprocess, "preprocess", "E", false, "preprocess only; do not compile, assemble or link")
 
 	// Optimization and debugging
-	flag.StringVar(&optimize, "O", "0", "optimization level (0-3)")
-	flag.BoolVar(&debugInfo, "g", false, "generate debug information")
-	flag.BoolVar(&verbose, "v", false, "verbose output")
+	pflag.StringVarP(&optimize, "optimize", "O", "0", "optimization level (0-3)")
+	pflag.BoolVarP(&debugInfo, "debug", "g", false, "generate debug information")
+	pflag.BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	// Handle optimization flags like -O2, -O3, etc.
-	flag.Bool("O0", false, "no optimization")
-	flag.Bool("O1", false, "optimization level 1")
-	flag.Bool("O2", false, "optimization level 2")
-	flag.Bool("O3", false, "optimization level 3")
+	pflag.Bool("O0", false, "no optimization")
+	pflag.Bool("O1", false, "optimization level 1")
+	pflag.Bool("O2", false, "optimization level 2")
+	pflag.Bool("O3", false, "optimization level 3")
 
 	// Warnings
-	flag.BoolVar(&warnings, "Wall", false, "enable all warnings")
-	flag.BoolVar(&warningsAsErrors, "Werror", false, "treat warnings as errors")
+	pflag.BoolVar(&warnings, "Wall", false, "enable all warnings")
+	pflag.BoolVar(&warningsAsErrors, "Werror", false, "treat warnings as errors")
 
 	// Paths and libraries
-	flag.StringVar(&includeDirs, "I", "", "add directory to include search path (comma-separated)")
-	flag.StringVar(&libraryDirs, "L", "", "add directory to library search path (comma-separated)")
-	flag.StringVar(&libraries, "l", "", "link with library (comma-separated)")
+	pflag.StringVarP(&includeDirs, "include", "I", "", "add directory to include search path (comma-separated)")
+	pflag.StringVarP(&libraryDirs, "library-dir", "L", "", "add directory to library search path (comma-separated)")
+	pflag.StringVarP(&libraries, "library", "l", "", "link with library (comma-separated)")
 
 	// Language standard
-	flag.StringVar(&standard, "std", "b", "language standard to use")
+	pflag.StringVar(&standard, "std", "b", "language standard to use")
 
 	// Help and version
-	flag.BoolVar(&showVersion, "version", false, "display compiler version information")
-	flag.BoolVar(&showHelp, "help", false, "display this information")
+	pflag.BoolVar(&showVersion, "version", false, "display compiler version information")
+	pflag.BoolVar(&showHelp, "help", false, "display this information")
 
-	flag.Usage = usage
-	flag.Parse()
+	// Add short flags for compatibility with tests
+	pflag.BoolVar(&showVersionShort, "V", false, "display compiler version information (short)")
+	pflag.BoolVar(&showHelpShort, "h", false, "display this information (short)")
 
-	if showHelp {
+	pflag.Usage = usage
+	pflag.Parse()
+
+	if showHelp || showHelpShort {
 		usage()
 	}
 
-	if showVersion {
+	if showVersion || showVersionShort {
 		fmt.Println("blang version 0.1")
-		fmt.Println("Copyright (C) 2025")
-		fmt.Println("This is free software; see the source for copying conditions.")
+		fmt.Println("Copyright (c) 2025 Serge Vakulenko")
+		fmt.Println("Freely distributed under the MIT License.")
 		fmt.Println("There is NO warranty.")
 		os.Exit(0)
 	}
 
-	files := flag.Args()
+	files := pflag.Args()
 	if len(files) == 0 {
 		Eprintf("blang", "no input files\ncompilation terminated.\n")
 		os.Exit(1)
@@ -132,14 +140,14 @@ func main() {
 	// Parse optimization level
 	optLevel := 0
 
-	// Check for optimization flags set via flag package
-	if flag.Lookup("O0").Value.(flag.Getter).Get().(bool) {
+	// Check for optimization flags set via pflag package
+	if pflag.Lookup("O0").Value.String() == "true" {
 		optLevel = 0
-	} else if flag.Lookup("O1").Value.(flag.Getter).Get().(bool) {
+	} else if pflag.Lookup("O1").Value.String() == "true" {
 		optLevel = 1
-	} else if flag.Lookup("O2").Value.(flag.Getter).Get().(bool) {
+	} else if pflag.Lookup("O2").Value.String() == "true" {
 		optLevel = 2
-	} else if flag.Lookup("O3").Value.(flag.Getter).Get().(bool) {
+	} else if pflag.Lookup("O3").Value.String() == "true" {
 		optLevel = 3
 	} else if optimize != "0" {
 		// Handle -O value format

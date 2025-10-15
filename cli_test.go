@@ -20,13 +20,13 @@ func TestCLIBasicOptions(t *testing.T) {
 	}{
 		{
 			name:       "help_option",
-			args:       []string{"-help"},
+			args:       []string{"--help"},
 			wantExit:   0,
 			wantStdout: "Usage: blang [options] file...",
 		},
 		{
 			name:       "version_option",
-			args:       []string{"-version"},
+			args:       []string{"--version"},
 			wantExit:   0,
 			wantStdout: "blang version 0.1",
 		},
@@ -115,7 +115,7 @@ func TestCLIOutputFormats(t *testing.T) {
 		},
 		{
 			name:       "llvm_ir_output",
-			args:       []string{"-emit-llvm", "-o", filepath.Join(tmpDir, "test.ll"), testFile},
+			args:       []string{"--emit-llvm", "-o", filepath.Join(tmpDir, "test.ll"), testFile},
 			wantExit:   0,
 			wantOutput: "",
 			checkFile:  true,
@@ -229,7 +229,7 @@ func TestCLIOptimizationFlags(t *testing.T) {
 		{
 			name:     "invalid_optimization",
 			args:     []string{"-O4", testFile},
-			wantExit: 0, // flag package shows help and exits with 0
+			wantExit: 1, // pflag correctly detects invalid optimization level
 		},
 	}
 
@@ -547,7 +547,7 @@ func TestCLISaveTemps(t *testing.T) {
 		},
 		{
 			name:           "with_save_temps",
-			args:           []string{"-save-temps", "-o", filepath.Join(tmpDir, "test_save"), testFile},
+			args:           []string{"--save-temps", "-o", filepath.Join(tmpDir, "test_save"), testFile},
 			wantExit:       0,
 			expectTempFile: true,
 		},
