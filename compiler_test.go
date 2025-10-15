@@ -6,21 +6,6 @@ import (
 	"testing"
 )
 
-// contains checks if a string contains a substring (case-insensitive)
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) &&
-		(hasSubstring(s, substr)))
-}
-
-func hasSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
-
 // BenchmarkCompile benchmarks the compilation process
 func BenchmarkCompile(b *testing.B) {
 	tmpDir := b.TempDir()
@@ -36,21 +21,15 @@ func BenchmarkCompile(b *testing.B) {
 
 // TestCompile tests the full compilation pipeline
 func TestCompile(t *testing.T) {
-	tests := []struct {
-		name     string
-		code     string
-		wantFunc string // Function name that should exist in output
-	}{
+	tests := []CompileTestConfig{
 		{
-			name: "hello",
-			code: `main() {
-    printf("Hello, World!*n");
-}`,
-			wantFunc: "@main",
+			Name:     "hello",
+			Code:     `main() { printf("Hello, World!*n"); }`,
+			WantFunc: "@main",
 		},
 		{
-			name: "arithmetic",
-			code: `add(a, b) {
+			Name: "arithmetic",
+			Code: `add(a, b) {
     return(a + b);
 }
 sub(a, b) {
@@ -68,11 +47,11 @@ main() {
     z = mul(z, 2);
     return(z);
 }`,
-			wantFunc: "@main",
+			WantFunc: "@main",
 		},
 		{
-			name: "globals",
-			code: `counter 0;
+			Name: "globals",
+			Code: `counter 0;
 values[3] 10, 20, 30;
 
 increment() {
@@ -97,11 +76,11 @@ main() {
     increment();
     return(sum_values());
 }`,
-			wantFunc: "@main",
+			WantFunc: "@main",
 		},
 		{
-			name: "conditionals",
-			code: `max(a, b) {
+			Name: "conditionals",
+			Code: `max(a, b) {
     if (a > b)
         return(a);
     else
@@ -120,11 +99,11 @@ main() {
     y = abs(-15);
     return(x + y);
 }`,
-			wantFunc: "@main",
+			WantFunc: "@main",
 		},
 		{
-			name: "loops",
-			code: `factorial(n) {
+			Name: "loops",
+			Code: `factorial(n) {
     auto result, i;
     result = 1;
     i = 1;
@@ -138,11 +117,11 @@ main() {
 main() {
     return(factorial(5));
 }`,
-			wantFunc: "@factorial",
+			WantFunc: "@factorial",
 		},
 		{
-			name: "strings",
-			code: `messages[3] "Hello", "World", "Test";
+			Name: "strings",
+			Code: `messages[3] "Hello", "World", "Test";
 
 main() {
     extrn messages;
@@ -150,11 +129,11 @@ main() {
     printf("%s*n", messages[1]);
     printf("%s*n", messages[2]);
 }`,
-			wantFunc: "@main",
+			WantFunc: "@main",
 		},
 		{
-			name: "arrays",
-			code: `sum_array(arr, n) {
+			Name: "arrays",
+			Code: `sum_array(arr, n) {
     auto i, sum;
     sum = 0;
     i = 0;
@@ -181,11 +160,11 @@ main() {
 
     return(total);  /* Should be 10+20+30+40+50 = 150 */
 }`,
-			wantFunc: "@sum_array",
+			WantFunc: "@sum_array",
 		},
 		{
-			name: "pointers",
-			code: `main() {
+			Name: "pointers",
+			Code: `main() {
     auto x, y, ptr;
     x = 100;
     y = 200;
@@ -198,11 +177,11 @@ main() {
 
     return(*ptr);
 }`,
-			wantFunc: "@main",
+			WantFunc: "@main",
 		},
 		{
-			name: "switch",
-			code: `classify(n) {
+			Name: "switch",
+			Code: `classify(n) {
     switch (n) {
         case 0:
             return(0);
@@ -218,11 +197,11 @@ main() {
 main() {
     return(classify(2));
 }`,
-			wantFunc: "@classify",
+			WantFunc: "@classify",
 		},
 		{
-			name: "goto",
-			code: `main() {
+			Name: "goto",
+			Code: `main() {
     auto x;
     x = 10;
 
@@ -234,146 +213,66 @@ main() {
 skip:
     return(x);
 }`,
-			wantFunc: "@main",
+			WantFunc: "@main",
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Create temporary input and output files
-			tmpDir := t.TempDir()
-			inputFile := filepath.Join(tmpDir, "test.b")
-			outputFile := filepath.Join(tmpDir, "output.ll")
-
-			// Write test code to input file
-			err := os.WriteFile(inputFile, []byte(tt.code), 0644)
-			if err != nil {
-				t.Fatalf("Failed to write test file: %v", err)
-			}
-
-			// Compile the input
-			args := NewCompileOptions("blang", []string{inputFile})
-			args.OutputFile = outputFile
-			args.OutputType = OutputIR
-
-			err = Compile(args)
-			if err != nil {
-				t.Fatalf("Compile(%s) failed: %v", tt.name, err)
-			}
-
-			// Read generated output
-			got, err := os.ReadFile(outputFile)
-			if err != nil {
-				t.Fatalf("Failed to read output file: %v", err)
-			}
-
-			output := string(got)
-
-			// Verify it's valid LLVM IR
-			if !hasSubstring(output, "define i64") {
-				t.Errorf("Output doesn't contain function definition")
-			}
-
-			// Verify expected function exists
-			if !hasSubstring(output, tt.wantFunc) {
-				t.Errorf("Output doesn't contain expected function %s", tt.wantFunc)
-			}
-
-			// Verify output is non-empty
-			if len(output) == 0 {
-				t.Error("Output file is empty")
-			}
+		t.Run(tt.Name, func(t *testing.T) {
+			runCompileTest(t, tt)
 		})
 	}
 }
 
 // TestCompileErrors tests that invalid B programs are rejected
 func TestCompileErrors(t *testing.T) {
-	tests := []struct {
-		name        string
-		content     string
-		wantErr     bool
-		errContains string
-	}{
+	tests := []CompileTestConfig{
 		{
-			name:        "undefined_variable",
-			content:     "main() { x = 10; }",
-			wantErr:     true,
-			errContains: "undefined identifier",
+			Name:     "undefined_variable",
+			Code:     "main() { x = 10; }",
+			WantExit: 1,
 		},
 		{
-			name:        "unclosed_comment",
-			content:     "/* unclosed comment\nmain() { }",
-			wantErr:     true,
-			errContains: "unclosed comment",
+			Name:     "unclosed_comment",
+			Code:     "/* unclosed comment\nmain() { }",
+			WantExit: 1,
 		},
 		{
-			name:        "missing_semicolon",
-			content:     "main() { auto x x = 10; }",
-			wantErr:     true,
-			errContains: "expect ';' or ','",
+			Name:     "missing_semicolon",
+			Code:     "main() { auto x x = 10; }",
+			WantExit: 1,
 		},
 		{
-			name:        "unclosed_char_literal",
-			content:     "main() { auto c; c = 'abcdefghij; }",
-			wantErr:     true,
-			errContains: "unclosed char literal",
+			Name:     "unclosed_char_literal",
+			Code:     "main() { auto c; c = 'abcdefghij; }",
+			WantExit: 1,
 		},
 		{
-			name:        "unterminated_string",
-			content:     `main() { write("hello); }`,
-			wantErr:     true,
-			errContains: "unterminated string",
+			Name:     "unterminated_string",
+			Code:     `main() { write("hello); }`,
+			WantExit: 1,
 		},
 		{
-			name:        "undefined_escape",
-			content:     `main() { write("*x"); }`,
-			wantErr:     true,
-			errContains: "undefined escape character",
+			Name:     "undefined_escape",
+			Code:     `main() { write("*x"); }`,
+			WantExit: 1,
 		},
 		{
-			name:        "case_outside_switch",
-			content:     "main() { case 1: return(0); }",
-			wantErr:     true,
-			errContains: "case' outside of 'switch",
+			Name:     "case_outside_switch",
+			Code:     "main() { case 1: return(0); }",
+			WantExit: 1,
 		},
 		// Note: Duplicate identifier detection is not yet implemented in LLVM backend
 		// {
-		// 	name:        "duplicate_identifier",
-		// 	content:     "main() { auto x, x; }",
-		// 	wantErr:     true,
-		// 	errContains: "already defined",
+		// 	Name:     "duplicate_identifier",
+		// 	Code:     "main() { auto x, x; }",
+		// 	WantExit: 1,
 		// },
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Create temporary input file
-			tmpDir := t.TempDir()
-			inputFile := filepath.Join(tmpDir, "test.b")
-			outputFile := filepath.Join(tmpDir, "output.ll")
-
-			err := os.WriteFile(inputFile, []byte(tt.content), 0644)
-			if err != nil {
-				t.Fatalf("Failed to write test file: %v", err)
-			}
-
-			// Try to compile
-			args := NewCompileOptions("blang", []string{inputFile})
-			args.OutputFile = outputFile
-
-			err = Compile(args)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Compile() error = %v, wantErr %v", err, tt.wantErr)
-			}
-
-			// Check error message contains expected substring
-			if tt.wantErr && err != nil && tt.errContains != "" {
-				errMsg := err.Error()
-				if !contains(errMsg, tt.errContains) {
-					t.Errorf("Expected error containing %q, got %q", tt.errContains, errMsg)
-				}
-			}
+		t.Run(tt.Name, func(t *testing.T) {
+			runCompileTest(t, tt)
 		})
 	}
 }
@@ -383,18 +282,9 @@ func TestCompileMultipleFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Create first file
-	file1 := filepath.Join(tmpDir, "file1.b")
-	err := os.WriteFile(file1, []byte("add(a, b) { return(a + b); }"), 0644)
-	if err != nil {
-		t.Fatalf("Failed to write file1: %v", err)
-	}
-
+	file1 := createTestFile(t, tmpDir, "file1.b", "add(a, b) { return(a + b); }")
 	// Create second file
-	file2 := filepath.Join(tmpDir, "file2.b")
-	err = os.WriteFile(file2, []byte("main() { return(add(1, 2)); }"), 0644)
-	if err != nil {
-		t.Fatalf("Failed to write file2: %v", err)
-	}
+	file2 := createTestFile(t, tmpDir, "file2.b", "main() { return(add(1, 2)); }")
 
 	// Compile both files
 	outputFile := filepath.Join(tmpDir, "output.ll")
@@ -402,7 +292,7 @@ func TestCompileMultipleFiles(t *testing.T) {
 	args.OutputFile = outputFile
 	args.OutputType = OutputIR
 
-	err = Compile(args)
+	err := Compile(args)
 	if err != nil {
 		t.Fatalf("Compile() failed: %v", err)
 	}

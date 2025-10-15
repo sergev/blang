@@ -12,59 +12,56 @@ import (
 
 // TestCompileAndRun tests the full pipeline: compile, link, and execute
 func TestCompileAndRun(t *testing.T) {
-	// Check if clang is available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	requireLibbO(t)
 
 	tests := []struct {
-		name       string
-		inputFile  string
-		wantExit   int
-		wantStdout string
+		Name       string
+		InputFile  string
+		WantExit   int
+		WantStdout string
 	}{
 		// Example programs
 		{
-			name:       "hello_write",
-			inputFile:  "examples/hello.b",
-			wantExit:   0,
-			wantStdout: "Hello, World!",
+			Name:       "hello_write",
+			InputFile:  "examples/hello.b",
+			WantExit:   0,
+			WantStdout: "Hello, World!",
 		},
 		{
-			name:       "hello_printf",
-			inputFile:  "examples/helloworld.b",
-			wantExit:   0,
-			wantStdout: "Hello, World!",
+			Name:       "hello_printf",
+			InputFile:  "examples/helloworld.b",
+			WantExit:   0,
+			WantStdout: "Hello, World!",
 		},
 		{
-			name:       "example_fibonacci",
-			inputFile:  "examples/fibonacci.b",
-			wantExit:   0,
-			wantStdout: "55\n",
+			Name:       "example_fibonacci",
+			InputFile:  "examples/fibonacci.b",
+			WantExit:   0,
+			WantStdout: "55\n",
 		},
 		{
-			name:       "example_fizzbuzz",
-			inputFile:  "examples/fizzbuzz.b",
-			wantExit:   0,
-			wantStdout: "FizzBuzz", // Check that FizzBuzz appears in output
+			Name:       "example_fizzbuzz",
+			InputFile:  "examples/fizzbuzz.b",
+			WantExit:   0,
+			WantStdout: "FizzBuzz", // Check that FizzBuzz appears in output
 		},
 		// Note: example_e2 is tested separately in TestE2Constant due to long runtime
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.Name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			llFile := filepath.Join(tmpDir, tt.name+".ll")
-			exeFile := filepath.Join(tmpDir, tt.name)
+			llFile := filepath.Join(tmpDir, tt.Name+".ll")
+			exeFile := filepath.Join(tmpDir, tt.Name)
 
 			// Step 1: Compile B program to LLVM IR
-			args := NewCompileOptions("blang", []string{tt.inputFile})
+			args := NewCompileOptions("blang", []string{tt.InputFile})
 			args.OutputFile = llFile
 			args.OutputType = OutputIR
 
 			err := Compile(args)
 			if err != nil {
-				t.Fatalf("Compile(%s) failed: %v", tt.inputFile, err)
+				t.Fatalf("Compile(%s) failed: %v", tt.InputFile, err)
 			}
 
 			// Step 2: Link with libb.o using clang
@@ -87,15 +84,15 @@ func TestCompileAndRun(t *testing.T) {
 			}
 
 			// Check exit code
-			if exitCode != tt.wantExit {
-				t.Errorf("Exit code = %d, want %d", exitCode, tt.wantExit)
+			if exitCode != tt.WantExit {
+				t.Errorf("Exit code = %d, want %d", exitCode, tt.WantExit)
 			}
 
 			// Check stdout if expected
-			if tt.wantStdout != "" {
+			if tt.WantStdout != "" {
 				gotStdout := string(stdout)
-				if !hasSubstring(gotStdout, tt.wantStdout) {
-					t.Errorf("Stdout = %q, want substring %q", gotStdout, tt.wantStdout)
+				if !hasSubstring(gotStdout, tt.WantStdout) {
+					t.Errorf("Stdout = %q, want substring %q", gotStdout, tt.WantStdout)
 				}
 			}
 		})

@@ -6,68 +6,48 @@ import (
 )
 
 func TestLexerIdentifier(t *testing.T) {
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{"hello", "hello"},
-		{"main", "main"},
-		{"test123", "test123"},
-		{"_var", "_var"},
-		{"var_name", "var_name"},
-		{"x", "x"},
+	tests := []LexerTestConfig{
+		{Name: "hello", Input: "hello", Want: "hello"},
+		{Name: "main", Input: "main", Want: "main"},
+		{Name: "test123", Input: "test123", Want: "test123"},
+		{Name: "_var", Input: "_var", Want: "_var"},
+		{Name: "var_name", Input: "var_name", Want: "var_name"},
+		{Name: "x", Input: "x", Want: "x"},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			args := NewCompileOptions("test", nil)
-			lexer := NewLexer(args, strings.NewReader(tt.input))
-
-			got, err := lexer.Identifier()
-			if err != nil {
-				t.Fatalf("Identifier() error = %v", err)
-			}
-			if got != tt.want {
-				t.Errorf("Identifier() = %q, want %q", got, tt.want)
-			}
+		t.Run(tt.Input, func(t *testing.T) {
+			runLexerTest(t, tt, func(l *Lexer) (interface{}, error) {
+				return l.Identifier()
+			})
 		})
 	}
 }
 
 func TestLexerNumber(t *testing.T) {
-	tests := []struct {
-		input string
-		want  int64
-	}{
-		{"42", 42},
-		{"0", 0},
-		{"123", 123},
-		{"010", 8},   // octal
-		{"077", 63},  // octal 77 = decimal 63
-		{"0123", 83}, // octal 123 = decimal 83
+	tests := []LexerTestConfig{
+		{Name: "42", Input: "42", Want: int64(42)},
+		{Name: "0", Input: "0", Want: int64(0)},
+		{Name: "123", Input: "123", Want: int64(123)},
+		{Name: "010", Input: "010", Want: int64(8)},    // octal
+		{Name: "077", Input: "077", Want: int64(63)},   // octal 77 = decimal 63
+		{Name: "0123", Input: "0123", Want: int64(83)}, // octal 123 = decimal 83
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			args := NewCompileOptions("test", nil)
-			lexer := NewLexer(args, strings.NewReader(tt.input))
-
-			got, err := lexer.Number()
-			if err != nil {
-				t.Fatalf("Number() error = %v", err)
-			}
-			if got != tt.want {
-				t.Errorf("Number() = %d, want %d", got, tt.want)
-			}
+		t.Run(tt.Input, func(t *testing.T) {
+			runLexerTest(t, tt, func(l *Lexer) (interface{}, error) {
+				return l.Number()
+			})
 		})
 	}
 }
 
 func TestLexerString(t *testing.T) {
 	tests := []struct {
-		name  string
-		input string
-		want  string
+		Name  string
+		Input string
+		Want  string
 	}{
 		{"simple", `"hello"`, "hello"},
 		{"empty", `""`, ""},
@@ -77,9 +57,9 @@ func TestLexerString(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.Name, func(t *testing.T) {
 			args := NewCompileOptions("test", nil)
-			lexer := NewLexer(args, strings.NewReader(tt.input))
+			lexer := NewLexer(args, strings.NewReader(tt.Input))
 
 			// Skip the opening quote
 			lexer.ReadChar()
@@ -88,8 +68,8 @@ func TestLexerString(t *testing.T) {
 			if err != nil {
 				t.Fatalf("String() error = %v", err)
 			}
-			if got != tt.want {
-				t.Errorf("String() = %q, want %q", got, tt.want)
+			if got != tt.Want {
+				t.Errorf("String() = %q, want %q", got, tt.Want)
 			}
 		})
 	}
@@ -97,9 +77,9 @@ func TestLexerString(t *testing.T) {
 
 func TestLexerCharacter(t *testing.T) {
 	tests := []struct {
-		name  string
-		input string
-		want  int64
+		Name  string
+		Input string
+		Want  int64
 	}{
 		{"single", `'a'`, int64('a')},
 		{"multi", `'ab'`, int64('a')<<8 | int64('b')},
@@ -108,9 +88,9 @@ func TestLexerCharacter(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.Name, func(t *testing.T) {
 			args := NewCompileOptions("test", nil)
-			lexer := NewLexer(args, strings.NewReader(tt.input))
+			lexer := NewLexer(args, strings.NewReader(tt.Input))
 
 			// Skip the opening quote
 			lexer.ReadChar()
@@ -119,8 +99,8 @@ func TestLexerCharacter(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Character() error = %v", err)
 			}
-			if got != tt.want {
-				t.Errorf("Character() = %d, want %d", got, tt.want)
+			if got != tt.Want {
+				t.Errorf("Character() = %d, want %d", got, tt.Want)
 			}
 		})
 	}
@@ -128,9 +108,9 @@ func TestLexerCharacter(t *testing.T) {
 
 func TestLexerWhitespace(t *testing.T) {
 	tests := []struct {
-		name  string
-		input string
-		want  rune
+		Name  string
+		Input string
+		Want  rune
 	}{
 		{"spaces", "   hello", 'h'},
 		{"tabs", "\t\thello", 'h'},
@@ -140,9 +120,9 @@ func TestLexerWhitespace(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.Name, func(t *testing.T) {
 			args := NewCompileOptions("test", nil)
-			lexer := NewLexer(args, strings.NewReader(tt.input))
+			lexer := NewLexer(args, strings.NewReader(tt.Input))
 
 			err := lexer.Whitespace()
 			if err != nil {
@@ -153,8 +133,8 @@ func TestLexerWhitespace(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ReadChar() error = %v", err)
 			}
-			if got != tt.want {
-				t.Errorf("After Whitespace() got %c, want %c", got, tt.want)
+			if got != tt.Want {
+				t.Errorf("After Whitespace() got %c, want %c", got, tt.Want)
 			}
 		})
 	}
@@ -162,9 +142,9 @@ func TestLexerWhitespace(t *testing.T) {
 
 func TestLexerComment(t *testing.T) {
 	tests := []struct {
-		name  string
-		input string
-		want  string
+		Name  string
+		Input string
+		Want  string
 	}{
 		{"simple", "/* comment */ rest", " rest"},
 		{"multiline", "/* line1\nline2 */ rest", " rest"},
@@ -172,9 +152,9 @@ func TestLexerComment(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.Name, func(t *testing.T) {
 			args := NewCompileOptions("test", nil)
-			lexer := NewLexer(args, strings.NewReader(tt.input))
+			lexer := NewLexer(args, strings.NewReader(tt.Input))
 
 			// Skip the opening /*
 			lexer.ReadChar()
@@ -196,8 +176,8 @@ func TestLexerComment(t *testing.T) {
 			}
 
 			got := string(rest)
-			if got != tt.want {
-				t.Errorf("After Comment() got %q, want %q", got, tt.want)
+			if got != tt.Want {
+				t.Errorf("After Comment() got %q, want %q", got, tt.Want)
 			}
 		})
 	}

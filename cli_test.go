@@ -10,567 +10,273 @@ import (
 
 // TestCLIBasicOptions tests basic CLI options like help, version, and output
 func TestCLIBasicOptions(t *testing.T) {
-	tests := []struct {
-		name        string
-		args        []string
-		wantExit    int
-		wantStdout  string
-		wantStderr  string
-		skipOnError bool
-	}{
+	tests := []TestConfig{
 		{
-			name:       "help_option",
-			args:       []string{"--help"},
-			wantExit:   0,
-			wantStdout: "Usage: blang [options] file...",
+			Name:       "help_option",
+			Args:       []string{"--help"},
+			WantExit:   0,
+			WantStdout: "Usage: blang [options] file...",
 		},
 		{
-			name:       "version_option",
-			args:       []string{"--version"},
-			wantExit:   0,
-			wantStdout: "blang version 0.1",
+			Name:       "version_option",
+			Args:       []string{"--version"},
+			WantExit:   0,
+			WantStdout: "blang version 0.1",
 		},
 		{
-			name:       "no_input_files",
-			args:       []string{},
-			wantExit:   1,
-			wantStdout: "Usage: blang [options] file...",
+			Name:       "no_input_files",
+			Args:       []string{},
+			WantExit:   1,
+			WantStdout: "Usage: blang [options] file...",
 		},
 		{
-			name:       "invalid_file_extension",
-			args:       []string{"test.txt"},
-			wantExit:   1,
-			wantStderr: "does not have .b extension",
+			Name:       "invalid_file_extension",
+			Args:       []string{"test.txt"},
+			WantExit:   1,
+			WantStderr: "does not have .b extension",
 		},
 		{
-			name:       "nonexistent_file",
-			args:       []string{"nonexistent.b"},
-			wantExit:   1,
-			wantStderr: "cannot access file",
+			Name:       "nonexistent_file",
+			Args:       []string{"nonexistent.b"},
+			WantExit:   1,
+			WantStderr: "cannot access file",
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cmd := exec.Command("./blang", tt.args...)
-			output, err := cmd.CombinedOutput()
-			exitCode := 0
-			if err != nil {
-				if exitError, ok := err.(*exec.ExitError); ok {
-					exitCode = exitError.ExitCode()
-				} else {
-					t.Fatalf("Command failed with non-exit error: %v", err)
-				}
-			}
-
-			if exitCode != tt.wantExit {
-				t.Errorf("Exit code = %d, want %d", exitCode, tt.wantExit)
-			}
-
-			outputStr := string(output)
-			if tt.wantStdout != "" && !strings.Contains(outputStr, tt.wantStdout) {
-				t.Errorf("Output doesn't contain expected stdout: %q", tt.wantStdout)
-			}
-			if tt.wantStderr != "" && !strings.Contains(outputStr, tt.wantStderr) {
-				t.Errorf("Output doesn't contain expected stderr: %q", tt.wantStderr)
-			}
+		t.Run(tt.Name, func(t *testing.T) {
+			runBlangTest(t, tt)
 		})
 	}
 }
 
 // TestCLIOutputFormats tests different output format options
 func TestCLIOutputFormats(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	requireLibbO(t)
 
 	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.b")
-
-	// Create a simple test file
-	testCode := `main() {
+	testFile := createTestFile(t, tmpDir, "test.b", `main() {
     write('Hello*n');
-}`
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+}`)
 
-	tests := []struct {
-		name       string
-		args       []string
-		wantExit   int
-		wantOutput string
-		checkFile  bool
-		fileExt    string
-	}{
+	tests := []TestConfig{
 		{
-			name:       "default_executable",
-			args:       []string{"-o", filepath.Join(tmpDir, "test_default"), testFile},
-			wantExit:   0,
-			wantOutput: "",
-			checkFile:  true,
-			fileExt:    "",
+			Name:      "default_executable",
+			Args:      []string{"-o", filepath.Join(tmpDir, "test_default"), testFile},
+			WantExit:  0,
+			CheckFile: true,
+			FileExt:   "",
 		},
 		{
-			name:       "llvm_ir_output",
-			args:       []string{"--emit-llvm", "-o", filepath.Join(tmpDir, "test.ll"), testFile},
-			wantExit:   0,
-			wantOutput: "",
-			checkFile:  true,
-			fileExt:    ".ll",
+			Name:      "llvm_ir_output",
+			Args:      []string{"--emit-llvm", "-o", filepath.Join(tmpDir, "test.ll"), testFile},
+			WantExit:  0,
+			CheckFile: true,
+			FileExt:   ".ll",
 		},
 		{
-			name:       "object_file_output",
-			args:       []string{"-c", "-o", filepath.Join(tmpDir, "test.o"), testFile},
-			wantExit:   0,
-			wantOutput: "",
-			checkFile:  true,
-			fileExt:    ".o",
+			Name:      "object_file_output",
+			Args:      []string{"-c", "-o", filepath.Join(tmpDir, "test.o"), testFile},
+			WantExit:  0,
+			CheckFile: true,
+			FileExt:   ".o",
 		},
 		{
-			name:       "assembly_output",
-			args:       []string{"-S", "-o", filepath.Join(tmpDir, "test.s"), testFile},
-			wantExit:   0,
-			wantOutput: "",
-			checkFile:  true,
-			fileExt:    ".s",
+			Name:      "assembly_output",
+			Args:      []string{"-S", "-o", filepath.Join(tmpDir, "test.s"), testFile},
+			WantExit:  0,
+			CheckFile: true,
+			FileExt:   ".s",
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cmd := exec.Command("./blang", tt.args...)
-			output, err := cmd.CombinedOutput()
-			exitCode := 0
-			if err != nil {
-				if exitError, ok := err.(*exec.ExitError); ok {
-					exitCode = exitError.ExitCode()
-				} else {
-					t.Fatalf("Command failed with non-exit error: %v", err)
-				}
-			}
-
-			if exitCode != tt.wantExit {
-				t.Errorf("Exit code = %d, want %d", exitCode, tt.wantExit)
-				t.Logf("Command output: %s", string(output))
-			}
-
-			if tt.checkFile {
-				outputFile := tt.args[len(tt.args)-2] // -o output_file
-				if _, err := os.Stat(outputFile); os.IsNotExist(err) {
-					t.Errorf("Output file %s was not created", outputFile)
-				} else {
-					// Check file extension if specified
-					if tt.fileExt != "" && !strings.HasSuffix(outputFile, tt.fileExt) {
-						t.Errorf("Output file %s does not have expected extension %s", outputFile, tt.fileExt)
-					}
-				}
-			}
+		t.Run(tt.Name, func(t *testing.T) {
+			runBlangTest(t, tt)
 		})
 	}
 }
 
 // TestCLIOptimizationFlags tests optimization level flags
 func TestCLIOptimizationFlags(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	requireLibbO(t)
 
 	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.b")
-
-	// Create a simple test file
-	testCode := `main() {
+	testFile := createTestFile(t, tmpDir, "test.b", `main() {
     auto x;
     x = 42;
     return(x);
-}`
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+}`)
 
-	tests := []struct {
-		name     string
-		args     []string
-		wantExit int
-	}{
+	tests := []TestConfig{
 		{
-			name:     "optimization_O0",
-			args:     []string{"-O0", "-o", filepath.Join(tmpDir, "test_O0"), testFile},
-			wantExit: 0,
+			Name:     "optimization_O0",
+			Args:     []string{"-O0", "-o", filepath.Join(tmpDir, "test_O0"), testFile},
+			WantExit: 0,
 		},
 		{
-			name:     "optimization_O1",
-			args:     []string{"-O1", "-o", filepath.Join(tmpDir, "test_O1"), testFile},
-			wantExit: 0,
+			Name:     "optimization_O1",
+			Args:     []string{"-O1", "-o", filepath.Join(tmpDir, "test_O1"), testFile},
+			WantExit: 0,
 		},
 		{
-			name:     "optimization_O2",
-			args:     []string{"-O2", "-o", filepath.Join(tmpDir, "test_O2"), testFile},
-			wantExit: 0,
+			Name:     "optimization_O2",
+			Args:     []string{"-O2", "-o", filepath.Join(tmpDir, "test_O2"), testFile},
+			WantExit: 0,
 		},
 		{
-			name:     "optimization_O3",
-			args:     []string{"-O3", "-o", filepath.Join(tmpDir, "test_O3"), testFile},
-			wantExit: 0,
+			Name:     "optimization_O3",
+			Args:     []string{"-O3", "-o", filepath.Join(tmpDir, "test_O3"), testFile},
+			WantExit: 0,
 		},
 		{
-			name:     "invalid_optimization",
-			args:     []string{"-O4", testFile},
-			wantExit: 1, // pflag correctly detects invalid optimization level
+			Name:     "invalid_optimization",
+			Args:     []string{"-O4", testFile},
+			WantExit: 1, // pflag correctly detects invalid optimization level
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cmd := exec.Command("./blang", tt.args...)
-			output, err := cmd.CombinedOutput()
-			exitCode := 0
-			if err != nil {
-				if exitError, ok := err.(*exec.ExitError); ok {
-					exitCode = exitError.ExitCode()
-				} else {
-					t.Fatalf("Command failed with non-exit error: %v", err)
-				}
-			}
-
-			if exitCode != tt.wantExit {
-				t.Errorf("Exit code = %d, want %d", exitCode, tt.wantExit)
-				t.Logf("Command output: %s", string(output))
-			}
+		t.Run(tt.Name, func(t *testing.T) {
+			runBlangTest(t, tt)
 		})
 	}
 }
 
 // TestCLIDebugAndVerbose tests debug and verbose flags
 func TestCLIDebugAndVerbose(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	requireLibbO(t)
 
 	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.b")
-
-	// Create a simple test file
-	testCode := `main() {
+	testFile := createTestFile(t, tmpDir, "test.b", `main() {
     write('Test*n');
-}`
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+}`)
 
-	tests := []struct {
-		name       string
-		args       []string
-		wantExit   int
-		wantOutput string
-	}{
+	tests := []TestConfig{
 		{
-			name:       "verbose_output",
-			args:       []string{"-v", "-o", filepath.Join(tmpDir, "test_verbose"), testFile},
-			wantExit:   0,
-			wantOutput: "blang: compiling",
+			Name:       "verbose_output",
+			Args:       []string{"-v", "-o", filepath.Join(tmpDir, "test_verbose"), testFile},
+			WantExit:   0,
+			WantOutput: "blang: compiling",
 		},
 		{
-			name:       "debug_info",
-			args:       []string{"-g", "-o", filepath.Join(tmpDir, "test_debug"), testFile},
-			wantExit:   0,
-			wantOutput: "",
+			Name:       "debug_info",
+			Args:       []string{"-g", "-o", filepath.Join(tmpDir, "test_debug"), testFile},
+			WantExit:   0,
+			WantOutput: "",
 		},
 		{
-			name:       "verbose_and_debug",
-			args:       []string{"-v", "-g", "-o", filepath.Join(tmpDir, "test_verbose_debug"), testFile},
-			wantExit:   0,
-			wantOutput: "blang: compiling",
+			Name:       "verbose_and_debug",
+			Args:       []string{"-v", "-g", "-o", filepath.Join(tmpDir, "test_verbose_debug"), testFile},
+			WantExit:   0,
+			WantOutput: "blang: compiling",
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cmd := exec.Command("./blang", tt.args...)
-			output, err := cmd.CombinedOutput()
-			exitCode := 0
-			if err != nil {
-				if exitError, ok := err.(*exec.ExitError); ok {
-					exitCode = exitError.ExitCode()
-				} else {
-					t.Fatalf("Command failed with non-exit error: %v", err)
-				}
-			}
-
-			if exitCode != tt.wantExit {
-				t.Errorf("Exit code = %d, want %d", exitCode, tt.wantExit)
-				t.Logf("Command output: %s", string(output))
-			}
-
-			if tt.wantOutput != "" {
-				outputStr := string(output)
-				if !strings.Contains(outputStr, tt.wantOutput) {
-					t.Errorf("Output doesn't contain expected text: %q", tt.wantOutput)
-					t.Logf("Full output: %s", outputStr)
-				}
-			}
-		})
-	}
-}
-
-// TestCLIWarningFlags tests warning flags
-func TestCLIWarningFlags(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
-
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.b")
-
-	// Create a simple test file
-	testCode := `main() {
-    write('Test*n');
-}`
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
-
-	tests := []struct {
-		name     string
-		args     []string
-		wantExit int
-	}{}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cmd := exec.Command("./blang", tt.args...)
-			output, err := cmd.CombinedOutput()
-			exitCode := 0
-			if err != nil {
-				if exitError, ok := err.(*exec.ExitError); ok {
-					exitCode = exitError.ExitCode()
-				} else {
-					t.Fatalf("Command failed with non-exit error: %v", err)
-				}
-			}
-
-			if exitCode != tt.wantExit {
-				t.Errorf("Exit code = %d, want %d", exitCode, tt.wantExit)
-				t.Logf("Command output: %s", string(output))
-			}
+		t.Run(tt.Name, func(t *testing.T) {
+			runBlangTest(t, tt)
 		})
 	}
 }
 
 // TestCLIPathFlags tests include and library path flags
 func TestCLIPathFlags(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	requireLibbO(t)
 
 	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.b")
-
-	// Create a simple test file
-	testCode := `main() {
+	testFile := createTestFile(t, tmpDir, "test.b", `main() {
     write('Test*n');
-}`
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+}`)
 
-	tests := []struct {
-		name     string
-		args     []string
-		wantExit int
-	}{
+	tests := []TestConfig{
 		{
-			name:     "library_path",
-			args:     []string{"-L", "/tmp", "-o", filepath.Join(tmpDir, "test_libpath"), testFile},
-			wantExit: 0,
+			Name:     "library_path",
+			Args:     []string{"-L", "/tmp", "-o", filepath.Join(tmpDir, "test_libpath"), testFile},
+			WantExit: 0,
 		},
 		{
-			name:     "library_link",
-			args:     []string{"-l", "c", "-o", filepath.Join(tmpDir, "test_lib"), testFile},
-			wantExit: 0,
+			Name:     "library_link",
+			Args:     []string{"-l", "c", "-o", filepath.Join(tmpDir, "test_lib"), testFile},
+			WantExit: 0,
 		},
 		{
-			name:     "multiple_library_dirs",
-			args:     []string{"-L", "/usr/lib", "-L", "/usr/local/lib", "-o", filepath.Join(tmpDir, "test_multi_libpath"), testFile},
-			wantExit: 0,
+			Name:     "multiple_library_dirs",
+			Args:     []string{"-L", "/usr/lib", "-L", "/usr/local/lib", "-o", filepath.Join(tmpDir, "test_multi_libpath"), testFile},
+			WantExit: 0,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cmd := exec.Command("./blang", tt.args...)
-			output, err := cmd.CombinedOutput()
-			exitCode := 0
-			if err != nil {
-				if exitError, ok := err.(*exec.ExitError); ok {
-					exitCode = exitError.ExitCode()
-				} else {
-					t.Fatalf("Command failed with non-exit error: %v", err)
-				}
-			}
-
-			if exitCode != tt.wantExit {
-				t.Errorf("Exit code = %d, want %d", exitCode, tt.wantExit)
-				t.Logf("Command output: %s", string(output))
-			}
+		t.Run(tt.Name, func(t *testing.T) {
+			runBlangTest(t, tt)
 		})
 	}
 }
 
 // TestCLIStandardFlag tests the language standard flag
 func TestCLIStandardFlag(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	requireLibbO(t)
 
 	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.b")
-
-	// Create a simple test file
-	testCode := `main() {
+	testFile := createTestFile(t, tmpDir, "test.b", `main() {
     write('Test*n');
-}`
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+}`)
 
-	tests := []struct {
-		name     string
-		args     []string
-		wantExit int
-	}{
+	tests := []TestConfig{
 		{
-			name:     "default_standard",
-			args:     []string{"-o", filepath.Join(tmpDir, "test_default_std"), testFile},
-			wantExit: 0,
+			Name:     "default_standard",
+			Args:     []string{"-o", filepath.Join(tmpDir, "test_default_std"), testFile},
+			WantExit: 0,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cmd := exec.Command("./blang", tt.args...)
-			output, err := cmd.CombinedOutput()
-			exitCode := 0
-			if err != nil {
-				if exitError, ok := err.(*exec.ExitError); ok {
-					exitCode = exitError.ExitCode()
-				} else {
-					t.Fatalf("Command failed with non-exit error: %v", err)
-				}
-			}
-
-			if exitCode != tt.wantExit {
-				t.Errorf("Exit code = %d, want %d", exitCode, tt.wantExit)
-				t.Logf("Command output: %s", string(output))
-			}
+		t.Run(tt.Name, func(t *testing.T) {
+			runBlangTest(t, tt)
 		})
 	}
 }
 
 // TestCLISaveTemps tests the save-temps flag
 func TestCLISaveTemps(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	requireLibbO(t)
 
 	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.b")
-
-	// Create a simple test file
-	testCode := `main() {
+	testFile := createTestFile(t, tmpDir, "test.b", `main() {
     write('Test*n');
-}`
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+}`)
 
-	tests := []struct {
-		name           string
-		args           []string
-		wantExit       int
-		expectTempFile bool
-	}{
+	tests := []TestConfig{
 		{
-			name:           "without_save_temps",
-			args:           []string{"-o", filepath.Join(tmpDir, "test_no_save"), testFile},
-			wantExit:       0,
-			expectTempFile: false,
+			Name:           "without_save_temps",
+			Args:           []string{"-o", filepath.Join(tmpDir, "test_no_save"), testFile},
+			WantExit:       0,
+			ExpectTempFile: false,
 		},
 		{
-			name:           "with_save_temps",
-			args:           []string{"--save-temps", "-o", filepath.Join(tmpDir, "test_save"), testFile},
-			wantExit:       0,
-			expectTempFile: true,
+			Name:           "with_save_temps",
+			Args:           []string{"--save-temps", "-o", filepath.Join(tmpDir, "test_save"), testFile},
+			WantExit:       0,
+			ExpectTempFile: true,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cmd := exec.Command("./blang", tt.args...)
-			output, err := cmd.CombinedOutput()
-			exitCode := 0
-			if err != nil {
-				if exitError, ok := err.(*exec.ExitError); ok {
-					exitCode = exitError.ExitCode()
-				} else {
-					t.Fatalf("Command failed with non-exit error: %v", err)
-				}
-			}
-
-			if exitCode != tt.wantExit {
-				t.Errorf("Exit code = %d, want %d", exitCode, tt.wantExit)
-				t.Logf("Command output: %s", string(output))
-			}
-
-			// Check for temporary files
-			outputFile := tt.args[len(tt.args)-2] // -o output_file
-			tempFile := outputFile + ".tmp.ll"
-			if _, err := os.Stat(tempFile); tt.expectTempFile {
-				if os.IsNotExist(err) {
-					t.Errorf("Expected temporary file %s to exist when -save-temps is used", tempFile)
-				}
-			} else {
-				if !os.IsNotExist(err) {
-					t.Errorf("Expected temporary file %s to be cleaned up when -save-temps is not used", tempFile)
-				}
-			}
+		t.Run(tt.Name, func(t *testing.T) {
+			runBlangTest(t, tt)
 		})
 	}
 }
 
 // TestCLIExecutableGeneration tests that generated executables actually work
 func TestCLIExecutableGeneration(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	requireLibbO(t)
 
 	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.b")
-
-	// Create a simple test file
-	testCode := `main() {
+	testFile := createTestFile(t, tmpDir, "test.b", `main() {
     write('Hello*n');
-}`
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+}`)
 
 	outputFile := filepath.Join(tmpDir, "test_executable")
 
@@ -601,62 +307,35 @@ func TestCLIExecutableGeneration(t *testing.T) {
 
 // TestCLICombinedFlags tests combinations of multiple flags
 func TestCLICombinedFlags(t *testing.T) {
-	// Skip if libb.o is not available
-	if _, err := os.Stat("libb.o"); err != nil {
-		t.Skip("libb.o not found, run 'make' first")
-	}
+	requireLibbO(t)
 
 	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.b")
-
-	// Create a simple test file
-	testCode := `main() {
+	testFile := createTestFile(t, tmpDir, "test.b", `main() {
     write('Test*n');
-}`
-	err := os.WriteFile(testFile, []byte(testCode), 0644)
-	if err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
+}`)
 
-	tests := []struct {
-		name     string
-		args     []string
-		wantExit int
-	}{
+	tests := []TestConfig{
 		{
-			name:     "verbose_optimized_debug",
-			args:     []string{"-v", "-O2", "-g", "-o", filepath.Join(tmpDir, "test_combined1"), testFile},
-			wantExit: 0,
+			Name:     "verbose_optimized_debug",
+			Args:     []string{"-v", "-O2", "-g", "-o", filepath.Join(tmpDir, "test_combined1"), testFile},
+			WantExit: 0,
 		},
 		{
-			name:     "verbose_optimized_debug_O1",
-			args:     []string{"-v", "-O1", "-g", "-o", filepath.Join(tmpDir, "test_combined2"), testFile},
-			wantExit: 0,
+			Name:     "verbose_optimized_debug_O1",
+			Args:     []string{"-v", "-O1", "-g", "-o", filepath.Join(tmpDir, "test_combined2"), testFile},
+			WantExit: 0,
 		},
 		{
-			name:     "all_flags",
-			args:     []string{"-v", "-O3", "-g", "--save-temps", "-o", filepath.Join(tmpDir, "test_combined3"), testFile},
-			wantExit: 0,
+			Name:           "all_flags",
+			Args:           []string{"-v", "-O3", "-g", "--save-temps", "-o", filepath.Join(tmpDir, "test_combined3"), testFile},
+			WantExit:       0,
+			ExpectTempFile: true,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cmd := exec.Command("./blang", tt.args...)
-			output, err := cmd.CombinedOutput()
-			exitCode := 0
-			if err != nil {
-				if exitError, ok := err.(*exec.ExitError); ok {
-					exitCode = exitError.ExitCode()
-				} else {
-					t.Fatalf("Command failed with non-exit error: %v", err)
-				}
-			}
-
-			if exitCode != tt.wantExit {
-				t.Errorf("Exit code = %d, want %d", exitCode, tt.wantExit)
-				t.Logf("Command output: %s", string(output))
-			}
+		t.Run(tt.Name, func(t *testing.T) {
+			runBlangTest(t, tt)
 		})
 	}
 }
