@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/pflag"
@@ -155,16 +156,20 @@ func main() {
 	if output != "" {
 		args.OutputFile = output
 	} else {
+		// Get basename of first source file (without directory and extension)
+		basename := strings.TrimSuffix(files[0], ".b")
+		basename = strings.TrimPrefix(basename, filepath.Dir(basename)+"/")
+
 		// Set default output based on output type
 		switch outputType {
 		case OutputObject:
-			args.OutputFile = strings.TrimSuffix(files[0], ".b") + ".o"
+			args.OutputFile = basename + ".o"
 		case OutputAssembly:
-			args.OutputFile = strings.TrimSuffix(files[0], ".b") + ".s"
+			args.OutputFile = basename + ".s"
 		case OutputIR:
-			args.OutputFile = strings.TrimSuffix(files[0], ".b") + ".ll"
+			args.OutputFile = basename + ".ll"
 		default:
-			args.OutputFile = "a.out"
+			args.OutputFile = basename
 		}
 	}
 

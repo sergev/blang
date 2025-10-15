@@ -13,7 +13,7 @@ The [B programming language](https://en.wikipedia.org/wiki/B_(programming_langua
 make
 
 # Compile and run a B program (automatic linking)
-./blang examples/helloworld.b -o hello
+./blang examples/hello.b
 ./hello
 ```
 
@@ -88,16 +88,16 @@ blang -S hello.b -o hello.s
 blang -O2 -g hello.b -o optimized
 
 # Verbose compilation
-blang -v hello.b -o hello
+blang -v hello.b
 
 # Multiple library directories and libraries
 blang hello.b -L/usr/lib -L/usr/local/lib -lpthread -lmath
 
 # Options after arguments (flexible ordering)
-blang hello.b -o output -O2 -v
+blang hello.b -O2 -v
 
 # All flags combined
-blang -v -O3 -g -save-temps hello.b -o hello
+blang -v -O3 -g -save-temps hello.b
 ```
 
 ## Example Programs
