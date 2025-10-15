@@ -19,13 +19,13 @@ Options:
 	pflag.PrintDefaults()
 	fmt.Fprintf(os.Stderr, `
 Examples:
-  blang -o hello hello.b              # Compile to executable
-  blang -c hello.b                    # Compile to object file
-  blang -S hello.b                    # Compile to assembly
-  blang -emit-llvm hello.b            # Output LLVM IR
+  blang hello.b                       # Compile to executable 'hello'
+  blang -c hello.b                    # Compile to object file 'hello.o'
+  blang -S hello.b                    # Compile to assembly 'hello.s'
+  blang -emit-llvm hello.b            # Output LLVM IR 'hello.ll'
   blang -O2 -g -o optimized hello.b   # Optimized with debug info
-  blang -V                            # Show version information
   blang hello.b -o output -O2         # Options can be placed after arguments
+  blang -V                            # Show version information
 
 `)
 	os.Exit(0)
