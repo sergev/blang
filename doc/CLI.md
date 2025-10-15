@@ -1,6 +1,6 @@
 # blang Command-Line Interface Guide
 
-The `blang` compiler provides a comprehensive command-line interface similar to `clang`, supporting multiple output formats, optimization levels, debugging options, and more.
+The `blang` compiler provides a comprehensive command-line interface with multiple output formats, optimization levels, and debugging options.
 
 ## Table of Contents
 
@@ -8,12 +8,10 @@ The `blang` compiler provides a comprehensive command-line interface similar to 
 - [Output Formats](#output-formats)
 - [Optimization Options](#optimization-options)
 - [Debugging and Verbose Output](#debugging-and-verbose-output)
-- [Warning and Error Handling](#warning-and-error-handling)
-- [Path and Library Options](#path-and-library-options)
+- [Library Options](#library-options)
 - [Other Options](#other-options)
 - [Examples](#examples)
-- [Error Messages](#error-messages)
-- [Integration with Build Systems](#integration-with-build-systems)
+- [Error Handling](#error-handling)
 
 ## Basic Usage
 
@@ -29,10 +27,19 @@ blang [options] file...
 
 ```bash
 # Single file
-blang -o hello hello.b
+blang hello.b -o hello
 
 # Multiple files
-blang -o program main.b utils.b
+blang main.b utils.b -o program
+```
+
+### No Arguments
+
+When called without any arguments, `blang` displays a concise usage message:
+
+```bash
+blang
+# Output: Usage: blang [options] file...
 ```
 
 ## Output Formats
@@ -40,51 +47,38 @@ blang -o program main.b utils.b
 ### Default: Executable
 
 ```bash
-blang -o hello hello.b
+blang hello.b                    # Creates 'hello'
+blang hello.b -o custom_name     # Creates 'custom_name'
 ```
 
-Generates a fully linked executable that can be run directly.
+Generates a fully linked executable. **Default output naming** uses the basename of the first source file (without directory path or extension).
 
 ### Object Files (`-c`)
 
 ```bash
-blang -c -o hello.o hello.b
+blang -c hello.b                 # Creates 'hello.o'
+blang -c hello.b -o custom.o     # Creates 'custom.o'
 ```
 
-Compiles to object file without linking. Useful for:
-- Separate compilation units
-- Creating libraries
-- Manual linking control
+Compiles to object file without linking. Useful for separate compilation units and libraries.
 
 ### Assembly (`-S`)
 
 ```bash
-blang -S -o hello.s hello.b
+blang -S hello.b                 # Creates 'hello.s'
+blang -S hello.b -o custom.s     # Creates 'custom.s'
 ```
 
-Generates assembly code. Useful for:
-- Understanding code generation
-- Manual assembly optimization
-- Debugging compilation issues
+Generates assembly code for understanding code generation and debugging.
 
-### LLVM IR (`-emit-llvm`)
+### LLVM IR (`--emit-llvm`)
 
 ```bash
-blang -emit-llvm -o hello.ll hello.b
+blang --emit-llvm hello.b        # Creates 'hello.ll'
+blang --emit-llvm hello.b -o custom.ll  # Creates 'custom.ll'
 ```
 
-Generates LLVM Intermediate Representation. Useful for:
-- LLVM-based optimization
-- Integration with other LLVM tools
-- Understanding the compilation process
-
-### Preprocessed (`-E`)
-
-```bash
-blang -E -o hello.i hello.b
-```
-
-Performs preprocessing only. Currently outputs the source unchanged (B language has minimal preprocessing).
+Generates LLVM Intermediate Representation for LLVM-based optimization and tool integration.
 
 ## Optimization Options
 
@@ -104,25 +98,20 @@ blang -O3 hello.b    # Aggressive optimization
 - **-O2**: Moderate optimizations, balanced compilation time
 - **-O3**: Aggressive optimizations, slower compilation
 
-The optimization flags are passed through to the LLVM backend and linker.
-
 ## Debugging and Verbose Output
 
 ### Debug Information (`-g`)
 
 ```bash
-blang -g -o hello hello.b
+blang -g hello.b -o hello
 ```
 
-Includes debug information in the generated executable, enabling:
-- Source-level debugging with `gdb` or `lldb`
-- Symbol information
-- Line number mapping
+Includes debug information in the generated executable for source-level debugging.
 
 ### Verbose Output (`-v`)
 
 ```bash
-blang -v -o hello hello.b
+blang -v hello.b -o hello
 ```
 
 Shows detailed compilation steps:
@@ -132,106 +121,49 @@ blang: compiling 1 file(s)
 blang: processing hello.b
 blang: generated hello.tmp.ll
 blang: running /usr/bin/clang hello.tmp.ll libb.o -o hello
-blang: generated hello
 ```
 
-## Warning and Error Handling
-
-### Enable Warnings (`-Wall`)
-
-```bash
-blang -Wall -o hello hello.b
-```
-
-Enables comprehensive warning messages for:
-- Potential issues in the code
-- Non-standard language usage
-- Optimization opportunities
-
-### Treat Warnings as Errors (`-Werror`)
-
-```bash
-blang -Werror -o hello hello.b
-```
-
-Causes compilation to fail if any warnings are generated.
-
-### Combined Warning Options
-
-```bash
-blang -Wall -Werror -o hello hello.b
-```
-
-## Path and Library Options
-
-### Include Directories (`-I`)
-
-```bash
-blang -I /path/to/headers -o hello hello.b
-```
-
-Adds directories to the include search path (currently minimal support in B language).
+## Library Options
 
 ### Library Directories (`-L`)
 
 ```bash
-blang -L /path/to/libs -o hello hello.b
+blang -L /usr/lib -L /usr/local/lib hello.b -o hello
 ```
 
-Adds directories to the library search path for linking.
+Adds directories to the library search path. **Can be repeated** for multiple directories.
 
 ### Link Libraries (`-l`)
 
 ```bash
-blang -l math -o hello hello.b
+blang -l pthread -l math hello.b -o hello
 ```
 
-Links with specified libraries (passed to the linker).
+Links with specified libraries. **Can be repeated** for multiple libraries.
 
-### Multiple Paths
+### Multiple Libraries
 
 ```bash
-blang -I /usr/include,/usr/local/include -L /usr/lib,/usr/local/lib -o hello hello.b
+blang -L /usr/lib -L /usr/local/lib -l pthread -l math hello.b -o hello
 ```
-
-Comma-separated paths are supported for convenience.
 
 ## Other Options
 
-### Language Standard (`-std`)
+### Save Temporary Files (`--save-temps`)
 
 ```bash
-blang -std b -o hello hello.b
-```
-
-Specifies the language standard (currently only `b` is supported).
-
-### Save Temporary Files (`-save-temps`)
-
-```bash
-blang -save-temps -o hello hello.b
+blang --save-temps hello.b -o hello
 ```
 
 Preserves intermediate files (like `.tmp.ll` files) for debugging.
 
-### Output File (`-o`)
-
-```bash
-blang -o custom_name hello.b
-```
-
-Specifies the output filename. Default names:
-- **Executable**: `a.out`
-- **Object file**: `filename.o`
-- **Assembly**: `filename.s`
-- **LLVM IR**: `filename.ll`
-- **Preprocessed**: `filename.i`
-
 ### Help and Version
 
 ```bash
-blang -help      # Show help information
-blang -version   # Show version information
+blang --help      # Show help information
+blang -h          # Short form of --help
+blang --version   # Show version information
+blang -V          # Short form of --version
 ```
 
 ## Examples
@@ -239,51 +171,50 @@ blang -version   # Show version information
 ### Development Workflow
 
 ```bash
-# Debug build
-blang -g -O0 -Wall -v -o debug_hello hello.b
+# Debug build with verbose output
+blang -g -O0 -v hello.b -o debug_hello
 
-# Release build
-blang -O2 -o release_hello hello.b
+# Release build with optimization
+blang -O2 hello.b -o release_hello
 
 # Object file for library
-blang -c -O2 -o utils.o utils.b
+blang -c -O2 hello.b -o hello.o
 ```
 
-### Integration with Make
+### Flexible Option Ordering
 
-```makefile
-CC = blang
-CFLAGS = -Wall -O2
-TARGET = program
-SOURCES = main.b utils.b
-
-$(TARGET): $(SOURCES)
-	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES)
-
-clean:
-	rm -f $(TARGET) *.o *.ll *.s
-```
-
-### Multi-stage Compilation
+Options can be placed after arguments:
 
 ```bash
-# Step 1: Generate LLVM IR
-blang -emit-llvm -o hello.ll hello.b
-
-# Step 2: Generate object file
-llc -filetype=obj -o hello.o hello.ll
-
-# Step 3: Link manually
-clang hello.o libb.o -o hello
+blang hello.b -o output -O2 -v -g
+blang -v hello.b -o optimized -O3
 ```
 
-## Error Messages
+### Multiple Output Formats
+
+```bash
+# Generate all formats
+blang --emit-llvm hello.b        # hello.ll
+blang -S hello.b                 # hello.s
+blang -c hello.b                 # hello.o
+blang hello.b                    # hello (executable)
+```
+
+### Library Integration
+
+```bash
+# With multiple library paths and libraries
+blang -L /usr/lib -L /usr/local/lib -l pthread -l math hello.b -o hello
+```
+
+## Error Handling
 
 ### Common Error Types
 
-1. **File not found**:
+1. **No input files**:
    ```
-   blang: error: cannot access file 'missing.b': no such file or directory
+   blang: error: no input files
+   compilation terminated.
    ```
 
 2. **Invalid file extension**:
@@ -291,12 +222,17 @@ clang hello.o libb.o -o hello
    blang: error: input file 'test.txt' does not have .b extension
    ```
 
-3. **Syntax errors**:
+3. **File not found**:
    ```
-   blang: error: unclosed char literal
+   blang: error: cannot access file 'missing.b': no such file or directory
    ```
 
-4. **Missing runtime library**:
+4. **Invalid optimization level**:
+   ```
+   blang: error: invalid optimization level: 5
+   ```
+
+5. **Missing runtime library**:
    ```
    blang: error: libb.o not found, run 'make' first
    ```
@@ -311,53 +247,52 @@ compilation terminated.
 
 ## Integration with Build Systems
 
+### Makefile
+
+```makefile
+CC = blang
+CFLAGS = -O2 -g
+TARGET = program
+SOURCES = main.b utils.b
+
+$(TARGET): $(SOURCES)
+	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES)
+
+clean:
+	rm -f $(TARGET) *.o *.ll *.s
+```
+
 ### CMake
 
 ```cmake
 set(CMAKE_C_COMPILER blang)
-set(CMAKE_C_FLAGS "-Wall -O2")
+set(CMAKE_C_FLAGS "-O2 -g")
 add_executable(hello hello.b)
-```
-
-### Meson
-
-```meson
-project('hello', 'c')
-executable('hello', 'hello.b', c_args: ['-Wall', '-O2'])
-```
-
-### Autotools
-
-```makefile
-CC = blang
-CFLAGS = -Wall -O2
-hello: hello.b
-	$(CC) $(CFLAGS) -o $@ $<
 ```
 
 ## Best Practices
 
 1. **Use meaningful output names**: Always specify `-o` for clarity
-2. **Enable warnings**: Use `-Wall` during development
-3. **Optimize for release**: Use `-O2` or `-O3` for production builds
-4. **Include debug info**: Use `-g` for debugging builds
-5. **Clean temporary files**: Don't use `-save-temps` unless needed
-6. **Use verbose mode**: Use `-v` to understand compilation steps
+2. **Optimize for release**: Use `-O2` or `-O3` for production builds
+3. **Include debug info**: Use `-g` for debugging builds
+4. **Use verbose mode**: Use `-v` to understand compilation steps
+5. **Leverage default naming**: Let `blang` use basename-based defaults when appropriate
+6. **Flexible ordering**: Place options where they're most readable
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. **"libb.o not found"**: Run `make` to build the runtime library
-2. **"llc not found"**: LLVM tools are not required for basic compilation
+2. **"clang not found"**: Ensure clang is installed and in PATH
 3. **Permission denied**: Ensure output directory is writable
 4. **Linker errors**: Check that required libraries are available
 
 ### Debugging Compilation
 
 1. Use `-v` to see compilation steps
-2. Use `-save-temps` to examine intermediate files
-3. Use `-emit-llvm` to see generated LLVM IR
+2. Use `--save-temps` to examine intermediate files
+3. Use `--emit-llvm` to see generated LLVM IR
 4. Check that input files are valid B source code
 
 ## Compatibility
