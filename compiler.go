@@ -4,13 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-)
 
-const (
-	// ANSI color codes
-	ColorReset     = "\033[0m"
-	ColorBoldRed   = "\033[1m\033[31m"
-	ColorBoldWhite = "\033[1m\033[37m"
+	"github.com/fatih/color"
 )
 
 // OutputType represents different output formats
@@ -25,21 +20,17 @@ const (
 
 // CompileOptions holds the compiler state
 type CompileOptions struct {
-	Arg0             string     // name of the executable
-	OutputFile       string     // output file
-	InputFiles       []string   // input files
-	WordSize         int        // size of the B data type (8 for x86_64)
-	SaveTemps        bool       // should temporary files get deleted?
-	OutputType       OutputType // type of output to generate
-	Optimize         int        // optimization level (0-3)
-	DebugInfo        bool       // include debug information
-	Verbose          bool       // verbose output
-	IncludeDirs      []string   // include directories
-	LibraryDirs      []string   // library search directories
-	Libraries        []string   // libraries to link
-	Warnings         bool       // enable warnings
-	WarningsAsErrors bool       // treat warnings as errors
-	Standard         string     // language standard
+	Arg0        string     // name of the executable
+	OutputFile  string     // output file
+	InputFiles  []string   // input files
+	WordSize    int        // size of the B data type (8 for x86_64)
+	SaveTemps   bool       // should temporary files get deleted?
+	OutputType  OutputType // type of output to generate
+	Optimize    int        // optimization level (0-3)
+	DebugInfo   bool       // include debug information
+	Verbose     bool       // verbose output
+	LibraryDirs []string   // library search directories
+	Libraries   []string   // libraries to link
 }
 
 // NewCompileOptions creates a new structure with default values
@@ -50,14 +41,14 @@ func NewCompileOptions(arg0 string, inputFiles []string) *CompileOptions {
 		InputFiles: inputFiles,
 		WordSize:   8, // x86_64 word size
 		OutputType: OutputExecutable,
-		Optimize:   0,   // no optimization by default
-		Standard:   "b", // B language standard
+		Optimize:   0, // no optimization by default
 	}
 }
 
 // Eprintf prints an error message with prefix
 func Eprintf(arg0 string, format string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "%s%s: %serror: %s", ColorBoldWhite, arg0, ColorBoldRed, ColorReset)
+	color.New(color.FgWhite, color.Bold).Fprintf(os.Stderr, "%s: ", arg0)
+	color.New(color.FgRed, color.Bold).Fprintf(os.Stderr, "error: ")
 	fmt.Fprintf(os.Stderr, format, args...)
 }
 
