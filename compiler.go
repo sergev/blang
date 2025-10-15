@@ -208,7 +208,7 @@ func compileToExecutable(args *CompileOptions) error {
 	}
 
 	// Build clang command for linking
-	cmdArgs := []string{tempIR, "libb.o", "-o", originalOutput}
+	cmdArgs := []string{tempIR, "-Lruntime", "-lb", "-o", originalOutput}
 
 	// Add optimization flags if specified
 	if args.Optimize > 0 {

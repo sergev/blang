@@ -1,18 +1,23 @@
-PROG = blang
+#
+# B compiler
+#
+PROG    = blang
+DESTDIR	= $(HOME)/.local
 
 .PHONY: all install clean test cover bench
 
-all: libb.o
+all:
 	go build
+	$(MAKE) -C runtime $@
 
 install: all
-	install -m 555 ${PROG} /usr/local/bin/${PROG}
+	-mkdir -p $(DESTDIR)/bin $(DESTDIR)/lib
+	install -m 555 ${PROG} $(DESTDIR)/bin/${PROG}
+	$(MAKE) -C runtime $@
 
 clean:
 	rm -f ${PROG} *.o *.ll
-
-libb.o: runtime/libb.c
-	$(CC) -c -ffreestanding $< -o $@
+	$(MAKE) -C runtime $@
 
 #
 # For testing, please install gotestsum:

@@ -2,6 +2,7 @@ blang
 *.b-
 *.c-
 *.o
+*.a
 *.ll
 hello
 oldtests

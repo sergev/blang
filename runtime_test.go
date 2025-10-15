@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// TestLibbFunctions tests runtime library functions (from oldtests/libb_test.cpp)
+// TestLibbFunctions tests runtime library functions
 func TestLibbFunctions(t *testing.T) {
 	ensureLibbOrSkip(t)
 
@@ -14,7 +14,7 @@ func TestLibbFunctions(t *testing.T) {
 		wantStdout string
 	}{
 		{
-			name: "libb_write",
+			name: "runtime_write",
 			code: `main() {
 				write('Hello,');
 				write(' World');
@@ -23,7 +23,7 @@ func TestLibbFunctions(t *testing.T) {
 			wantStdout: "Hello, World!\n",
 		},
 		{
-			name: "libb_printf",
+			name: "runtime_printf",
 			code: `main() {
 				printf("Hello, World!*n");
 				printf("%% %% %%%%*n");
@@ -43,7 +43,7 @@ unknown format: %q
 `,
 		},
 		{
-			name: "libb_exit",
+			name: "runtime_exit",
 			code: `main() {
 				printf("before exit()*n");
 				exit();
@@ -52,7 +52,7 @@ unknown format: %q
 			wantStdout: "before exit()\n",
 		},
 		{
-			name: "libb_char",
+			name: "runtime_char",
 			code: `main() {
 				write(char("fubar", 2));
 				write(char("fubar", 4));
@@ -64,7 +64,7 @@ unknown format: %q
 			wantStdout: "brufa\n",
 		},
 		{
-			name: "libb_lchar",
+			name: "runtime_lchar",
 			code: `main() {
 				auto str;
 
@@ -79,7 +79,7 @@ unknown format: %q
 			wantStdout: "fubar\n",
 		},
 		{
-			name: "libb_nwrite",
+			name: "runtime_nwrite",
 			code: `main() {
 				nwrite(1, "foobar*n", 7);
 			}`,
