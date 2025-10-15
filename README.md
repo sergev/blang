@@ -4,7 +4,7 @@ A modern B programming language compiler written in Go with LLVM IR backend and 
 
 The [B programming language](https://en.wikipedia.org/wiki/B_(programming_language)) was developed by Ken Thompson and Dennis Ritchie at Bell Labs in 1969 as the predecessor to C.
 
-**Status:** ✅ **Feature-Complete** • 195 tests passing • 71.1% coverage
+**Status:** ✅ **Feature-Complete** • 189 tests passing • 73.4% coverage
 
 ## Quick Start
 
@@ -13,7 +13,7 @@ The [B programming language](https://en.wikipedia.org/wiki/B_(programming_langua
 make
 
 # Compile and run a B program (automatic linking)
-./blang -o hello examples/helloworld.b
+./blang examples/helloworld.b -o hello
 ./hello
 ```
 
@@ -26,7 +26,7 @@ make
 - **Multiple Output Formats**: Executable, object files, assembly, LLVM IR
 - **Automatic Linking**: Seamless integration with runtime library
 - **LLVM IR Backend**: Portable, optimized code generation
-- **Comprehensive Testing**: 195 tests across 11 organized test files
+- **Comprehensive Testing**: 189 tests across 11 organized test files
 - **Modern Go Implementation**: Clean, maintainable codebase
 
 ## Command-Line Interface
@@ -37,19 +37,16 @@ The `blang` compiler provides a clang-like command-line interface with comprehen
 
 ```bash
 # Generate executable (default)
-blang -o hello hello.b
+blang hello.b -o hello
 
 # Generate LLVM IR
-blang -emit-llvm -o hello.ll hello.b
+blang -emit-llvm hello.b -o hello.ll
 
 # Generate object file
-blang -c -o hello.o hello.b
+blang -c hello.b -o hello.o
 
 # Generate assembly
-blang -S -o hello.s hello.b
-
-# Preprocess only
-blang -E -o hello.i hello.b
+blang -S hello.b -o hello.s
 ```
 
 ### Compiler Options
@@ -59,7 +56,6 @@ blang -E -o hello.i hello.b
 | `-o <file>` | Place output into `<file>` |
 | `-c` | Compile and assemble, but do not link |
 | `-S` | Compile only; do not assemble or link |
-| `-E` | Preprocess only; do not compile, assemble or link |
 | `-emit-llvm` | Emit LLVM IR instead of executable |
 
 ### Optimization and Debugging
@@ -70,44 +66,38 @@ blang -E -o hello.i hello.b
 | `-g` | Generate debug information |
 | `-v` | Verbose output |
 
-### Warnings and Diagnostics
-
-| Option | Description |
-|--------|-------------|
-| `-Wall` | Enable all warnings |
-| `-Werror` | Treat warnings as errors |
-
 ### Paths and Libraries
 
 | Option | Description |
 |--------|-------------|
-| `-I<dir>` | Add directory to include search path |
-| `-L<dir>` | Add directory to library search path |
-| `-l<lib>` | Link with library |
+| `-L <dir>` | Add directory to library search path (can be repeated) |
+| `-l <lib>` | Link with library (can be repeated) |
 
 ### Other Options
 
 | Option | Description |
 |--------|-------------|
-| `-std=<standard>` | Language standard (default: `b`) |
 | `-save-temps` | Do not delete intermediate files |
-| `-help` | Display help information |
-| `-version` | Display version information |
+| `-h`, `--help` | Display help information |
+| `-V`, `--version` | Display version information |
 
 ### Examples
 
 ```bash
 # Optimized executable with debug info
-blang -O2 -g -o optimized hello.b
+blang -O2 -g hello.b -o optimized
 
-# Verbose compilation with warnings
-blang -v -Wall -o hello hello.b
+# Verbose compilation
+blang -v hello.b -o hello
 
-# Generate object file for linking
-blang -c -o hello.o hello.b
+# Multiple library directories and libraries
+blang hello.b -L/usr/lib -L/usr/local/lib -lpthread -lmath
+
+# Options after arguments (flexible ordering)
+blang hello.b -o output -O2 -v
 
 # All flags combined
-blang -v -O3 -g -Wall -save-temps -o hello hello.b
+blang -v -O3 -g -save-temps hello.b -o hello
 ```
 
 ## Example Programs
