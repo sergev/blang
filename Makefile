@@ -4,15 +4,19 @@
 PROG    = blang
 DESTDIR	= $(HOME)/.local
 
-.PHONY: all install clean test cover bench
+.PHONY: all install uninstall clean test cover bench
 
 all:
 	go build
 	$(MAKE) -C runtime $@
 
 install: all
-	-mkdir -p $(DESTDIR)/bin $(DESTDIR)/lib
+	@install -d $(DESTDIR)/bin
 	install -m 555 ${PROG} $(DESTDIR)/bin/${PROG}
+	$(MAKE) -C runtime $@
+
+uninstall:
+	rm -f $(DESTDIR)/bin/${PROG}
 	$(MAKE) -C runtime $@
 
 clean:

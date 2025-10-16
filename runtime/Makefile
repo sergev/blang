@@ -21,7 +21,11 @@ OBJS    = char.o \
 all: $(LIB)
 
 install:
+	@install -d $(DESTDIR)/lib
 	install -m 444 $(LIB) $(DESTDIR)/lib/$(LIB)
+
+uninstall:
+	rm -f $(DESTDIR)/lib/$(LIB)
 
 clean:
 	rm -rf *.o *.a

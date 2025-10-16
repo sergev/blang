@@ -19,6 +19,32 @@ make
 
 **Output:** `Hello, World!`
 
+## Installation
+
+### Prerequisites
+- Go (>=1.21)
+- clang/LLVM toolchain
+- make
+
+### Install (user-local)
+```bash
+make
+make install               # installs to $HOME/.local
+# ensure PATH contains $HOME/.local/bin
+export PATH="$HOME/.local/bin:$PATH"   # add to your shell profile
+blang -V
+```
+
+### Uninstall
+```bash
+make uninstall
+```
+
+### Custom prefix
+```bash
+make install DESTDIR=/custom/prefix
+```
+
 ## Features
 
 - **Complete B Language Support**: All B language features implemented
@@ -36,7 +62,7 @@ The `blang` compiler provides a clang-like command-line interface with comprehen
 ### Basic Usage
 
 ```bash
-# Generate executable (default)
+# Generate executable
 blang hello.b -o hello
 
 # Generate LLVM IR
