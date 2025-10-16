@@ -141,36 +141,94 @@ func compileToIR(args *CompileOptions) error {
 
 // compileToAssembly generates assembly output
 func compileToAssembly(args *CompileOptions) error {
-	// First generate LLVM IR
-	tempIR := args.OutputFile + ".tmp.ll"
-	originalOutput := args.OutputFile
-	args.OutputFile = tempIR
-	args.OutputType = OutputIR
-
-	err := compileToIR(args)
-	if err != nil {
-		return err
+	// Validate extensions: only .b and .ll are accepted
+	for _, in := range args.InputFiles {
+		ext := filepath.Ext(in)
+		if ext != ".b" && ext != ".ll" {
+			return fmt.Errorf("input file '%s' must have .b or .ll extension", in)
+		}
 	}
 
-	// Convert LLVM IR to assembly using clang
-	cmd := exec.Command("clang", "-S", "-o", originalOutput, tempIR)
-	if args.Verbose {
-		fmt.Printf("blang: running %s\n", cmd.String())
+	// Helper to build clang args including optimization/debug flags
+	buildClangArgs := func(inputIRorLL, out string) []string {
+		cmdArgs := []string{}
+		if args.Optimize > 0 {
+			cmdArgs = append(cmdArgs, fmt.Sprintf("-O%d", args.Optimize))
+		}
+		if args.DebugInfo {
+			cmdArgs = append(cmdArgs, "-g")
+		}
+		cmdArgs = append(cmdArgs, "-S", "-o", out, inputIRorLL)
+		return cmdArgs
 	}
 
-	err = cmd.Run()
-	if err != nil {
-		os.Remove(tempIR)
-		return fmt.Errorf("failed to generate assembly: %v", err)
+	// Process a single input into the specified output path
+	processOne := func(in, out string) error {
+		if strings.HasSuffix(in, ".b") {
+			// Compile .b to temporary IR first
+			tempIR := out + ".tmp.ll"
+
+			irArgs := *args
+			irArgs.InputFiles = []string{in}
+			irArgs.OutputType = OutputIR
+			irArgs.OutputFile = tempIR
+
+			if err := compileToIR(&irArgs); err != nil {
+				return err
+			}
+
+			// Convert IR to assembly using clang
+			cmd := exec.Command("clang", buildClangArgs(tempIR, out)...)
+			if args.Verbose {
+				fmt.Printf("blang: running %s\n", cmd.String())
+			}
+			if err := cmd.Run(); err != nil {
+				if !args.SaveTemps {
+					os.Remove(tempIR)
+				}
+				return fmt.Errorf("failed to generate assembly: %v", err)
+			}
+
+			// Clean up temporary IR unless save-temps is specified
+			if !args.SaveTemps {
+				os.Remove(tempIR)
+			}
+
+			if args.Verbose {
+				fmt.Printf("blang: generated %s\n", out)
+			}
+			return nil
+		}
+
+		// .ll: directly assemble with clang
+		cmd := exec.Command("clang", buildClangArgs(in, out)...)
+		if args.Verbose {
+			fmt.Printf("blang: running %s\n", cmd.String())
+		}
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to generate assembly: %v", err)
+		}
+		if args.Verbose {
+			fmt.Printf("blang: generated %s\n", out)
+		}
+		return nil
 	}
 
-	// Clean up temporary file unless save-temps is specified
-	if !args.SaveTemps {
-		os.Remove(tempIR)
+	// If -o specified, require exactly one input file
+	if args.OutputFile != "" {
+		if len(args.InputFiles) != 1 {
+			return fmt.Errorf("-o requires exactly one input file")
+		}
+		return processOne(args.InputFiles[0], args.OutputFile)
 	}
 
-	if args.Verbose {
-		fmt.Printf("blang: generated %s\n", originalOutput)
+	// No -o: emit one .s per input in the current working directory
+	for _, in := range args.InputFiles {
+		base := filepath.Base(in)
+		out := strings.TrimSuffix(base, filepath.Ext(base)) + ".s"
+		if err := processOne(in, out); err != nil {
+			return err
+		}
 	}
 	return nil
 }
