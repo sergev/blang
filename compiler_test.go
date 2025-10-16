@@ -369,17 +369,20 @@ func TestCompileMultipleFiles(t *testing.T) {
 		t.Fatalf("Failed to write file1: %v", err)
 	}
 
-	// Create second file
+	// Create second file with independent main (no cross-file calls)
 	file2 := filepath.Join(tmpDir, "file2.b")
-	err = os.WriteFile(file2, []byte("main() { return(add(1, 2)); }"), 0644)
+	err = os.WriteFile(file2, []byte("main() { return(42); }"), 0644)
 	if err != nil {
 		t.Fatalf("Failed to write file2: %v", err)
 	}
 
-	// Compile both files
-	outputFile := filepath.Join(tmpDir, "output.ll")
+	// Compile both files to IR without -o, expecting per-file .ll in CWD
+	// Change CWD to tmpDir so outputs are emitted there
+	cwd, _ := os.Getwd()
+	defer os.Chdir(cwd)
+	os.Chdir(tmpDir)
+
 	args := NewCompileOptions("blang", []string{file1, file2})
-	args.OutputFile = outputFile
 	args.OutputType = OutputIR
 
 	err = Compile(args)
@@ -387,22 +390,26 @@ func TestCompileMultipleFiles(t *testing.T) {
 		t.Fatalf("Compile() failed: %v", err)
 	}
 
-	// Check output exists and is not empty
-	output, err := os.ReadFile(outputFile)
+	// Check both IR files exist, are not empty, and contain expected functions
+	data1, err := os.ReadFile("file1.ll")
 	if err != nil {
-		t.Fatalf("Failed to read output: %v", err)
+		t.Fatalf("Failed to read file1.ll: %v", err)
+	}
+	if len(data1) == 0 {
+		t.Fatalf("file1.ll is empty")
+	}
+	if !hasSubstring(string(data1), "@add") {
+		t.Errorf("file1.ll doesn't contain add function")
 	}
 
-	if len(output) == 0 {
-		t.Error("Output file is empty")
+	data2, err := os.ReadFile("file2.ll")
+	if err != nil {
+		t.Fatalf("Failed to read file2.ll: %v", err)
 	}
-
-	// Verify both functions are in output
-	outputStr := string(output)
-	if !hasSubstring(outputStr, "@add") {
-		t.Error("Output doesn't contain add function")
+	if len(data2) == 0 {
+		t.Fatalf("file2.ll is empty")
 	}
-	if !hasSubstring(outputStr, "@main") {
-		t.Error("Output doesn't contain main function")
+	if !hasSubstring(string(data2), "@main") {
+		t.Errorf("file2.ll doesn't contain main function")
 	}
 }

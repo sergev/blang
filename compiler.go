@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 
 	"github.com/fatih/color"
 )
@@ -37,7 +39,6 @@ type CompileOptions struct {
 func NewCompileOptions(arg0 string, inputFiles []string) *CompileOptions {
 	return &CompileOptions{
 		Arg0:       arg0,
-		OutputFile: "a.out", // default executable name
 		InputFiles: inputFiles,
 		WordSize:   8, // x86_64 word size
 		OutputType: OutputExecutable,
@@ -75,49 +76,65 @@ func Compile(args *CompileOptions) error {
 
 // compileToIR generates LLVM IR output
 func compileToIR(args *CompileOptions) error {
-	// Create the compiler structure
-	compiler := NewCompiler(args)
-
-	// Open every provided `.b` file and generate LLVM IR for it
-	for _, inputFile := range args.InputFiles {
-		if len(inputFile) < 2 || inputFile[len(inputFile)-2:] != ".b" {
-			continue
-		}
-
+	// Helper to compile a single .b file to the provided output path
+	compileSingleTo := func(inputFile string, outputPath string) error {
 		if args.Verbose {
 			fmt.Printf("blang: processing %s\n", inputFile)
 		}
-
 		file, err := os.Open(inputFile)
 		if err != nil {
 			Eprintf(args.Arg0, "%s: %s\ncompilation terminated.\n", inputFile, err)
 			return err
 		}
+		defer file.Close()
 
+		// Create a fresh compiler per output unit
+		compiler := NewCompiler(args)
 		lexer := NewLexer(args, file)
-		err = ParseDeclarations(lexer, compiler)
-		if err != nil {
-			file.Close()
+		if err := ParseDeclarations(lexer, compiler); err != nil {
 			return err
 		}
-		file.Close()
+
+		outFile, err := os.Create(outputPath)
+		if err != nil {
+			Eprintf(args.Arg0, "cannot open file '%s' %s.", outputPath, err)
+			return err
+		}
+		if _, err := outFile.WriteString(compiler.GetModule().String()); err != nil {
+			outFile.Close()
+			return err
+		}
+		if err := outFile.Close(); err != nil {
+			return err
+		}
+		if args.Verbose {
+			fmt.Printf("blang: generated %s\n", outputPath)
+		}
+		return nil
 	}
 
-	// Write the LLVM IR to output file
-	outFile, err := os.Create(args.OutputFile)
-	if err != nil {
-		Eprintf(args.Arg0, "cannot open file '%s' %s.", args.OutputFile, err)
-		return err
-	}
-	defer outFile.Close()
-
-	_, err = outFile.WriteString(compiler.GetModule().String())
-	if err != nil {
-		return err
+	// In non-pipeline IR mode, enforce that all inputs are .b files
+	for _, inputFile := range args.InputFiles {
+		if !strings.HasSuffix(inputFile, ".b") {
+			return fmt.Errorf("input file '%s' does not have .b extension", inputFile)
+		}
 	}
 
-	if args.Verbose {
-		fmt.Printf("blang: generated %s\n", args.OutputFile)
+	if args.OutputFile != "" {
+		// -o present: exactly one input file
+		if len(args.InputFiles) != 1 {
+			return fmt.Errorf("multiple input files with -o for IR output are not allowed")
+		}
+		return compileSingleTo(args.InputFiles[0], args.OutputFile)
+	}
+
+	// No -o: emit one .ll per input into current working directory
+	for _, inputFile := range args.InputFiles {
+		base := filepath.Base(inputFile)
+		out := strings.TrimSuffix(base, filepath.Ext(base)) + ".ll"
+		if err := compileSingleTo(inputFile, out); err != nil {
+			return err
+		}
 	}
 	return nil
 }
