@@ -2,312 +2,12 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"unicode"
 
+	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/constant"
 	"github.com/llir/llvm/ir/enum"
-	"github.com/llir/llvm/ir/types"
-	"github.com/llir/llvm/ir/value"
 )
-
-// ParseDeclarations parses top-level declarations and generates LLVM IR
-func ParseDeclarations(l *Lexer, c *Compiler) error {
-	for {
-		name, err := l.Identifier()
-		if err != nil {
-			return err
-		}
-		if name == "" {
-			break
-		}
-
-		ch, err := l.ReadChar()
-		if err != nil {
-			if err == io.EOF {
-				return fmt.Errorf("unexpected end of file after declaration")
-			}
-			return err
-		}
-
-		switch ch {
-		case '(':
-			if err := parseFunction(l, c, name); err != nil {
-				return err
-			}
-			// Clear context after each top-level declaration
-			c.ClearTopLevelContext()
-		case '[':
-			if err := parseVector(l, c, name); err != nil {
-				return err
-			}
-			// Clear context after each top-level declaration
-			c.ClearTopLevelContext()
-		default:
-			l.UnreadChar(ch)
-			if err := parseGlobal(l, c, name); err != nil {
-				return err
-			}
-			// Clear context after each top-level declaration
-			c.ClearTopLevelContext()
-		}
-	}
-
-	// Check for unexpected input
-	_, err := l.ReadChar()
-	if err != io.EOF {
-		if err == nil {
-			return fmt.Errorf("expect identifier at top level")
-		}
-		return err
-	}
-
-	return nil
-}
-
-// parseGlobal parses a global variable
-func parseGlobal(l *Lexer, c *Compiler, name string) error {
-	// Remove any existing global with the same name from the module
-	c.removeGlobalByName(name)
-
-	ch, err := l.ReadChar()
-	if err != nil {
-		return err
-	}
-
-	if ch != ';' {
-		l.UnreadChar(ch)
-		// Parse initialization list
-		var initVals []constant.Constant
-		for {
-			if err := l.Whitespace(); err != nil {
-				return err
-			}
-			val, err := parseIvalConst(l, c)
-			if err != nil {
-				return err
-			}
-			initVals = append(initVals, val)
-
-			if err := l.Whitespace(); err != nil {
-				return err
-			}
-			ch, err := l.ReadChar()
-			if err != nil {
-				return err
-			}
-			if ch == ';' {
-				break
-			}
-			if ch != ',' {
-				return fmt.Errorf("expect ';' at end of declaration")
-			}
-		}
-
-		// If multiple values, allocate multiple words for scalar
-		// (not an array - just a scalar with consecutive initialization)
-		if len(initVals) > 1 {
-			c.DeclareGlobalWithMultipleValues(name, initVals)
-		} else {
-			c.DeclareGlobal(name, initVals[0])
-		}
-	} else {
-		c.DeclareGlobal(name, nil)
-	}
-
-	return nil
-}
-
-// parseVector parses a global array
-func parseVector(l *Lexer, c *Compiler, name string) error {
-	// Remove any existing global with the same name from the module
-	c.removeGlobalByName(name)
-
-	var nwords int64 = 0
-
-	if err := l.Whitespace(); err != nil {
-		return err
-	}
-
-	ch, err := l.ReadChar()
-	if err != nil {
-		return err
-	}
-
-	if ch != ']' {
-		l.UnreadChar(ch)
-		nwords, err = l.Number()
-		if err != nil {
-			return fmt.Errorf("unexpected end of file, expect vector size after '['")
-		}
-
-		if err := l.Whitespace(); err != nil {
-			return err
-		}
-
-		if err := l.ExpectChar(']', "expect ']' after vector size"); err != nil {
-			return err
-		}
-	}
-
-	if err := l.Whitespace(); err != nil {
-		return err
-	}
-
-	ch, err = l.ReadChar()
-	if err != nil {
-		return err
-	}
-
-	var initVals []constant.Constant
-	if ch != ';' {
-		l.UnreadChar(ch)
-		for {
-			if err := l.Whitespace(); err != nil {
-				return err
-			}
-			val, err := parseIvalConst(l, c)
-			if err != nil {
-				return err
-			}
-			initVals = append(initVals, val)
-			if err := l.Whitespace(); err != nil {
-				return err
-			}
-
-			ch, err := l.ReadChar()
-			if err != nil {
-				return err
-			}
-			if ch == ';' {
-				break
-			}
-			if ch != ',' {
-				return fmt.Errorf("expect ';' at end of declaration")
-			}
-		}
-	}
-
-	if nwords == 0 {
-		nwords = int64(len(initVals))
-	}
-
-	c.DeclareGlobalArray(name, nwords, initVals)
-	return nil
-}
-
-// parseIvalConst parses a constant initialization value
-func parseIvalConst(l *Lexer, c *Compiler) (constant.Constant, error) {
-	ch, err := l.ReadChar()
-	if err != nil {
-		return nil, err
-	}
-
-	if unicode.IsLetter(ch) {
-		l.UnreadChar(ch)
-		name, err := l.Identifier()
-		if err != nil || name == "" {
-			return nil, fmt.Errorf("unexpected end of file, expect ival")
-		}
-		// For now, just return a zero constant for references
-		// TODO: Handle proper global references
-		return constant.NewInt(c.WordType(), 0), nil
-	} else if ch == '\'' {
-		val, err := l.Character()
-		if err != nil {
-			return nil, fmt.Errorf("unexpected end of file, expect ival")
-		}
-		return constant.NewInt(c.WordType(), val), nil
-	} else if ch == '"' {
-		str, err := l.String()
-		if err != nil {
-			return nil, err
-		}
-		global := c.CreateStringConstant(str)
-		// Get pointer to first element of string constant using GEP
-		gep := constant.NewGetElementPtr(global.ContentType, global,
-			constant.NewInt(types.I32, 0),
-			constant.NewInt(types.I32, 0))
-		// Convert string pointer to i64 for array storage
-		return constant.NewPtrToInt(gep, c.WordType()), nil
-	} else if ch == '-' {
-		val, err := l.Number()
-		if err != nil {
-			return nil, fmt.Errorf("unexpected end of file, expect ival")
-		}
-		return constant.NewInt(c.WordType(), -val), nil
-	} else {
-		l.UnreadChar(ch)
-		val, err := l.Number()
-		if err != nil {
-			return nil, fmt.Errorf("unexpected end of file, expect ival")
-		}
-		return constant.NewInt(c.WordType(), val), nil
-	}
-}
-
-// parseFunction parses a function definition
-func parseFunction(l *Lexer, c *Compiler, name string) error {
-	ch, err := l.ReadChar()
-	if err != nil {
-		return err
-	}
-
-	var paramNames []string
-	if ch != ')' {
-		l.UnreadChar(ch)
-		paramNames, err = parseArguments(l)
-		if err != nil {
-			return err
-		}
-	}
-
-	fn := c.DeclareFunction(name, paramNames)
-	c.StartFunction(fn)
-
-	if err := parseStatementWithSwitch(l, c, -1, nil); err != nil {
-		return err
-	}
-
-	c.EndFunction()
-	return nil
-}
-
-// parseArguments parses function arguments
-func parseArguments(l *Lexer) ([]string, error) {
-	var params []string
-
-	for {
-		if err := l.Whitespace(); err != nil {
-			return nil, err
-		}
-
-		name, err := l.Identifier()
-		if err != nil || name == "" {
-			return nil, fmt.Errorf("expect ')' or identifier after function arguments")
-		}
-
-		params = append(params, name)
-
-		if err := l.Whitespace(); err != nil {
-			return nil, err
-		}
-
-		ch, err := l.ReadChar()
-		if err != nil {
-			return nil, err
-		}
-
-		switch ch {
-		case ')':
-			return params, nil
-		case ',':
-			continue
-		default:
-			return nil, fmt.Errorf("unexpected character '%c', expect ')' or ','", ch)
-		}
-	}
-}
 
 // parseStatement parses a statement
 // switchID: ID of enclosing switch statement (-1 if none)
@@ -755,8 +455,141 @@ func parseWhile(l *Lexer, c *Compiler) error {
 	return nil
 }
 
-// parseExpression parses an expression and returns the result value
-// This is a wrapper that calls the comprehensive expression parser with full precedence support
-func parseExpression(l *Lexer, c *Compiler) (value.Value, error) {
-	return parseExpressionWithLevel(l, c, 15)
+// parseGoto parses goto statements
+func parseGoto(l *Lexer, c *Compiler) error {
+	label, err := l.Identifier()
+	if err != nil || label == "" {
+		return fmt.Errorf("expect label name after 'goto'")
+	}
+
+	// Get or create the target label block
+	targetBlock := c.GetOrCreateLabel(label)
+
+	// Branch to the label
+	c.builder.NewBr(targetBlock)
+
+	// Create a new unreachable block for any code after the goto
+	// This ensures subsequent code doesn't accidentally create branches
+	deadBlock := c.NewBlock(fmt.Sprintf("unreachable.%d", c.labelID))
+	c.labelID++
+	c.SetInsertPoint(deadBlock)
+	// Don't add unreachable instruction yet - let dead code be added,
+	// but when we hit a label, we'll switch blocks
+
+	if err := l.Whitespace(); err != nil {
+		return err
+	}
+	return l.ExpectChar(';', "expect ';' after 'goto' statement")
+}
+
+// parseSwitch parses switch statements
+func parseSwitch(l *Lexer, c *Compiler) error {
+	switchID := c.labelID
+	c.labelID++
+
+	// Parse the switch expression
+	switchVal, err := parseExpression(l, c)
+	if err != nil {
+		return err
+	}
+
+	// Create blocks
+	stmtsBlock := c.NewBlock(fmt.Sprintf("switch.%d.stmts", switchID))
+	cmpBlock := c.NewBlock(fmt.Sprintf("switch.%d.cmp", switchID))
+	endBlock := c.NewBlock(fmt.Sprintf("switch.%d.end", switchID))
+
+	// Jump to comparison block initially
+	c.builder.NewBr(cmpBlock)
+
+	// Parse the switch body (contains case statements)
+	c.SetInsertPoint(stmtsBlock)
+	var caseList []int64
+	if err := parseStatementWithSwitch(l, c, int64(switchID), &caseList); err != nil {
+		return err
+	}
+
+	// If no terminator, jump to end
+	if c.builder.Term == nil {
+		c.builder.NewBr(endBlock)
+	}
+
+	// Build the switch instruction in the comparison block
+	c.SetInsertPoint(cmpBlock)
+	if len(caseList) > 0 {
+		// Create switch instruction
+		sw := c.builder.NewSwitch(switchVal, endBlock)
+
+		// Add all cases
+		for _, caseVal := range caseList {
+			caseBlock := c.GetOrCreateLabel(fmt.Sprintf("case.%d.%d", switchID, caseVal))
+			sw.Cases = append(sw.Cases, ir.NewCase(constant.NewInt(c.WordType(), caseVal), caseBlock))
+		}
+	} else {
+		// No cases, just jump to end
+		c.builder.NewBr(endBlock)
+	}
+
+	// Continue with code after switch
+	c.SetInsertPoint(endBlock)
+	return nil
+}
+
+// parseCase parses case statements
+func parseCase(l *Lexer, c *Compiler, switchID int64, cases *[]int64) error {
+	if switchID < 0 {
+		return fmt.Errorf("unexpected 'case' outside of 'switch' statements")
+	}
+
+	if cases == nil {
+		return fmt.Errorf("invalid case list")
+	}
+
+	// Parse the case value
+	var value int64
+	ch, err := l.ReadChar()
+	if err != nil {
+		return err
+	}
+
+	switch ch {
+	case '\'':
+		value, err = l.Character()
+		if err != nil {
+			return err
+		}
+	default:
+		if unicode.IsDigit(ch) {
+			l.UnreadChar(ch)
+			value, err = l.Number()
+			if err != nil {
+				return err
+			}
+		} else {
+			return fmt.Errorf("unexpected character '%c', expect constant after 'case'", ch)
+		}
+	}
+
+	if err := l.Whitespace(); err != nil {
+		return err
+	}
+	if err := l.ExpectChar(':', "expect ':' after 'case'"); err != nil {
+		return err
+	}
+
+	// Add to case list
+	*cases = append(*cases, value)
+
+	// Create label for this case
+	caseBlock := c.GetOrCreateLabel(fmt.Sprintf("case.%d.%d", switchID, value))
+
+	// Jump to case block if current block has no terminator
+	if c.builder.Term == nil {
+		c.builder.NewBr(caseBlock)
+	}
+
+	// Set insertion point to case block
+	c.SetInsertPoint(caseBlock)
+
+	// Parse the statement(s) following the case
+	return parseStatementWithSwitch(l, c, switchID, cases)
 }

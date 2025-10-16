@@ -12,6 +12,12 @@ import (
 	"github.com/llir/llvm/ir/value"
 )
 
+// parseExpression parses an expression and returns the result value
+// This is a wrapper that calls the comprehensive expression parser with full precedence support
+func parseExpression(l *Lexer, c *Compiler) (value.Value, error) {
+	return parseExpressionWithLevel(l, c, 15)
+}
+
 // parseExpressionWithLevel parses expressions with precedence level
 func parseExpressionWithLevel(l *Lexer, c *Compiler, level int) (value.Value, error) {
 	// Parse left side (term with unary operators)
