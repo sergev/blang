@@ -494,9 +494,17 @@ func TestCompileToObject_SuccessAndErrors(t *testing.T) {
 		t.Fatalf("compileToObject(.ll) err: %v", err)
 	}
 
-	// .s -> .o (minimal asm)
-	// Use AT&T syntax for clang on macOS; define a tiny _main returning 0
-	s := writeTempFile(t, tmp, "z.s", ".globl _main\n_main:\n  xorl %eax, %eax\n  ret")
+	// .b -> .s
+	outS := filepath.Join(tmp, "z.s")
+	args = NewCompileOptions("blang", []string{b})
+	args.OutputType = OutputAssembly
+	args.OutputFile = outS
+	if err := compileToAssembly(args); err != nil {
+		t.Fatalf("compileToAssembly(.b) err: %v", err)
+	}
+
+	// .s -> .o
+	s := outS
 	args = NewCompileOptions("blang", []string{s})
 	args.OutputType = OutputObject
 	args.OutputFile = filepath.Join(tmp, "z.o")
