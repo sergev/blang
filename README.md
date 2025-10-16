@@ -4,7 +4,7 @@ A modern B programming language compiler written in Go with LLVM IR backend and 
 
 The [B programming language](https://en.wikipedia.org/wiki/B_(programming_language)) was developed by Ken Thompson and Dennis Ritchie at Bell Labs in 1969 as the predecessor to C.
 
-**Status:** ✅ **Feature-Complete** • 195 tests passing • 70.2% coverage
+**Status:** ✅ **Feature-Complete** • 212 tests passing • 76.9% coverage
 
 ## Quick Start
 
@@ -52,7 +52,7 @@ make install DESTDIR=/custom/prefix
 - **Multiple Output Formats**: Executable, object files, assembly, LLVM IR
 - **Automatic Linking**: Seamless integration with runtime library
 - **LLVM IR Backend**: Portable, optimized code generation
-- **Comprehensive Testing**: 195 tests across 11 organized test files
+- **Comprehensive Testing**: 212 tests across 16 organized test files
 - **Modern Go Implementation**: Clean, maintainable codebase
 
 ## Command-Line Interface
