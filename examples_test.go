@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -89,5 +92,61 @@ func TestE2Constant(t *testing.T) {
 	gotStdout := string(stdout)
 	if !strings.HasPrefix(gotStdout, wantPrefix) {
 		t.Errorf("Output does not start with expected prefix.\nWant prefix: %q\nGot: %q", wantPrefix, gotStdout[:min(len(gotStdout), 100)])
+	}
+}
+
+// TestPDP7CompilerHello compiles the historical PDP-7 B compiler (examples/b.b),
+// runs it with examples/helloworld.b as input, and verifies the generated
+// output matches the expected PDP-7 code in examples/helloworld.pdp7.
+func TestPDP7CompilerHello(t *testing.T) {
+	ensureLibbOrSkip(t)
+
+	tmpDir := t.TempDir()
+	llFile := filepath.Join(tmpDir, "b.ll")
+	exeFile := filepath.Join(tmpDir, "b")
+
+	// Compile the PDP-7 B compiler source to IR and link into an executable.
+	compileToLL(t, "examples/b.b", llFile)
+	linkWithClang(t, llFile, exeFile)
+
+	in, err := os.Open("examples/helloworld.b")
+	if err != nil {
+		t.Fatalf("open input: %v", err)
+	}
+	defer in.Close()
+
+	cmd := exec.Command(exeFile)
+	cmd.Stdin = in
+	got, err := cmd.Output()
+	if err != nil {
+		if ee, ok := err.(*exec.ExitError); ok {
+			t.Fatalf("program exited with code %d: %s", ee.ExitCode(), string(ee.Stderr))
+		}
+		t.Fatalf("run: %v", err)
+	}
+
+	const wantPDP7 = `.main:.+1
+s 2
+x .printf
+n 2
+x .+2
+t 2f
+.+1
+36965
+55404
+56876
+16471
+56946
+55396
+16906
+2048
+2:
+n 3
+s 2
+n 7
+`
+
+	if !bytes.Equal(got, []byte(wantPDP7)) {
+		t.Errorf("output mismatch\n--- got ---\n%s\n--- want ---\n%s", got, wantPDP7)
 	}
 }
