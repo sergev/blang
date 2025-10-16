@@ -20,6 +20,7 @@ type Compiler struct {
 	globals   map[string]value.Value // global variables
 	functions map[string]*ir.Func    // functions
 	strings   []*ir.Global           // string constants
+	stringID  int                    // unique id for string constants
 	labelID   int                    // counter for labels
 	labels    map[string]*ir.Block   // named labels for goto
 }
@@ -33,7 +34,50 @@ func NewCompiler(args *CompileOptions) *Compiler {
 		globals:   make(map[string]value.Value),
 		functions: make(map[string]*ir.Func),
 		strings:   make([]*ir.Global, 0),
+		stringID:  0,
 	}
+}
+
+// findFuncByName returns the function with the given name from the module, or nil
+func (c *Compiler) findFuncByName(name string) *ir.Func {
+	for _, f := range c.module.Funcs {
+		if f.Name() == name {
+			return f
+		}
+	}
+	return nil
+}
+
+// removeFuncByName removes the function with the given name from the module if present
+func (c *Compiler) removeFuncByName(name string) bool {
+	for i, f := range c.module.Funcs {
+		if f.Name() == name {
+			c.module.Funcs = append(c.module.Funcs[:i], c.module.Funcs[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
+// findGlobalByName returns the global with the given name from the module, or nil
+func (c *Compiler) findGlobalByName(name string) *ir.Global {
+	for _, g := range c.module.Globals {
+		if g.Name() == name {
+			return g
+		}
+	}
+	return nil
+}
+
+// removeGlobalByName removes the global with the given name from the module if present
+func (c *Compiler) removeGlobalByName(name string) bool {
+	for i, g := range c.module.Globals {
+		if g.Name() == name {
+			c.module.Globals = append(c.module.Globals[:i], c.module.Globals[i+1:]...)
+			return true
+		}
+	}
+	return false
 }
 
 // GetModule returns the LLVM module
@@ -149,19 +193,8 @@ func (c *Compiler) DeclareGlobalArray(name string, size int64, init []constant.C
 
 // DeclareFunction declares a function
 func (c *Compiler) DeclareFunction(name string, paramNames []string) *ir.Func {
-	// Check if function was already auto-declared (as variadic external)
-	if existingFn, ok := c.functions[name]; ok {
-		// Function was already declared (e.g., forward reference)
-		// We need to replace it with the actual definition
-		// Remove the old declaration from the module
-		for i, f := range c.module.Funcs {
-			if f == existingFn {
-				// Remove from module's function list
-				c.module.Funcs = append(c.module.Funcs[:i], c.module.Funcs[i+1:]...)
-				break
-			}
-		}
-	}
+	// Remove any prior function with the same name from the module to enforce no-context
+	c.removeFuncByName(name)
 
 	// All B functions take i64 parameters and return i64
 	params := make([]*ir.Param, len(paramNames))
@@ -189,20 +222,27 @@ func (c *Compiler) GetOrDeclareFunction(name string) *ir.Func {
 		return fn
 	}
 
-	// Check if it was declared as extrn (exists in globals)
-	// If so, DO NOT remove it from globals - it's a function pointer variable
-	// Return nil to signal caller should handle it as indirect call
-	if _, ok := c.globals[name]; ok {
-		// It's an extrn variable (function pointer) - keep it in globals
+	// If declared as extrn variable in current context, treat as function pointer variable
+	if c.findGlobalByName(name) != nil {
 		return nil
 	}
 
-	// Not in globals, not in functions → auto-declare as external variadic function
-	// This handles undefined names used as functions (like write(), printf())
+	// Enforce no-context: remove any prior function of the same name from the module
+	c.removeFuncByName(name)
+
+	// Auto-declare as external variadic function in current context
 	fn := c.module.NewFunc(name, c.WordType())
 	fn.Sig.Variadic = true
 	c.functions[name] = fn
 	return fn
+}
+
+// ClearTopLevelContext clears symbol tables that should not persist across
+// top-level declarations while keeping the LLVM module intact.
+func (c *Compiler) ClearTopLevelContext() {
+	c.globals = make(map[string]value.Value)
+	c.functions = make(map[string]*ir.Func)
+	c.strings = make([]*ir.Global, 0)
 }
 
 // StartFunction starts building a function body
@@ -282,26 +322,21 @@ func (c *Compiler) GetAddress(name string) (value.Value, bool) {
 		return val, true
 	}
 
-	// Check functions before globals
-	// This allows extrn-declared names to become functions if called
-	if fn, ok := c.functions[name]; ok {
+	// Check module functions
+	if fn := c.findFuncByName(name); fn != nil {
 		return fn, true
 	}
 
-	// Check globals
-	if global, ok := c.globals[name]; ok {
-		// Check if the global is an array type (scalar with multiple values: c -345, 'foo', "bar";)
-		// If so, return pointer to first element for proper load semantics
-		if irGlobal, ok := global.(*ir.Global); ok {
-			if arrayType, ok := irGlobal.ContentType.(*types.ArrayType); ok {
-				// Get pointer to first element
-				firstElem := c.builder.NewGetElementPtr(arrayType, irGlobal,
-					constant.NewInt(types.I32, 0),
-					constant.NewInt(types.I32, 0))
-				return firstElem, true
-			}
+	// Check module globals
+	if irGlobal := c.findGlobalByName(name); irGlobal != nil {
+		// If the global is an array type (scalar with multiple values)
+		if arrayType, ok := irGlobal.ContentType.(*types.ArrayType); ok {
+			firstElem := c.builder.NewGetElementPtr(arrayType, irGlobal,
+				constant.NewInt(types.I32, 0),
+				constant.NewInt(types.I32, 0))
+			return firstElem, true
 		}
-		return global, true
+		return irGlobal, true
 	}
 
 	return nil, false
@@ -324,11 +359,12 @@ func (c *Compiler) CreateStringConstant(str string) *ir.Global {
 
 	strConst := constant.NewArray(arrayType, bytes...)
 
-	global := c.module.NewGlobalDef(fmt.Sprintf(".str.%d", len(c.strings)), strConst)
+	global := c.module.NewGlobalDef(fmt.Sprintf(".str.%d", c.stringID), strConst)
 	global.Linkage = enum.LinkagePrivate
 	global.UnnamedAddr = enum.UnnamedAddrUnnamedAddr
 	global.Immutable = true
 	c.strings = append(c.strings, global)
+	c.stringID++
 
 	return global
 }

@@ -35,15 +35,21 @@ func ParseDeclarations(l *Lexer, c *Compiler) error {
 			if err := parseFunction(l, c, name); err != nil {
 				return err
 			}
+			// Clear context after each top-level declaration
+			c.ClearTopLevelContext()
 		case '[':
 			if err := parseVector(l, c, name); err != nil {
 				return err
 			}
+			// Clear context after each top-level declaration
+			c.ClearTopLevelContext()
 		default:
 			l.UnreadChar(ch)
 			if err := parseGlobal(l, c, name); err != nil {
 				return err
 			}
+			// Clear context after each top-level declaration
+			c.ClearTopLevelContext()
 		}
 	}
 
@@ -61,19 +67,8 @@ func ParseDeclarations(l *Lexer, c *Compiler) error {
 
 // parseGlobal parses a global variable
 func parseGlobal(l *Lexer, c *Compiler, name string) error {
-	// If this name was already declared as extrn (as external reference),
-	// remove it so we can declare it properly
-	if existing, exists := c.globals[name]; exists {
-		// Remove from globals map
-		delete(c.globals, name)
-		// Remove from module's globals list
-		for i, g := range c.module.Globals {
-			if g == existing {
-				c.module.Globals = append(c.module.Globals[:i], c.module.Globals[i+1:]...)
-				break
-			}
-		}
-	}
+	// Remove any existing global with the same name from the module
+	c.removeGlobalByName(name)
 
 	ch, err := l.ReadChar()
 	if err != nil {
@@ -125,19 +120,8 @@ func parseGlobal(l *Lexer, c *Compiler, name string) error {
 
 // parseVector parses a global array
 func parseVector(l *Lexer, c *Compiler, name string) error {
-	// If this name was already declared as extrn (as a scalar global),
-	// remove it so we can declare it as an array
-	if existing, exists := c.globals[name]; exists {
-		// Remove from globals map
-		delete(c.globals, name)
-		// Remove from module's globals list
-		for i, g := range c.module.Globals {
-			if g == existing {
-				c.module.Globals = append(c.module.Globals[:i], c.module.Globals[i+1:]...)
-				break
-			}
-		}
-	}
+	// Remove any existing global with the same name from the module
+	c.removeGlobalByName(name)
 
 	var nwords int64 = 0
 
@@ -607,22 +591,10 @@ func parseExtrn(l *Lexer, c *Compiler) error {
 			return fmt.Errorf("expect identifier after 'extrn'")
 		}
 
-		// In B, extrn declares a reference to an external name (variable or function)
-		// We create a forward reference as an external global (uninitialized)
-		// If a definition appears later in the file, it will replace this
-		//
-		// Examples:
-		//   extrn printf;  printf("hello");  → printf will be auto-declared as function
-		//   extrn n; ... n 2000;             → n defined later will replace this
-		//   extrn v; ... v[2000];            → v defined later will replace this
-
-		if _, exists := c.globals[name]; !exists {
-			if _, exists := c.functions[name]; !exists {
-				// Declare as external global variable (i64) - may be replaced later
-				// Initialize to 0 for proper LLVM IR
-				global := c.module.NewGlobalDef(name, constant.NewInt(c.WordType(), 0))
-				c.globals[name] = global
-			}
+		// extrn declares a reference in the current declaration context only
+		// Add a zero-initialized global to the module if not already present
+		if c.findGlobalByName(name) == nil && c.findFuncByName(name) == nil {
+			c.module.NewGlobalDef(name, constant.NewInt(c.WordType(), 0))
 		}
 
 		if err := l.Whitespace(); err != nil {

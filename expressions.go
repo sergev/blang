@@ -826,20 +826,17 @@ func parsePrimary(l *Lexer, c *Compiler) (value.Value, bool, error) {
 
 		// If it's a call, handle both direct and indirect calls
 		if isCall {
-			// Check if it's already a declared function
-			if fn, ok := c.functions[name]; ok {
+			// Check module for a declared function
+			if fn := c.findFuncByName(name); fn != nil {
 				return fn, false, nil
 			}
 
-			// Check if it's an extrn variable (function pointer)
-			if ptr, ok := c.globals[name]; ok {
-				// It's a function pointer variable
-				// Return as lvalue WITHOUT the isLvalue flag for calls
-				// The call handler expects fn to be the variable address
-				return ptr, false, nil
+			// Check if it's an extrn variable (function pointer) in module globals
+			if g := c.findGlobalByName(name); g != nil {
+				return g, false, nil
 			}
 
-			// Not found anywhere - auto-declare as external function
+			// Not found anywhere - auto-declare as external function in current context
 			fn := c.GetOrDeclareFunction(name)
 			if fn == nil {
 				return nil, false, fmt.Errorf("cannot declare function '%s'", name)
