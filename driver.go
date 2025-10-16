@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -342,6 +343,12 @@ func compileToExecutable(args *CompileOptions) error {
 		cmdArgs = append(cmdArgs, "-g")
 	}
 	cmdArgs = append(cmdArgs, clangInputs...)
+
+	// Link statically on Linux
+	if runtime.GOOS == "linux" {
+		cmdArgs = append(cmdArgs, "-static", "-nostdlib")
+	}
+
 	// Add library search directories before libraries for correct resolution order
 	for _, libDir := range args.LibraryDirs {
 		cmdArgs = append(cmdArgs, "-L"+libDir)
