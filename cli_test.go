@@ -41,7 +41,7 @@ func TestCLIBasicOptions(t *testing.T) {
 			name:       "invalid_file_extension",
 			args:       []string{"test.txt"},
 			wantExit:   1,
-			wantStderr: "does not have .b extension",
+			wantStderr: "unsupported input file extension",
 		},
 		{
 			name:       "nonexistent_file",

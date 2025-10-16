@@ -126,10 +126,12 @@ func main() {
 		}
 	}
 
-	// Validate input files end with .b
+	// Validate input file extensions
+	allowedExt := map[string]bool{".b": true, ".ll": true, ".s": true, ".o": true, ".a": true}
 	for _, file := range files {
-		if len(file) < 2 || !strings.HasSuffix(file, ".b") {
-			Eprintf("blang", "input file '%s' does not have .b extension\n", file)
+		ext := filepath.Ext(file)
+		if !allowedExt[ext] {
+			Eprintf("blang", "unsupported input file extension for '%s'; allowed: .b, .ll, .s, .o, .a\n", file)
 			os.Exit(1)
 		}
 		if _, err := os.Stat(file); err != nil {
@@ -157,8 +159,11 @@ func main() {
 		args.OutputFile = output
 	} else {
 		// Get basename of first source file (without directory and extension)
-		basename := strings.TrimSuffix(files[0], ".b")
-		basename = strings.TrimPrefix(basename, filepath.Dir(basename)+"/")
+		base := files[0]
+		if ext := filepath.Ext(base); ext != "" {
+			base = strings.TrimSuffix(base, ext)
+		}
+		basename := strings.TrimPrefix(base, filepath.Dir(base)+"/")
 
 		// Set default output based on output type
 		switch outputType {
