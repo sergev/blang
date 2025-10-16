@@ -137,56 +137,37 @@ func (c *Compiler) DeclareGlobalWithMultipleValues(name string, values []constan
 //
 // This dramatically reduces .ll file size for large zero-initialized arrays.
 func (c *Compiler) DeclareGlobalArray(name string, size int64, init []constant.Constant) *ir.Global {
+	// True B semantics: arrays are pointers to buffers.
+	// Emit: name.data = [size x i64] <inits>
+	//       name = i64 ptrtoint(&name.data[0])
 	elemType := c.WordType()
 
-	// For large arrays without initializers, use compact two-global representation
-	if len(init) == 0 && size > 10 {
-		// Create the data array with zeroinitializer (compact!)
-		dataArrayType := types.NewArray(uint64(size), elemType)
-		dataGlobal := c.module.NewGlobalDef(name+".data", constant.NewZeroInitializer(dataArrayType))
-
-		// Create wrapper with just the pointer to data
-		wrapperType := types.NewArray(1, elemType)
-		dataPtr := constant.NewGetElementPtr(dataArrayType, dataGlobal,
-			constant.NewInt(types.I64, 0),
-			constant.NewInt(types.I64, 0))
-		ptrAsInt := constant.NewPtrToInt(dataPtr, elemType)
-
-		global := c.module.NewGlobalDef(name, constant.NewArray(wrapperType, ptrAsInt))
-		c.globals[name] = global
-		return global
+	if size < 0 {
+		size = 0
 	}
 
-	// Standard approach for small arrays or arrays with initializers
-	arraySize := size + 1 // +1 for the pointer storage
-	arrayType := types.NewArray(uint64(arraySize), elemType)
+	dataArrayType := types.NewArray(uint64(size), elemType)
 
-	// Initialize data elements
-	var initVals []constant.Constant
-
-	// First element: will be initialized with pointer to second element
-	initVals = append(initVals, constant.NewInt(elemType, 0)) // Placeholder, will be fixed below
-
+	// Build data initializer values, padding with zeros
+	dataVals := make([]constant.Constant, size)
 	for i := int64(0); i < size; i++ {
 		if init != nil && i < int64(len(init)) {
-			initVals = append(initVals, init[i])
+			dataVals[i] = init[i]
 		} else {
-			initVals = append(initVals, constant.NewInt(elemType, 0))
+			dataVals[i] = constant.NewInt(elemType, 0)
 		}
 	}
 
-	global := c.module.NewGlobalDef(name, constant.NewArray(arrayType, initVals...))
+	dataInit := constant.NewArray(dataArrayType, dataVals...)
+	dataGlobal := c.module.NewGlobalDef(name+".data", dataInit)
 
-	// Now fix the first element to point to the second element
-	dataPtr := constant.NewGetElementPtr(arrayType, global,
-		constant.NewInt(types.I64, 0),
-		constant.NewInt(types.I64, 1))
-	ptrAsInt := constant.NewPtrToInt(dataPtr, elemType)
+	// Compute pointer to first element and cast to i64
+	zeroI64 := constant.NewInt(types.I64, 0)
+	firstElemPtr := constant.NewGetElementPtr(dataArrayType, dataGlobal, zeroI64, zeroI64)
+	ptrAsInt := constant.NewPtrToInt(firstElemPtr, elemType)
 
-	// Update the global initialization
-	initVals[0] = ptrAsInt
-	global.Init = constant.NewArray(arrayType, initVals...)
-
+	// The array variable itself is a scalar i64 holding the pointer
+	global := c.module.NewGlobalDef(name, ptrAsInt)
 	c.globals[name] = global
 	return global
 }
