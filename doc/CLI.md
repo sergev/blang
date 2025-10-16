@@ -21,9 +21,12 @@ blang [options] file...
 
 ### Input Files
 
-- **Required**: At least one `.b` source file
-- **Extension**: Input files must have `.b` extension
-- **Multiple files**: Multiple source files can be compiled together
+- **Required**: At least one input file
+- **Allowed extensions**: `.b`, `.ll`, `.s`, `.o`, `.a`
+- **Behavior**:
+  - `.b` files are compiled to LLVM IR automatically and then linked
+  - `.ll`, `.s`, `.o`, `.a` files are passed to the system linker (`clang`)
+- **Multiple files**: Any number of input files is supported; mixing extensions is allowed
 
 ```bash
 # Single file
@@ -51,7 +54,7 @@ blang hello.b                    # Creates 'hello'
 blang hello.b -o custom_name     # Creates 'custom_name'
 ```
 
-Generates a fully linked executable. **Default output naming** uses the basename of the first source file (without directory path or extension).
+Generates a fully linked executable. **Default output naming** uses the basename of the first source file (without directory path or extension) when `-o` is not provided.
 
 ### Object Files (`-c`)
 
@@ -62,6 +65,10 @@ blang -c hello.b -o custom.o     # Creates 'custom.o'
 
 Compiles to object file without linking. Useful for separate compilation units and libraries.
 
+Notes:
+- When `-o` is provided, exactly one input file is required.
+- Without `-o`, one `.o` is produced per input file in the current directory.
+
 ### Assembly (`-S`)
 
 ```bash
@@ -71,6 +78,11 @@ blang -S hello.b -o custom.s     # Creates 'custom.s'
 
 Generates assembly code for understanding code generation and debugging.
 
+Notes:
+- Accepts `.b` and `.ll` inputs.
+- When `-o` is provided, exactly one input file is required.
+- Without `-o`, one `.s` is produced per input file in the current directory.
+
 ### LLVM IR (`--emit-llvm`)
 
 ```bash
@@ -79,6 +91,11 @@ blang --emit-llvm hello.b -o custom.ll  # Creates 'custom.ll'
 ```
 
 Generates LLVM Intermediate Representation for LLVM-based optimization and tool integration.
+
+Notes:
+- Accepts `.b` inputs only in this mode.
+- When `-o` is provided, exactly one input file is required.
+- Without `-o`, one `.ll` is produced per input file in the current directory.
 
 ## Optimization Options
 
@@ -120,7 +137,7 @@ Shows detailed compilation steps:
 blang: compiling 1 file(s)
 blang: processing hello.b
 blang: generated hello.tmp.ll
-blang: running /usr/bin/clang hello.tmp.ll libb.o -o hello
+blang: running clang hello.tmp.ll -Lruntime -lb -o hello
 ```
 
 ## Library Options
@@ -156,6 +173,10 @@ blang --save-temps hello.b -o hello
 ```
 
 Preserves intermediate files (like `.tmp.ll` files) for debugging.
+
+Temporary IR naming:
+- Single `.b` with `-o <output>`: `<output>.tmp.ll`
+- Multiple inputs: `<basename>.tmp.<idx>.ll` per `.b` input
 
 ### Help and Version
 
@@ -219,7 +240,7 @@ blang -L /usr/lib -L /usr/local/lib -l pthread -l math hello.b -o hello
 
 2. **Invalid file extension**:
    ```
-   blang: error: input file 'test.txt' does not have .b extension
+   blang: error: unsupported input file extension for 'test.txt'; allowed: .b, .ll, .s, .o, .a
    ```
 
 3. **File not found**:
@@ -234,7 +255,7 @@ blang -L /usr/lib -L /usr/local/lib -l pthread -l math hello.b -o hello
 
 5. **Missing runtime library**:
    ```
-   blang: error: libb.o not found, run 'make' first
+   blang: error: runtime/libb.a not found (or clang cannot find -lb); run 'make' in runtime/
    ```
 
 ### Error Message Format
@@ -283,7 +304,7 @@ add_executable(hello hello.b)
 
 ### Common Issues
 
-1. **"libb.o not found"**: Run `make` to build the runtime library
+1. **"runtime/libb.a not found" or "cannot find -lb"**: Run `make` in `runtime/` to build the runtime library
 2. **"clang not found"**: Ensure clang is installed and in PATH
 3. **Permission denied**: Ensure output directory is writable
 4. **Linker errors**: Check that required libraries are available
