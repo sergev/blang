@@ -24,7 +24,6 @@ var _ = []interface{}{
 	runWithTimeout,
 	hasSubstring,
 	contains,
-	min,
 }
 
 // ensureLibbOrSkip skips the test if runtime object file is missing.
@@ -150,14 +149,6 @@ func contains(s, substr string) bool {
 // hasSubstring is a simple substring search used by tests.
 func hasSubstring(s, substr string) bool {
 	return strings.Contains(s, substr)
-}
-
-// min returns the smaller of a and b.
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 // ---- Lexer test helpers ----
