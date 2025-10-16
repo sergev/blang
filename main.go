@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/spf13/pflag"
 )
@@ -154,29 +153,8 @@ func main() {
 	// Set libraries
 	args.Libraries = libraries
 
-	// Set output file
-	if output != "" {
-		args.OutputFile = output
-	} else {
-		// Get basename of first source file (without directory and extension)
-		base := files[0]
-		if ext := filepath.Ext(base); ext != "" {
-			base = strings.TrimSuffix(base, ext)
-		}
-		basename := strings.TrimPrefix(base, filepath.Dir(base)+"/")
-
-		// Set default output based on output type
-		switch outputType {
-		case OutputObject:
-			args.OutputFile = basename + ".o"
-		case OutputAssembly:
-			args.OutputFile = basename + ".s"
-		case OutputIR:
-			args.OutputFile = basename + ".ll"
-		default:
-			args.OutputFile = basename
-		}
-	}
+	// Set output file when -o provided; otherwise leave empty
+	args.OutputFile = output
 
 	// Compile
 	if err := Compile(args); err != nil {

@@ -329,58 +329,96 @@ func compileToObject(args *CompileOptions) error {
 
 // compileToExecutable generates executable
 func compileToExecutable(args *CompileOptions) error {
-	// First generate LLVM IR
-	tempIR := args.OutputFile + ".tmp.ll"
-	originalOutput := args.OutputFile
-	args.OutputFile = tempIR
-	args.OutputType = OutputIR
+	// Determine output name if not set: basename of the first source file
+	if args.OutputFile == "" {
+		base := filepath.Base(args.InputFiles[0])
+		args.OutputFile = strings.TrimSuffix(base, filepath.Ext(base))
+	}
 
-	err := compileToIR(args)
-	if err != nil {
-		return err
+	// Prepare temporary IR files (for .b inputs) and collect inputs for clang
+	temps := []string{}
+	clangInputs := []string{}
+
+	for i, in := range args.InputFiles {
+		ext := filepath.Ext(in)
+		switch ext {
+		case ".b":
+			// For compatibility with CLI tests: when linking a single .b with -o,
+			// use <output>.tmp.ll as the temporary IR name.
+			var tmp string
+			if len(args.InputFiles) == 1 && args.OutputFile != "" {
+				tmp = args.OutputFile + ".tmp.ll"
+			} else {
+				base := strings.TrimSuffix(filepath.Base(in), ext)
+				tmp = fmt.Sprintf("%s.tmp.%d.ll", base, i)
+			}
+
+			irArgs := *args
+			irArgs.InputFiles = []string{in}
+			irArgs.OutputType = OutputIR
+			irArgs.OutputFile = tmp
+
+			if err := compileToIR(&irArgs); err != nil {
+				if !args.SaveTemps {
+					for _, t := range temps {
+						os.Remove(t)
+					}
+				}
+				return err
+			}
+			temps = append(temps, tmp)
+			clangInputs = append(clangInputs, tmp)
+
+		case ".ll", ".s", ".o", ".a":
+			clangInputs = append(clangInputs, in)
+
+		default:
+			// main() validated extensions, but keep a guard here
+			return fmt.Errorf("unsupported input file extension: %s", in)
+		}
 	}
 
 	// Build clang command for linking
-	cmdArgs := []string{tempIR, "-Lruntime", "-lb", "-o", originalOutput}
-
-	// Add optimization flags if specified
+	cmdArgs := []string{}
 	if args.Optimize > 0 {
 		cmdArgs = append(cmdArgs, fmt.Sprintf("-O%d", args.Optimize))
 	}
-
-	// Add debug info if requested
 	if args.DebugInfo {
 		cmdArgs = append(cmdArgs, "-g")
 	}
-
-	// Add library directories
+	cmdArgs = append(cmdArgs, clangInputs...)
+	cmdArgs = append(cmdArgs, "-Lruntime", "-lb")
 	for _, libDir := range args.LibraryDirs {
 		cmdArgs = append(cmdArgs, "-L"+libDir)
 	}
-
-	// Add libraries
 	for _, lib := range args.Libraries {
 		cmdArgs = append(cmdArgs, "-l"+lib)
 	}
+	cmdArgs = append(cmdArgs, "-o", args.OutputFile)
 
 	cmd := exec.Command("clang", cmdArgs...)
 	if args.Verbose {
 		fmt.Printf("blang: running %s\n", cmd.String())
 	}
 
-	err = cmd.Run()
-	if err != nil {
-		os.Remove(tempIR)
+	if err := cmd.Run(); err != nil {
+		if !args.SaveTemps {
+			for _, t := range temps {
+				os.Remove(t)
+			}
+		}
 		return fmt.Errorf("failed to generate executable: %v", err)
 	}
 
-	// Clean up temporary file unless save-temps is specified
+	// Clean up temporary files unless save-temps is specified
 	if !args.SaveTemps {
-		os.Remove(tempIR)
+		for _, t := range temps {
+			os.Remove(t)
+		}
 	}
 
 	if args.Verbose {
-		fmt.Printf("blang: generated %s\n", originalOutput)
+		fmt.Printf("blang: generated %s\n", args.OutputFile)
 	}
 	return nil
 }
