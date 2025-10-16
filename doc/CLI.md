@@ -102,8 +102,8 @@ Notes:
 ### Optimization Levels
 
 ```bash
-blang -O0 hello.b    # No optimization (default)
-blang -O1 hello.b    # Basic optimization
+blang -O0 hello.b    # No optimization
+blang -O1 hello.b    # Basic optimization (default)
 blang -O2 hello.b    # Moderate optimization
 blang -O3 hello.b    # Aggressive optimization
 ```
@@ -137,7 +137,7 @@ Shows detailed compilation steps:
 blang: compiling 1 file(s)
 blang: processing hello.b
 blang: generated hello.tmp.ll
-blang: running clang hello.tmp.ll -Lruntime -lb -o hello
+blang: running clang hello.tmp.ll -lb -o hello
 ```
 
 ## Library Options
@@ -149,6 +149,20 @@ blang -L /usr/lib -L /usr/local/lib hello.b -o hello
 ```
 
 Adds directories to the library search path. **Can be repeated** for multiple directories.
+
+By default, `blang` automatically adds the following directories to the library search path if they exist:
+
+- `$HOME/.local/lib`
+- `/opt/homebrew/lib`
+- `/opt/local/lib`
+- `/usr/local/lib`
+- `/usr/lib`
+
+If your `libb.a` (the B runtime library) is not installed in a standard location, and you are using the library located in the project `runtime/` directory, pass the path explicitly:
+
+```bash
+blang -L runtime hello.b -o hello
+```
 
 ### Link Libraries (`-l`)
 
@@ -295,7 +309,7 @@ add_executable(hello hello.b)
 
 1. **Use meaningful output names**: Always specify `-o` for clarity
 2. **Optimize for release**: Use `-O2` or `-O3` for production builds
-3. **Include debug info**: Use `-g` for debugging builds
+3. **Include debug info**: Use `-g` `-O0` for debugging builds
 4. **Use verbose mode**: Use `-v` to understand compilation steps
 5. **Leverage default naming**: Let `blang` use basename-based defaults when appropriate
 6. **Flexible ordering**: Place options where they're most readable

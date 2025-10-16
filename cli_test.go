@@ -106,7 +106,7 @@ func TestCLIOutputFormats(t *testing.T) {
 	}{
 		{
 			name:       "default_executable",
-			args:       []string{"-o", filepath.Join(tmpDir, "test_default"), testFile},
+			args:       []string{"-L", "runtime", "-o", filepath.Join(tmpDir, "test_default"), testFile},
 			wantExit:   0,
 			wantOutput: "",
 			checkFile:  true,
@@ -197,22 +197,22 @@ func TestCLIOptimizationFlags(t *testing.T) {
 	}{
 		{
 			name:     "optimization_O0",
-			args:     []string{"-O0", "-o", filepath.Join(tmpDir, "test_O0"), testFile},
+			args:     []string{"-L", "runtime", "-O0", "-o", filepath.Join(tmpDir, "test_O0"), testFile},
 			wantExit: 0,
 		},
 		{
 			name:     "optimization_O1",
-			args:     []string{"-O1", "-o", filepath.Join(tmpDir, "test_O1"), testFile},
+			args:     []string{"-L", "runtime", "-O1", "-o", filepath.Join(tmpDir, "test_O1"), testFile},
 			wantExit: 0,
 		},
 		{
 			name:     "optimization_O2",
-			args:     []string{"-O2", "-o", filepath.Join(tmpDir, "test_O2"), testFile},
+			args:     []string{"-L", "runtime", "-O2", "-o", filepath.Join(tmpDir, "test_O2"), testFile},
 			wantExit: 0,
 		},
 		{
 			name:     "optimization_O3",
-			args:     []string{"-O3", "-o", filepath.Join(tmpDir, "test_O3"), testFile},
+			args:     []string{"-L", "runtime", "-O3", "-o", filepath.Join(tmpDir, "test_O3"), testFile},
 			wantExit: 0,
 		},
 		{
@@ -268,19 +268,19 @@ func TestCLIDebugAndVerbose(t *testing.T) {
 	}{
 		{
 			name:       "verbose_output",
-			args:       []string{"-v", "-o", filepath.Join(tmpDir, "test_verbose"), testFile},
+			args:       []string{"-L", "runtime", "-v", "-o", filepath.Join(tmpDir, "test_verbose"), testFile},
 			wantExit:   0,
 			wantOutput: "blang: compiling",
 		},
 		{
 			name:       "debug_info",
-			args:       []string{"-g", "-o", filepath.Join(tmpDir, "test_debug"), testFile},
+			args:       []string{"-L", "runtime", "-g", "-o", filepath.Join(tmpDir, "test_debug"), testFile},
 			wantExit:   0,
 			wantOutput: "",
 		},
 		{
 			name:       "verbose_and_debug",
-			args:       []string{"-v", "-g", "-o", filepath.Join(tmpDir, "test_verbose_debug"), testFile},
+			args:       []string{"-L", "runtime", "-v", "-g", "-o", filepath.Join(tmpDir, "test_verbose_debug"), testFile},
 			wantExit:   0,
 			wantOutput: "blang: compiling",
 		},
@@ -388,12 +388,12 @@ func TestCLIPathFlags(t *testing.T) {
 		},
 		{
 			name:     "library_link",
-			args:     []string{"-l", "c", "-o", filepath.Join(tmpDir, "test_lib"), testFile},
+			args:     []string{"-L", "runtime", "-l", "c", "-o", filepath.Join(tmpDir, "test_lib"), testFile},
 			wantExit: 0,
 		},
 		{
 			name:     "multiple_library_dirs",
-			args:     []string{"-L", "/usr/lib", "-L", "/usr/local/lib", "-o", filepath.Join(tmpDir, "test_multi_libpath"), testFile},
+			args:     []string{"-L", "runtime", "-L", "/usr/lib", "-L", "/usr/local/lib", "-o", filepath.Join(tmpDir, "test_multi_libpath"), testFile},
 			wantExit: 0,
 		},
 	}
@@ -443,7 +443,7 @@ func TestCLIStandardFlag(t *testing.T) {
 	}{
 		{
 			name:     "default_standard",
-			args:     []string{"-o", filepath.Join(tmpDir, "test_default_std"), testFile},
+			args:     []string{"-L", "runtime", "-o", filepath.Join(tmpDir, "test_default_std"), testFile},
 			wantExit: 0,
 		},
 	}
@@ -494,13 +494,13 @@ func TestCLISaveTemps(t *testing.T) {
 	}{
 		{
 			name:           "without_save_temps",
-			args:           []string{"-o", filepath.Join(tmpDir, "test_no_save"), testFile},
+			args:           []string{"-L", "runtime", "-o", filepath.Join(tmpDir, "test_no_save"), testFile},
 			wantExit:       0,
 			expectTempFile: false,
 		},
 		{
 			name:           "with_save_temps",
-			args:           []string{"--save-temps", "-o", filepath.Join(tmpDir, "test_save"), testFile},
+			args:           []string{"-L", "runtime", "--save-temps", "-o", filepath.Join(tmpDir, "test_save"), testFile},
 			wantExit:       0,
 			expectTempFile: true,
 		},
@@ -560,7 +560,7 @@ func TestCLIExecutableGeneration(t *testing.T) {
 	outputFile := filepath.Join(tmpDir, "test_executable")
 
 	// Compile the executable
-	cmd := exec.Command("./blang", "-o", outputFile, testFile)
+	cmd := exec.Command("./blang", "-L", "runtime", "-o", outputFile, testFile)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Compilation failed: %v\nOutput: %s", err, string(output))
@@ -608,17 +608,17 @@ func TestCLICombinedFlags(t *testing.T) {
 	}{
 		{
 			name:     "verbose_optimized_debug",
-			args:     []string{"-v", "-O2", "-g", "-o", filepath.Join(tmpDir, "test_combined1"), testFile},
+			args:     []string{"-L", "runtime", "-v", "-O2", "-g", "-o", filepath.Join(tmpDir, "test_combined1"), testFile},
 			wantExit: 0,
 		},
 		{
 			name:     "verbose_optimized_debug_O1",
-			args:     []string{"-v", "-O1", "-g", "-o", filepath.Join(tmpDir, "test_combined2"), testFile},
+			args:     []string{"-L", "runtime", "-v", "-O1", "-g", "-o", filepath.Join(tmpDir, "test_combined2"), testFile},
 			wantExit: 0,
 		},
 		{
 			name:     "all_flags",
-			args:     []string{"-v", "-O3", "-g", "--save-temps", "-o", filepath.Join(tmpDir, "test_combined3"), testFile},
+			args:     []string{"-L", "runtime", "-v", "-O3", "-g", "--save-temps", "-o", filepath.Join(tmpDir, "test_combined3"), testFile},
 			wantExit: 0,
 		},
 	}

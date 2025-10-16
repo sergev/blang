@@ -42,7 +42,7 @@ func NewCompileOptions(arg0 string, inputFiles []string) *CompileOptions {
 		InputFiles: inputFiles,
 		WordSize:   8, // x86_64 word size
 		OutputType: OutputExecutable,
-		Optimize:   0, // no optimization by default
+		Optimize:   1, // optimization level -O1 by default
 	}
 }
 
@@ -387,10 +387,12 @@ func compileToExecutable(args *CompileOptions) error {
 		cmdArgs = append(cmdArgs, "-g")
 	}
 	cmdArgs = append(cmdArgs, clangInputs...)
-	cmdArgs = append(cmdArgs, "-Lruntime", "-lb")
+	// Add library search directories before libraries for correct resolution order
 	for _, libDir := range args.LibraryDirs {
 		cmdArgs = append(cmdArgs, "-L"+libDir)
 	}
+	// Always link the B runtime library
+	cmdArgs = append(cmdArgs, "-lb")
 	for _, lib := range args.Libraries {
 		cmdArgs = append(cmdArgs, "-l"+lib)
 	}

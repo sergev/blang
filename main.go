@@ -147,8 +147,25 @@ func main() {
 	args.DebugInfo = debugInfo
 	args.Verbose = verbose
 
-	// Set library directories
-	args.LibraryDirs = libraryDirs
+	// Helper: append path if it exists and is a directory
+	addIfDir := func(dst *[]string, p string) {
+		if fi, err := os.Stat(p); err == nil && fi.IsDir() {
+			*dst = append(*dst, p)
+		}
+	}
+
+	// Build default library search paths (only those that exist)
+	var defaults []string
+	if home := os.Getenv("HOME"); home != "" {
+		addIfDir(&defaults, filepath.Join(home, ".local/lib"))
+	}
+	addIfDir(&defaults, "/opt/homebrew/lib")
+	addIfDir(&defaults, "/opt/local/lib")
+	addIfDir(&defaults, "/usr/local/lib")
+	addIfDir(&defaults, "/usr/lib")
+
+	// Set library directories: defaults first, then user-specified
+	args.LibraryDirs = append(defaults, libraryDirs...)
 
 	// Set libraries
 	args.Libraries = libraries
