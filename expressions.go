@@ -563,12 +563,21 @@ func parseUnary(l *Lexer, c *Compiler) (value.Value, bool, error) {
 			return nil, false, err
 		}
 		if isLvalue {
-			val = c.builder.NewLoad(c.WordType(), val)
+			// Load preserving pointer types when available
+			if ptrType, ok := val.Type().(*types.PointerType); ok {
+				val = c.builder.NewLoad(ptrType.ElemType, val)
+			} else {
+				val = c.builder.NewLoad(c.WordType(), val)
+			}
 		}
-		// val now contains a pointer (i64), treat as lvalue
-		// Cast to pointer type
-		ptr := c.builder.NewIntToPtr(val, c.WordPtrType())
-		return ptr, true, nil
+		// Ensure pointer value for lvalue result
+		switch val.Type().(type) {
+		case *types.PointerType:
+			return val, true, nil
+		default:
+			ptr := c.builder.NewIntToPtr(val, c.WordPtrType())
+			return ptr, true, nil
+		}
 
 	case '&':
 		// Address-of
@@ -614,13 +623,31 @@ func parsePostfix(l *Lexer, c *Compiler) (value.Value, bool, error) {
 			// Array indexing
 			// In B, array[i] means: (pointer + i * word_size)
 			if isLvalue {
-				val = c.builder.NewLoad(c.WordType(), val)
+				// Load using the element type of the lvalue pointer when available
+				if ptrType, ok := val.Type().(*types.PointerType); ok {
+					val = c.builder.NewLoad(ptrType.ElemType, val)
+				} else {
+					val = c.builder.NewLoad(c.WordType(), val)
+				}
 				isLvalue = false
 			}
 
-			// val is an i64 containing a pointer value
-			// Convert to actual pointer type
-			ptr := c.builder.NewIntToPtr(val, c.WordPtrType())
+			// Ensure pointer value: accept either i64 (ptr-as-int) or i64*
+			var ptr value.Value
+			switch t := val.Type().(type) {
+			case *types.IntType:
+				if !t.Equal(c.WordType()) {
+					return nil, false, fmt.Errorf("unexpected integer width for pointer")
+				}
+				ptr = c.builder.NewIntToPtr(val, c.WordPtrType())
+			case *types.PointerType:
+				if !t.ElemType.Equal(c.WordType()) {
+					return nil, false, fmt.Errorf("unexpected pointer element type for array indexing")
+				}
+				ptr = val
+			default:
+				return nil, false, fmt.Errorf("unexpected value type for array indexing")
+			}
 
 			// Parse index
 			index, err := parseExpressionWithLevel(l, c, 15)

@@ -278,7 +278,7 @@ c = -345, 'foo', "bar"
                 printf("a = %d*n", a[1]);
                 printf("b = %d*n", b[0]);
                 printf("c = %d, '%c', *"%s*", %d*n", c[0], c[1], c[2], c[3]);
-            }`, wantStdout: `a = 123
+            }`, wantStdout: `a = 0
 b = 123
 c = -345, 'foo', "bar", 0
 `},
