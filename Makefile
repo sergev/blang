@@ -4,7 +4,7 @@
 PROG    = blang
 DESTDIR	= $(HOME)/.local
 
-.PHONY: all install uninstall clean test cover bench
+.PHONY: all install uninstall clean test cover bench gotestsum
 
 all:
 	go build
@@ -27,11 +27,14 @@ clean:
 # For testing, please install gotestsum:
 #	go install gotest.tools/gotestsum@latest
 #
-test:
+test: gotestsum
 	gotestsum --format dots
 
-cover:
+cover: gotestsum
 	gotestsum -- -cover .
+
+gotestsum:
+	@command -v gotestsum >/dev/null || go install gotest.tools/gotestsum@latest
 
 #
 # Run benchmark
