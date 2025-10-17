@@ -4,7 +4,7 @@
 // The following function will print an unsigned number, n,
 // to the base 8.
 //
-void b_printo(word_t n)
+void b_printo(word_t n, ...)
 {
     word_t a;
 

@@ -5,7 +5,7 @@
 // This routine uses the fact that in the ANSCII character set,
 // the digits O to 9 have sequential code values.
 //
-void b_printd(word_t n)
+void b_printd(word_t n, ...)
 {
     word_t a;
 
