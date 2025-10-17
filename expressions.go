@@ -96,6 +96,59 @@ func parseExpressionWithLevel(l *Lexer, c *Compiler, level int) (value.Value, er
 			return phi, nil
 		}
 
+		// Equality (level 7)
+		// Handle '==' here so it is treated as a binary operator with the same
+		// precedence as '!='. This must be evaluated before the assignment block
+		// so that '==' is not misinterpreted as an assignment.
+		if level >= 7 && ch == '=' && !handled {
+			ch2, err2 := l.ReadChar()
+			if err2 == nil && ch2 == '=' {
+				// Could be '===' or '=='
+				ch3, err3 := l.ReadChar()
+				if err3 == nil {
+					if ch3 == '=' {
+						// It's '===', push back and let assignment handler deal with it
+						l.UnreadChar(ch3)
+						l.UnreadChar(ch2)
+					} else {
+						// It's '=='
+						l.UnreadChar(ch3)
+						if isLvalue {
+							left = c.builder.NewLoad(c.WordType(), left)
+							isLvalue = false
+						}
+						right, err := parseExpressionWithLevel(l, c, 6)
+						if err != nil {
+							return nil, err
+						}
+						cmp := c.builder.NewICmp(enum.IPredEQ, left, right)
+						left = c.builder.NewZExt(cmp, c.WordType())
+						handled = true
+						continue
+					}
+				} else {
+					// Treat as '==' with missing third char read
+					if isLvalue {
+						left = c.builder.NewLoad(c.WordType(), left)
+						isLvalue = false
+					}
+					right, err := parseExpressionWithLevel(l, c, 6)
+					if err != nil {
+						return nil, err
+					}
+					cmp := c.builder.NewICmp(enum.IPredEQ, left, right)
+					left = c.builder.NewZExt(cmp, c.WordType())
+					handled = true
+					continue
+				}
+			} else {
+				// Not '==', push back if needed and let other handlers deal with it
+				if err2 == nil {
+					l.UnreadChar(ch2)
+				}
+			}
+		}
+
 		// Assignment operators (level 14, right associative)
 		if level >= 14 && ch == '=' && !handled {
 			ch2, err2 := l.ReadChar()
@@ -120,29 +173,11 @@ func parseExpressionWithLevel(l *Lexer, c *Compiler, level int) (value.Value, er
 					c.builder.NewStore(newVal, left)
 					return newVal, nil
 				}
-
-				// Not ===, check if it's == (equality comparison)
+				// Not '===', push back and let other handlers (e.g., '==') deal with it
 				if err3 == nil {
 					l.UnreadChar(ch3)
 				}
-				// == equality comparison
-				if isLvalue {
-					left = c.builder.NewLoad(c.WordType(), left)
-					isLvalue = false
-				}
-				if level >= 7 {
-					right, err := parseExpressionWithLevel(l, c, 6)
-					if err != nil {
-						return nil, err
-					}
-					cmp := c.builder.NewICmp(enum.IPredEQ, left, right)
-					left = c.builder.NewZExt(cmp, c.WordType())
-					handled = true
-					continue
-				}
 				l.UnreadChar(ch2)
-				l.UnreadChar(ch)
-				break
 			}
 
 			// Assignment (simple or compound)

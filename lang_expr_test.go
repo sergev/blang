@@ -759,3 +759,22 @@ func TestStrings(t *testing.T) {
 		})
 	}
 }
+
+// TestEqualityInsideBitwiseOr verifies that equality comparisons work correctly
+// when used inside bitwise OR expressions. This specifically guards against
+// precedence/association bugs where '==' must bind tighter than '|'.
+func TestEqualityInsideBitwiseOr(t *testing.T) {
+	ensureLibbOrSkip(t)
+
+	code := `main() {
+                printf("%d*n", (75 == 75 | 0 == 1));
+                printf("%d*n", (0 == 1 | 1 == 1));
+                printf("%d*n", (0 == 1 | 0 == 1));
+            }`
+
+	gotStdout := compileLinkRunFromCode(t, "eq_or", code)
+	wantStdout := "1\n1\n0\n"
+	if gotStdout != wantStdout {
+		t.Errorf("Stdout mismatch.\nGot:\n%s\nWant:\n%s", gotStdout, wantStdout)
+	}
+}
