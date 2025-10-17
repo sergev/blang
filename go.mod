@@ -3,9 +3,9 @@ module sergev.org/blang
 go 1.25.1
 
 require (
+	github.com/atombender/go-diff v0.0.0-20201106145027-97f7540bc01a
 	github.com/fatih/color v1.18.0
 	github.com/llir/llvm v0.3.6
-	github.com/sergi/go-diff v1.3.1
 	github.com/spf13/pflag v1.0.10
 )
 

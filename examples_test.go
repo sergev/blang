@@ -8,8 +8,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 // TestCompileAndRun tests the full pipeline: compile, link, and execute
@@ -134,125 +132,7 @@ func TestPDP7CompilerB(t *testing.T) {
 	}
 
 	if !bytes.Equal(got, []byte(wantPDP7)) {
-		diffText := buildLineDiff(string(wantPDP7), string(got), 2, 100)
+		diffText := buildLineDiff(string(wantPDP7), string(got))
 		t.Errorf("output mismatch (-want +got):\n%s", diffText)
 	}
-}
-
-// buildLineDiff returns a unified-style diff of want vs got with the given
-// number of context lines and a maximum number of printed lines.
-func buildLineDiff(want, got string, contextLines, maxLines int) string {
-	dmp := diffmatchpatch.New()
-
-	// Normalize line endings to avoid spurious diffs across platforms.
-	want = strings.ReplaceAll(want, "\r\n", "\n")
-	got = strings.ReplaceAll(got, "\r\n", "\n")
-
-	// Produce a line-based diff using diff-match-patch utilities.
-	aChars, bChars, lineArray := dmp.DiffLinesToChars(want, got)
-	diffs := dmp.DiffMain(aChars, bChars, false)
-	dmp.DiffCleanupSemantic(diffs)
-	diffs = dmp.DiffCharsToLines(diffs, lineArray)
-
-	// Expand to per-line operations.
-	type lineOp struct {
-		op   diffmatchpatch.Operation
-		text string
-	}
-	var ops []lineOp
-	for _, d := range diffs {
-		parts := strings.SplitAfter(d.Text, "\n")
-		for _, p := range parts {
-			if p == "" {
-				continue
-			}
-			ops = append(ops, lineOp{op: d.Type, text: p})
-		}
-	}
-
-	var buf strings.Builder
-	printed := 0
-	appendLine := func(prefix byte, s string) bool {
-		if printed >= maxLines {
-			return false
-		}
-		buf.WriteByte(prefix)
-		buf.WriteString(s)
-		printed++
-		return true
-	}
-
-	n := len(ops)
-	i := 0
-	truncated := false
-	for i < n {
-		for i < n && ops[i].op == diffmatchpatch.DiffEqual {
-			i++
-		}
-		if i >= n {
-			break
-		}
-		// Start of a hunk at i; include up to contextLines equal lines before.
-		start := i
-		back := 0
-		j := i - 1
-		for j >= 0 && back < contextLines && ops[j].op == diffmatchpatch.DiffEqual {
-			start = j
-			back++
-			j--
-		}
-
-		// Determine end of hunk, merging nearby changes if separated by <= contextLines equals.
-		end := i
-		eqAfter := 0
-		k := i
-		for k < n {
-			if ops[k].op == diffmatchpatch.DiffEqual {
-				eqAfter++
-				if eqAfter > contextLines {
-					break
-				}
-			} else {
-				end = k
-				eqAfter = 0
-			}
-			k++
-		}
-		// Include trailing context equals up to contextLines.
-		u := end + 1
-		ctx := 0
-		for u < n && ctx < contextLines && ops[u].op == diffmatchpatch.DiffEqual {
-			end = u
-			ctx++
-			u++
-		}
-
-		// Emit lines in [start, end].
-		for idx := start; idx <= end; idx++ {
-			var prefix byte
-			switch ops[idx].op {
-			case diffmatchpatch.DiffEqual:
-				prefix = ' '
-			case diffmatchpatch.DiffDelete:
-				prefix = '-'
-			case diffmatchpatch.DiffInsert:
-				prefix = '+'
-			default:
-				prefix = ' '
-			}
-			if !appendLine(prefix, ops[idx].text) {
-				truncated = true
-				break
-			}
-		}
-		if truncated {
-			break
-		}
-		i = end + 1
-	}
-
-	if truncated {
-		buf.WriteString("... (diff truncated)\n")
-	}
-	return buf.String()
 }

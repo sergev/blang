@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/atombender/go-diff"
 )
 
 // Prevent "unused" linter warnings in tools that don't analyze test files together.
@@ -24,6 +26,7 @@ var _ = []interface{}{
 	runWithTimeout,
 	hasSubstring,
 	contains,
+	buildLineDiff,
 }
 
 // ensureLibbOrSkip skips the test if runtime object file is missing.
@@ -249,4 +252,27 @@ func lexCommentRest(t testing.TB, input string) string {
 		rest = append(rest, c)
 	}
 	return string(rest)
+}
+
+// buildLineDiff returns a unified-style diff of want vs got with the given
+// number of context lines and a maximum number of printed lines.
+func buildLineDiff(want, got string) string {
+	// Compute the diff
+	hunks := diff.Diff(strings.Split(want, "\n"), strings.Split(got, "\n"))
+
+	// Optionally prune to remove all unchanged lines (2 context)
+	hunks = diff.PruneContext(hunks, 2)
+
+	var buf strings.Builder
+	for _, hunk := range hunks {
+		switch hunk.Operation {
+		case diff.OpUnchanged:
+			buf.WriteString(" " + hunk.Line + "\n")
+		case diff.OpDelete:
+			buf.WriteString("-" + hunk.Line + "\n")
+		case diff.OpInsert:
+			buf.WriteString("+" + hunk.Line + "\n")
+		}
+	}
+	return buf.String()
 }

@@ -6,3 +6,4 @@ blang
 *.ll
 hello
 oldtests
+.cursor
