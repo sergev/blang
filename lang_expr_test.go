@@ -209,6 +209,41 @@ func TestPrecedence(t *testing.T) {
             }`,
 			wantStdout: "98765 >> 3 >= 12345 -> 1\n",
 		},
+		{
+			name: "and_eq",
+			code: `main() {
+                printf("1 & 5 == 5 -> %d*n", 1 & 5 == 5);
+            }`,
+			wantStdout: "1 & 5 == 5 -> 1\n",
+		},
+		{
+			name: "and_ne",
+			code: `main() {
+                printf("0 & 1 != 1 -> %d*n", 0 & 1 != 1);
+            }`,
+			wantStdout: "0 & 1 != 1 -> 0\n",
+		},
+		{
+			name: "eq_or",
+			code: `main() {
+                printf("0 == 0 | 1 -> %d*n", 0 == 0 | 1);
+            }`,
+			wantStdout: "0 == 0 | 1 -> 1\n",
+		},
+		{
+			name: "ne_or",
+			code: `main() {
+                printf("1 != 1 | 2 -> %d*n", 1 != 1 | 2);
+            }`,
+			wantStdout: "1 != 1 | 2 -> 2\n",
+		},
+		{
+			name: "and_or",
+			code: `main() {
+                printf("1 & 2 | 3 -> %d*n", 1 & 2 | 3);
+            }`,
+			wantStdout: "1 & 2 | 3 -> 3\n",
+		},
 	}
 
 	for _, tt := range tests {
