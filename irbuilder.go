@@ -158,16 +158,16 @@ func (c *Compiler) DeclareGlobalArray(name string, size int64, init []constant.C
 		}
 	}
 
-    dataInit := constant.NewArray(dataArrayType, dataVals...)
-    dataGlobal := c.module.NewGlobalDef(name+".data", dataInit)
+	dataInit := constant.NewArray(dataArrayType, dataVals...)
+	dataGlobal := c.module.NewGlobalDef(name+".data", dataInit)
 
-    // Compute pointer to first element
-    zeroI64 := constant.NewInt(types.I64, 0)
-    firstElemPtr := constant.NewGetElementPtr(dataArrayType, dataGlobal, zeroI64, zeroI64)
+	// Compute pointer to first element
+	zeroI64 := constant.NewInt(types.I64, 0)
+	firstElemPtr := constant.NewGetElementPtr(dataArrayType, dataGlobal, zeroI64, zeroI64)
 
-    // The array variable itself is a pointer to i64 holding the address
-    // of the first element (avoid storing raw ptr-as-int for relocatability).
-    global := c.module.NewGlobalDef(name, firstElemPtr)
+	// The array variable itself is a pointer to i64 holding the address
+	// of the first element (avoid storing raw ptr-as-int for relocatability).
+	global := c.module.NewGlobalDef(name, firstElemPtr)
 	c.globals[name] = global
 	return global
 }
