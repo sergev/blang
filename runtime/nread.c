@@ -5,7 +5,7 @@
 // file designated by file. The actual number of bytes read
 // are returned. A negative number returned indicates an error.
 //
-word_t nread(word_t file, word_t buffer, word_t count)
+word_t b_nread(word_t file, word_t buffer, word_t count)
 {
     return (word_t)syscall(SYS_read, file, buffer, count);
 }

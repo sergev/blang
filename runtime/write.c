@@ -3,7 +3,7 @@
 //
 // One or more characters are written on the standard output file.
 //
-void write(word_t ch)
+void b_write(word_t ch)
 {
     char buf[sizeof(word_t)];
     char *p = buf;
@@ -17,5 +17,5 @@ void write(word_t ch)
             *p++ = byte;
         }
     }
-    syscall(SYS_write, fout + 1, (word_t)buf, p - buf);
+    syscall(SYS_write, b_fout + 1, (word_t)buf, p - buf);
 }

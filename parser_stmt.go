@@ -294,7 +294,7 @@ func parseExtrn(l *Lexer, c *Compiler) error {
 		// extrn declares a reference in the current declaration context only
 		// Add a zero-initialized global to the module if not already present
 		if c.findGlobalByName(name) == nil && c.findFuncByName(name) == nil {
-			c.module.NewGlobalDef(name, constant.NewInt(c.WordType(), 0))
+			c.module.NewGlobalDef(c.globalName(name), constant.NewInt(c.WordType(), 0))
 		}
 
 		if err := l.Whitespace(); err != nil {

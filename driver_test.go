@@ -126,7 +126,7 @@ main() {
 main() {
     return(factorial(5));
 }`,
-			wantFunc: "@factorial",
+			wantFunc: "@b.factorial",
 		},
 		{
 			name: "strings",
@@ -169,7 +169,7 @@ main() {
 
     return(total);  /* Should be 10+20+30+40+50 = 150 */
 }`,
-			wantFunc: "@sum_array",
+			wantFunc: "@b.sum_array",
 		},
 		{
 			name: "pointers",
@@ -206,7 +206,7 @@ main() {
 main() {
     return(classify(2));
 }`,
-			wantFunc: "@classify",
+			wantFunc: "@b.classify",
 		},
 		{
 			name: "goto",
@@ -399,7 +399,7 @@ func TestCompileMultipleFiles(t *testing.T) {
 	if len(data1) == 0 {
 		t.Fatalf("file1.ll is empty")
 	}
-	if !hasSubstring(string(data1), "@add") {
+	if !hasSubstring(string(data1), "@b.add") {
 		t.Errorf("file1.ll doesn't contain add function")
 	}
 

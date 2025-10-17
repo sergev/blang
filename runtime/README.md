@@ -153,10 +153,6 @@ c = char(s, 0);    /* c = 'H' (72) */
 c = char(s, 4);    /* c = 'o' (111) */
 ```
 
-**Note:**
-- Function is named `_char` in C (aliased to `char` in assembly)
-- Avoids conflict with C's `char` keyword
-
 **Implementation:** Casts B word pointer to `char*` and indexes.
 
 ---
@@ -301,7 +297,6 @@ clang program.ll libb.o -o program
 
 ### macOS
 - System call numbers need `0x2000000` offset
-- Uses `_char` symbol name with assembly alias to `char`
 - Requires `-ffreestanding` compilation flag
 
 ### Linux

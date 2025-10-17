@@ -25,6 +25,16 @@ type Compiler struct {
 	labels    map[string]*ir.Block   // named labels for goto
 }
 
+// globalName returns the fully qualified global symbol name, applying the
+// configured prefix except for special cases like the program entry point
+// ("main") and private names that already start with a dot.
+func (c *Compiler) globalName(name string) string {
+	if name == "main" {
+		return name
+	}
+	return c.args.GlobalPrefix + name
+}
+
 // NewCompiler creates a new compiler structure
 func NewCompiler(args *CompileOptions) *Compiler {
 	return &Compiler{
@@ -40,8 +50,9 @@ func NewCompiler(args *CompileOptions) *Compiler {
 
 // findFuncByName returns the function with the given name from the module, or nil
 func (c *Compiler) findFuncByName(name string) *ir.Func {
+	full := c.globalName(name)
 	for _, f := range c.module.Funcs {
-		if f.Name() == name {
+		if f.Name() == full {
 			return f
 		}
 	}
@@ -50,8 +61,9 @@ func (c *Compiler) findFuncByName(name string) *ir.Func {
 
 // removeFuncByName removes the function with the given name from the module if present
 func (c *Compiler) removeFuncByName(name string) bool {
+	full := c.globalName(name)
 	for i, f := range c.module.Funcs {
-		if f.Name() == name {
+		if f.Name() == full {
 			c.module.Funcs = append(c.module.Funcs[:i], c.module.Funcs[i+1:]...)
 			return true
 		}
@@ -61,8 +73,9 @@ func (c *Compiler) removeFuncByName(name string) bool {
 
 // findGlobalByName returns the global with the given name from the module, or nil
 func (c *Compiler) findGlobalByName(name string) *ir.Global {
+	full := c.globalName(name)
 	for _, g := range c.module.Globals {
-		if g.Name() == name {
+		if g.Name() == full {
 			return g
 		}
 	}
@@ -71,8 +84,9 @@ func (c *Compiler) findGlobalByName(name string) *ir.Global {
 
 // removeGlobalByName removes the global with the given name from the module if present
 func (c *Compiler) removeGlobalByName(name string) bool {
+	full := c.globalName(name)
 	for i, g := range c.module.Globals {
-		if g.Name() == name {
+		if g.Name() == full {
 			c.module.Globals = append(c.module.Globals[:i], c.module.Globals[i+1:]...)
 			return true
 		}
@@ -100,9 +114,9 @@ func (c *Compiler) DeclareGlobal(name string, init constant.Constant) *ir.Global
 	var global *ir.Global
 	if init == nil {
 		// If no initializer, create zero-initialized global
-		global = c.module.NewGlobalDef(name, constant.NewInt(c.WordType(), 0))
+		global = c.module.NewGlobalDef(c.globalName(name), constant.NewInt(c.WordType(), 0))
 	} else {
-		global = c.module.NewGlobalDef(name, init)
+		global = c.module.NewGlobalDef(c.globalName(name), init)
 	}
 	c.globals[name] = global
 	return global
@@ -119,7 +133,7 @@ func (c *Compiler) DeclareGlobalWithMultipleValues(name string, values []constan
 	arrayInit := constant.NewArray(arrayType, values...)
 
 	// Create the global - it's a scalar name but backed by array storage
-	global := c.module.NewGlobalDef(name, arrayInit)
+	global := c.module.NewGlobalDef(c.globalName(name), arrayInit)
 	c.globals[name] = global
 	return global
 }
@@ -143,7 +157,7 @@ func (c *Compiler) DeclareGlobalArray(name string, size int64, init []constant.C
 	if len(init) == 0 && size > 10 {
 		// Create the data array with zeroinitializer (compact!)
 		dataArrayType := types.NewArray(uint64(size), elemType)
-		dataGlobal := c.module.NewGlobalDef(name+".data", constant.NewZeroInitializer(dataArrayType))
+		dataGlobal := c.module.NewGlobalDef(c.globalName(name)+".data", constant.NewZeroInitializer(dataArrayType))
 
 		// Create wrapper with just the pointer to data
 		wrapperType := types.NewArray(1, elemType)
@@ -152,7 +166,7 @@ func (c *Compiler) DeclareGlobalArray(name string, size int64, init []constant.C
 			constant.NewInt(types.I64, 0))
 		ptrAsInt := constant.NewPtrToInt(dataPtr, elemType)
 
-		global := c.module.NewGlobalDef(name, constant.NewArray(wrapperType, ptrAsInt))
+		global := c.module.NewGlobalDef(c.globalName(name), constant.NewArray(wrapperType, ptrAsInt))
 		c.globals[name] = global
 		return global
 	}
@@ -175,7 +189,7 @@ func (c *Compiler) DeclareGlobalArray(name string, size int64, init []constant.C
 		}
 	}
 
-	global := c.module.NewGlobalDef(name, constant.NewArray(arrayType, initVals...))
+	global := c.module.NewGlobalDef(c.globalName(name), constant.NewArray(arrayType, initVals...))
 
 	// Now fix the first element to point to the second element
 	dataPtr := constant.NewGetElementPtr(arrayType, global,
@@ -202,7 +216,7 @@ func (c *Compiler) DeclareFunction(name string, paramNames []string) *ir.Func {
 		params[i] = ir.NewParam(pname, c.WordType())
 	}
 
-	fn := c.module.NewFunc(name, c.WordType(), params...)
+	fn := c.module.NewFunc(c.globalName(name), c.WordType(), params...)
 	c.functions[name] = fn
 	return fn
 }
@@ -231,7 +245,7 @@ func (c *Compiler) GetOrDeclareFunction(name string) *ir.Func {
 	c.removeFuncByName(name)
 
 	// Auto-declare as external variadic function in current context
-	fn := c.module.NewFunc(name, c.WordType())
+	fn := c.module.NewFunc(c.globalName(name), c.WordType())
 	fn.Sig.Variadic = true
 	c.functions[name] = fn
 	return fn

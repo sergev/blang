@@ -7,54 +7,54 @@
 // conversion of type x’ of the next argument, other character
 // sequences are printed verbatim.
 //
-void printf(word_t fmt, ...)
+void b_printf(word_t fmt, ...)
 {
     word_t x, c, i = 0, j;
 
     va_list ap;
     va_start(ap, fmt);
 loop:
-    while ((c = _char(fmt, i++)) != '%') {
+    while ((c = b_char(fmt, i++)) != '%') {
         if (c == '\0')
             goto end;
-        write(c);
+        b_write(c);
     }
-    switch (c = _char(fmt, i++)) {
+    switch (c = b_char(fmt, i++)) {
     case 'd': // decimal
         x = va_arg(ap, word_t);
         if (x < 0) {
             x = -x;
-            write('-');
+            b_write('-');
         }
-        printd(x);
+        b_printd(x);
         goto loop;
 
     case 'o': // octal
         x = va_arg(ap, word_t);
         if (x < 0) {
             x = -x;
-            write('-');
+            b_write('-');
         }
-        printo(x);
+        b_printo(x);
         goto loop;
 
     case 'c':
         x = va_arg(ap, word_t);
-        write(x);
+        b_write(x);
         goto loop;
 
     case 's':
         x = va_arg(ap, word_t);
         j = 0;
-        while ((c = _char(x, j++)) != '\0')
-            write(c);
+        while ((c = b_char(x, j++)) != '\0')
+            b_write(c);
         goto loop;
     case '%':
-        write('%');
+        b_write('%');
         goto loop;
     }
     // Unknown format.
-    write('%');
+    b_write('%');
     i--;
     goto loop;
 

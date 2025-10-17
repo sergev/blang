@@ -1,6 +1,6 @@
 #include "runtime.h"
 
-void flush()
+void b_flush()
 {
     // Empty.
 }

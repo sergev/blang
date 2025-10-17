@@ -6,35 +6,51 @@
 #include <sys/syscall.h>
 
 //
+// Set external name of the symbol
+//
+#ifdef linux
+#define ALIAS(name) __asm__("b."name)
+#endif
+#ifdef __APPLE__
+#define ALIAS(name) __asm__("_b."name)
+#endif
+
+//
 // Type representing B's word-sized value.
 //
 typedef intptr_t word_t;
 
 // Select output stream: 0-stdout, 1-stderr.
-extern word_t fout;
+extern word_t b_fout
+	ALIAS("fout");
 
 //
 // Function declarations.
 //
-word_t main(void);
-void exit(void);
-void lchar(word_t string, word_t i, word_t chr);
-word_t read(void);
-word_t nread(word_t file, word_t buffer, word_t count);
-void writeb(word_t c);
-void write(word_t ch);
-word_t nwrite(word_t file, word_t buffer, word_t count);
-void printd(word_t n);
-void printo(word_t n);
-void printf(word_t fmt, ...);
-void flush(void);
-
-#ifdef linux
-word_t _char(word_t string, word_t i) __asm__("char"); // alias name
-#endif
-#ifdef __APPLE__
-word_t _char(word_t string, word_t i) __asm__("_char"); // alias name
-#endif
+void b_exit(void)
+	ALIAS("exit");
+word_t b_char(word_t string, word_t i)
+	ALIAS("char");
+void b_lchar(word_t string, word_t i, word_t chr)
+	ALIAS("lchar");
+word_t b_read(void)
+	ALIAS("read");
+word_t b_nread(word_t file, word_t buffer, word_t count)
+	ALIAS("nread");
+void b_writeb(word_t c)
+	ALIAS("writeb");
+void b_write(word_t ch)
+	ALIAS("write");
+word_t b_nwrite(word_t file, word_t buffer, word_t count)
+	ALIAS("nwrite");
+void b_printd(word_t n)
+	ALIAS("printd");
+void b_printo(word_t n)
+	ALIAS("printo");
+void b_printf(word_t fmt, ...)
+	ALIAS("printf");
+void b_flush(void)
+	ALIAS("flush");
 
 //
 // Syscall wrapper implementation

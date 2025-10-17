@@ -4,7 +4,7 @@
 // The next character form the standard input file is returned.
 // The character ‘*e’ is returned for an end-of-file.
 //
-word_t read()
+word_t b_read()
 {
     char c = 0;
 
