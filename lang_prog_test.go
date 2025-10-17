@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"os/exec"
 	"testing"
 )
 
@@ -409,4 +411,57 @@ unknown format: %q
 			}
 		})
 	}
+}
+
+// TestRuntimeRead tests the runtime read() routine, including EOF behavior (octal 4).
+func TestRuntimeRead(t *testing.T) {
+	ensureLibbOrSkip(t)
+
+	const bcode = `
+main() {
+    auto c;
+    while ((c = read()) != 4) {
+        printf("%d ", c);
+    }
+    printf("EOF=%d*n", c);
+}
+`
+
+	runReadProg := func(in []byte) string {
+		dir, bFile, llFile, exeFile := createTempBFile(t, "read_prog", bcode)
+		_ = dir
+		compileToLL(t, bFile, llFile)
+		linkWithClang(t, llFile, exeFile)
+		cmd := exec.Command(exeFile)
+		cmd.Stdin = bytes.NewReader(in)
+		out, err := cmd.Output()
+		if err != nil {
+			t.Fatalf("run: %v", err)
+		}
+		return string(out)
+	}
+
+	t.Run("ASCIIAndEOF", func(t *testing.T) {
+		got := runReadProg([]byte("ABC"))
+		want := "65 66 67 EOF=4\n"
+		if got != want {
+			t.Fatalf("unexpected output: got %q, want %q", got, want)
+		}
+	})
+
+	t.Run("ImmediateEOF", func(t *testing.T) {
+		got := runReadProg(nil)
+		want := "EOF=4\n"
+		if got != want {
+			t.Fatalf("unexpected output: got %q, want %q", got, want)
+		}
+	})
+
+	t.Run("EmbeddedEOFChar", func(t *testing.T) {
+		got := runReadProg([]byte{'A', 0x04, 'B'})
+		want := "65 EOF=4\n"
+		if got != want {
+			t.Fatalf("unexpected output: got %q, want %q", got, want)
+		}
+	})
 }

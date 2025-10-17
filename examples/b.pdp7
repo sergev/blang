@@ -1,0 +1,3035 @@
+.main:.+1
+s 2
+l0=.
+x .eof
+u 4
+f 1f+1
+x .ns
+x .symtab
+c 51
+n 4
+u 1
+b 1
+s 2
+x .extdef
+n 1
+s 2
+x .blkend
+n 1
+s 2
+x 1f+0
+n 6
+l1=.
+n 7
+1:l0
+l1
+.lookup:.+1
+s 5
+a 4
+x .symtab
+b 1
+s 5
+l0=.
+a 4
+x .ns
+b 7
+f 1f+1
+a 2
+a 4
+c 2
+n 4
+u 1
+b 1
+s 5
+a 3
+x .symbuf
+b 1
+s 5
+l2=.
+a 2
+u 3
+a 3
+u 3
+b 4
+f 1f+3
+a 2
+u 3
+u 4
+f 1f+4
+a 4
+n 7
+l4=.
+a 2
+a 2
+c 1
+n 4
+u 1
+b 1
+s 5
+a 3
+a 3
+c 1
+n 4
+u 1
+b 1
+s 5
+x 1f+2
+n 6
+l3=.
+l5=.
+a 2
+u 3
+f 1f+6
+a 2
+a 2
+c 1
+n 4
+u 1
+b 1
+s 5
+x 1f+5
+n 6
+l6=.
+a 4
+a 2
+c 1
+n 4
+u 1
+b 1
+s 5
+x 1f+0
+n 6
+l1=.
+a 3
+x .symbuf
+b 1
+s 5
+x .ns
+x .symtab
+c 290
+n 4
+u 1
+b 8
+f 1f+7
+x .error
+n 2
+n 5
+29542
+n 3
+s 5
+x .eof
+c 1
+b 1
+s 5
+a 4
+n 7
+l7=.
+x .ns
+u 3
+c 0
+b 1
+s 5
+x .ns
+c 1
+n 4
+c 0
+b 1
+s 5
+x .ns
+x .ns
+c 2
+n 4
+u 1
+b 1
+s 5
+l8=.
+x .ns
+u 3
+a 3
+u 3
+b 1
+f 1f+9
+x .ns
+x .ns
+c 1
+n 4
+u 1
+b 1
+s 5
+a 3
+a 3
+c 1
+n 4
+u 1
+b 1
+s 5
+x 1f+8
+n 6
+l9=.
+x .ns
+x .ns
+c 1
+n 4
+u 1
+b 1
+s 5
+a 4
+n 7
+n 7
+1:l0
+l1
+l2
+l3
+l4
+l5
+l6
+l7
+l8
+l9
+.symbol:.+1
+s 6
+x .peeksym
+c 0
+b 8
+f 1f+0
+a 3
+x .peeksym
+b 1
+s 6
+x .peeksym
+n 5
+-1
+b 1
+s 6
+a 3
+n 7
+l0=.
+x .peekc
+f 1f+1
+a 3
+x .peekc
+b 1
+s 6
+x .peekc
+c 0
+b 1
+s 6
+x 1f+2
+n 6
+l1=.
+x .eof
+f 1f+3
+c 0
+n 7
+l3=.
+a 3
+x .read
+n 1
+b 1
+s 6
+l2=.
+l4=.
+a 4
+x .ctab
+a 3
+n 4
+b 1
+s 6
+a 4
+c 0
+b 4
+f 1f+5
+x .eof
+c 1
+b 1
+s 6
+c 0
+n 7
+l5=.
+a 4
+c 126
+b 4
+f 1f+6
+a 3
+c 10
+b 4
+f 1f+7
+x .line
+x .line
+c 1
+b 12
+b 1
+s 6
+l7=.
+a 3
+x .read
+n 1
+b 1
+s 6
+x 1f+4
+n 6
+l6=.
+a 3
+c 61
+b 4
+f 1f+8
+x .subseq
+n 2
+c 61
+c 80
+c 60
+n 3
+n 7
+l8=.
+a 3
+c 60
+b 4
+f 1f+9
+x .subseq
+n 2
+c 61
+c 63
+c 62
+n 3
+n 7
+l9=.
+a 3
+c 62
+b 4
+f 1f+10
+x .subseq
+n 2
+c 61
+c 65
+c 64
+n 3
+n 7
+l10=.
+a 3
+c 33
+b 4
+f 1f+11
+x .subseq
+n 2
+c 61
+c 34
+c 61
+n 3
+n 7
+l11=.
+a 3
+c 36
+b 4
+f 1f+12
+x .subseq
+n 2
+c 40
+c 0
+c 1
+n 3
+f 1f+13
+c 2
+n 7
+l13=.
+x .subseq
+n 2
+c 41
+c 0
+c 1
+n 3
+f 1f+14
+c 3
+n 7
+l14=.
+l12=.
+a 3
+c 47
+b 4
+f 1f+15
+x .subseq
+n 2
+c 42
+c 1
+c 0
+n 3
+f 1f+16
+c 43
+n 7
+l16=.
+l17=.
+a 3
+x .read
+n 1
+b 1
+s 6
+l18=.
+a 3
+c 4
+b 4
+f 1f+19
+x .eof
+c 1
+b 1
+s 6
+x .error
+n 2
+n 5
+10799
+n 3
+s 6
+c 0
+n 7
+l19=.
+a 3
+c 10
+b 4
+f 1f+20
+x .line
+x .line
+c 1
+b 12
+b 1
+s 6
+l20=.
+a 3
+c 42
+b 5
+f 1f+21
+x 1f+17
+n 6
+l21=.
+a 3
+x .read
+n 1
+b 1
+s 6
+a 3
+c 47
+b 5
+f 1f+22
+x 1f+18
+n 6
+l22=.
+a 3
+x .read
+n 1
+b 1
+s 6
+x 1f+4
+n 6
+l15=.
+a 4
+c 124
+b 4
+f 1f+23
+x .cval
+c 0
+b 1
+s 6
+a 3
+c 48
+b 4
+f 1f+24
+a 2
+c 8
+b 1
+s 6
+x 1f+25
+n 6
+l24=.
+a 2
+c 10
+b 1
+s 6
+l25=.
+l26=.
+a 3
+c 48
+b 8
+a 3
+c 57
+b 6
+b 3
+f 1f+27
+x .cval
+x .cval
+a 2
+b 15
+a 3
+b 12
+c 48
+b 13
+b 1
+s 6
+a 3
+x .read
+n 1
+b 1
+s 6
+x 1f+26
+n 6
+l27=.
+x .peekc
+a 3
+b 1
+s 6
+c 21
+n 7
+l23=.
+a 3
+c 39
+b 4
+f 1f+28
+x .getcc
+n 1
+s 6
+c 21
+n 7
+l28=.
+a 4
+c 123
+b 4
+f 1f+29
+a 5
+x .symbuf
+b 1
+s 6
+l30=.
+a 4
+c 123
+b 4
+a 4
+c 124
+b 4
+b 2
+f 1f+31
+a 5
+x .symbuf
+c 9
+n 4
+u 1
+b 7
+f 1f+32
+a 5
+u 3
+a 3
+b 1
+s 6
+a 5
+a 5
+c 1
+n 4
+u 1
+b 1
+s 6
+l32=.
+a 4
+x .ctab
+a 3
+x .read
+n 1
+b 1
+n 4
+b 1
+s 6
+x 1f+30
+n 6
+l31=.
+a 5
+u 3
+c 0
+b 1
+s 6
+x .peekc
+a 3
+b 1
+s 6
+x .csym
+x .lookup
+n 1
+b 1
+s 6
+x .csym
+c 0
+n 4
+c 1
+b 4
+f 1f+33
+x .cval
+x .csym
+c 1
+n 4
+b 1
+s 6
+c 19
+n 7
+l33=.
+c 20
+n 7
+l29=.
+a 4
+c 127
+b 4
+f 1f+34
+x .error
+n 2
+n 5
+29561
+n 3
+s 6
+a 3
+x .read
+n 1
+b 1
+s 6
+x 1f+4
+n 6
+l34=.
+x .ctab
+a 3
+n 4
+n 7
+n 7
+1:l0
+l1
+l2
+l3
+l4
+l5
+l6
+l7
+l8
+l9
+l10
+l11
+l12
+l13
+l14
+l15
+l16
+l17
+l18
+l19
+l20
+l21
+l22
+l23
+l24
+l25
+l26
+l27
+l28
+l29
+l30
+l31
+l32
+l33
+l34
+.subseq:.+1
+s 5
+x .peekc
+u 4
+f 1f+0
+x .peekc
+x .read
+n 1
+b 1
+s 5
+l0=.
+x .peekc
+a 2
+b 5
+f 1f+1
+a 3
+n 7
+l1=.
+x .peekc
+c 0
+b 1
+s 5
+a 4
+n 7
+n 7
+1:l0
+l1
+.getcc:.+1
+s 3
+x .cval
+c 0
+b 1
+s 3
+a 2
+x .mapch
+n 2
+c 39
+n 3
+b 1
+c 0
+b 7
+f 1f+0
+n 7
+l0=.
+x .cval
+a 2
+b 1
+s 3
+a 2
+x .mapch
+n 2
+c 39
+n 3
+b 1
+c 0
+b 7
+f 1f+1
+n 7
+l1=.
+x .cval
+x .cval
+c 256
+b 15
+a 2
+b 12
+b 1
+s 3
+x .mapch
+n 2
+c 39
+n 3
+c 0
+b 8
+f 1f+2
+x .error
+n 2
+n 5
+25443
+n 3
+s 3
+l2=.
+n 7
+1:l0
+l1
+l2
+.getstr:.+1
+s 5
+a 2
+c 1
+b 1
+s 5
+l0=.
+a 3
+x .mapch
+n 2
+c 34
+n 3
+b 1
+c 0
+b 7
+f 1f+1
+x .number
+n 2
+c 2048
+n 3
+s 5
+x .write
+n 2
+c 10
+n 3
+s 5
+a 2
+n 7
+l1=.
+a 4
+x .mapch
+n 2
+c 34
+n 3
+b 1
+c 0
+b 7
+f 1f+2
+x .number
+n 2
+a 3
+c 512
+b 15
+c 4
+b 12
+n 3
+s 5
+x .write
+n 2
+c 10
+n 3
+s 5
+a 2
+n 7
+l2=.
+x .number
+n 2
+a 3
+c 512
+b 15
+a 4
+b 12
+n 3
+s 5
+x .write
+n 2
+c 10
+n 3
+s 5
+a 2
+a 2
+c 1
+b 12
+b 1
+s 5
+x 1f+0
+n 6
+n 7
+1:l0
+l1
+l2
+.mapch:.+1
+s 4
+a 3
+x .read
+n 1
+b 1
+a 2
+b 4
+f 1f+0
+n 5
+-1
+n 7
+l0=.
+a 3
+c 10
+b 4
+a 3
+c 0
+b 4
+b 2
+a 3
+c 4
+b 4
+b 2
+f 1f+1
+x .error
+n 2
+n 5
+25443
+n 3
+s 4
+x .peekc
+a 3
+b 1
+s 4
+n 5
+-1
+n 7
+l1=.
+a 3
+c 42
+b 4
+f 1f+2
+a 3
+x .read
+n 1
+b 1
+s 4
+a 3
+c 48
+b 4
+f 1f+3
+c 0
+n 7
+l3=.
+a 3
+c 101
+b 4
+f 1f+4
+c 4
+n 7
+l4=.
+a 3
+c 40
+b 4
+f 1f+5
+c 123
+n 7
+l5=.
+a 3
+c 41
+b 4
+f 1f+6
+c 125
+n 7
+l6=.
+a 3
+c 116
+b 4
+f 1f+7
+c 9
+n 7
+l7=.
+a 3
+c 114
+b 4
+f 1f+8
+c 13
+n 7
+l8=.
+a 3
+c 110
+b 4
+f 1f+9
+c 10
+n 7
+l9=.
+l2=.
+a 3
+n 7
+n 7
+1:l0
+l1
+l2
+l3
+l4
+l5
+l6
+l7
+l8
+l9
+.expr:.+1
+s 4
+a 3
+x .symbol
+n 1
+b 1
+s 4
+a 3
+c 21
+b 4
+f 1f+0
+l1=.
+x .cval
+c 8191
+b 3
+x .cval
+b 4
+f 1f+2
+x .gen
+n 2
+c 99
+x .cval
+n 3
+s 4
+x 1f+3
+n 6
+l2=.
+x .gen
+n 2
+c 110
+c 5
+n 3
+s 4
+x .number
+n 2
+x .cval
+n 3
+s 4
+x .write
+n 2
+c 10
+n 3
+s 4
+x 1f+3
+n 6
+l0=.
+a 3
+c 122
+b 4
+f 1f+4
+x .write
+n 2
+n 5
+30752
+n 3
+s 4
+x .write
+n 2
+n 5
+11819
+n 3
+s 4
+x .write
+n 2
+n 5
+12810
+n 3
+s 4
+x .write
+n 2
+n 5
+29728
+n 3
+s 4
+x .write
+n 2
+n 5
+12902
+n 3
+s 4
+x .write
+n 2
+c 10
+n 3
+s 4
+x .write
+n 2
+n 5
+11819
+n 3
+s 4
+x .write
+n 2
+n 5
+12554
+n 3
+s 4
+x .getstr
+n 1
+s 4
+x .write
+n 2
+n 5
+12858
+n 3
+s 4
+x .write
+n 2
+c 10
+n 3
+s 4
+x 1f+3
+n 6
+l4=.
+a 3
+c 20
+b 4
+f 1f+5
+x .csym
+u 3
+c 0
+b 4
+f 1f+6
+x .peeksym
+x .symbol
+n 1
+b 1
+c 6
+b 4
+f 1f+7
+x .csym
+u 3
+c 6
+b 1
+s 4
+x 1f+8
+n 6
+l7=.
+x .csym
+u 3
+c 2
+b 1
+s 4
+x .csym
+c 1
+n 4
+x .isn
+b 1
+s 4
+x .isn
+x .isn
+c 1
+b 12
+b 1
+s 4
+l8=.
+l6=.
+x .csym
+u 3
+c 5
+b 4
+f 1f+9
+x .gen
+n 2
+c 97
+x .csym
+c 1
+n 4
+n 3
+s 4
+x 1f+10
+n 6
+l9=.
+x .write
+n 2
+n 5
+30752
+n 3
+s 4
+x .csym
+u 3
+c 6
+b 4
+f 1f+11
+x .write
+n 2
+c 46
+n 3
+s 4
+x .name
+n 2
+x .csym
+c 2
+n 4
+u 1
+n 3
+s 4
+x 1f+12
+n 6
+l11=.
+x .write
+n 2
+n 5
+12646
+n 3
+s 4
+x .write
+n 2
+c 43
+n 3
+s 4
+x .number
+n 2
+x .csym
+c 1
+n 4
+n 3
+s 4
+l12=.
+x .write
+n 2
+c 10
+n 3
+s 4
+l10=.
+x 1f+3
+n 6
+l5=.
+a 3
+c 34
+b 4
+f 1f+13
+x .expr
+n 2
+c 1
+n 3
+s 4
+x .gen
+n 2
+c 117
+c 4
+n 3
+s 4
+x 1f+3
+n 6
+l13=.
+a 3
+c 41
+b 4
+f 1f+14
+x .peeksym
+x .symbol
+n 1
+b 1
+s 4
+x .peeksym
+c 21
+b 4
+f 1f+15
+x .peeksym
+n 5
+-1
+b 1
+s 4
+x .cval
+x .cval
+u 2
+b 1
+s 4
+x 1f+1
+n 6
+l15=.
+x .expr
+n 2
+c 1
+n 3
+s 4
+x .gen
+n 2
+c 117
+c 2
+n 3
+s 4
+x 1f+3
+n 6
+l14=.
+a 3
+c 47
+b 4
+f 1f+16
+x .expr
+n 2
+c 1
+n 3
+s 4
+x .gen
+n 2
+c 117
+c 1
+n 3
+s 4
+x 1f+3
+n 6
+l16=.
+a 3
+c 42
+b 4
+f 1f+17
+x .expr
+n 2
+c 1
+n 3
+s 4
+x .gen
+n 2
+c 117
+c 3
+n 3
+s 4
+x 1f+3
+n 6
+l17=.
+a 3
+c 6
+b 4
+f 1f+18
+x .peeksym
+a 3
+b 1
+s 4
+x .pexpr
+n 1
+s 4
+x 1f+3
+n 6
+l18=.
+x .error
+n 2
+n 5
+25976
+n 3
+s 4
+l3=.
+a 3
+x .symbol
+n 1
+b 1
+s 4
+a 2
+c 14
+b 8
+a 3
+c 80
+b 4
+b 3
+f 1f+19
+x .expr
+n 2
+c 14
+n 3
+s 4
+x .gen
+n 2
+c 98
+c 1
+n 3
+s 4
+x 1f+3
+n 6
+l19=.
+a 2
+c 10
+b 8
+a 3
+c 48
+b 4
+b 3
+f 1f+20
+x .expr
+n 2
+c 9
+n 3
+s 4
+x .gen
+n 2
+c 98
+c 2
+n 3
+s 4
+x 1f+3
+n 6
+l20=.
+a 2
+c 8
+b 8
+a 3
+c 47
+b 4
+b 3
+f 1f+21
+x .expr
+n 2
+c 7
+n 3
+s 4
+x .gen
+n 2
+c 98
+c 3
+n 3
+s 4
+x 1f+3
+n 6
+l21=.
+a 2
+c 7
+b 8
+a 3
+c 60
+b 8
+b 3
+a 3
+c 61
+b 6
+b 3
+f 1f+22
+x .expr
+n 2
+c 6
+n 3
+s 4
+x .gen
+n 2
+c 98
+a 3
+c 56
+b 13
+n 3
+s 4
+x 1f+3
+n 6
+l22=.
+a 2
+c 6
+b 8
+a 3
+c 62
+b 8
+b 3
+a 3
+c 65
+b 6
+b 3
+f 1f+23
+x .expr
+n 2
+c 5
+n 3
+s 4
+x .gen
+n 2
+c 98
+a 3
+c 56
+b 13
+n 3
+s 4
+x 1f+3
+n 6
+l23=.
+a 2
+c 4
+b 8
+a 3
+c 40
+b 8
+b 3
+a 3
+c 41
+b 6
+b 3
+f 1f+24
+x .expr
+n 2
+c 3
+n 3
+s 4
+x .gen
+n 2
+c 98
+a 3
+c 28
+b 13
+n 3
+s 4
+x 1f+3
+n 6
+l24=.
+a 2
+c 3
+b 8
+a 3
+c 42
+b 8
+b 3
+a 3
+c 43
+b 6
+b 3
+f 1f+25
+x .expr
+n 2
+c 2
+n 3
+s 4
+x .gen
+n 2
+c 98
+a 3
+c 27
+b 13
+n 3
+s 4
+x 1f+3
+n 6
+l25=.
+a 2
+c 3
+b 8
+a 3
+c 44
+b 4
+b 3
+f 1f+26
+x .expr
+n 2
+c 2
+n 3
+s 4
+x .gen
+n 2
+c 98
+c 14
+n 3
+s 4
+x 1f+3
+n 6
+l26=.
+a 3
+c 4
+b 4
+f 1f+27
+x .expr
+n 2
+c 15
+n 3
+s 4
+x .symbol
+n 1
+c 5
+b 5
+f 1f+28
+x .error
+n 2
+n 5
+23389
+n 3
+s 4
+l28=.
+x .gen
+n 2
+c 110
+c 4
+n 3
+s 4
+x 1f+3
+n 6
+l27=.
+a 3
+c 6
+b 4
+f 1f+29
+a 3
+x .symbol
+n 1
+b 1
+s 4
+a 3
+c 7
+b 4
+f 1f+30
+x .gen
+n 2
+c 110
+c 1
+n 3
+s 4
+x 1f+31
+n 6
+l30=.
+x .gen
+n 2
+c 110
+c 2
+n 3
+s 4
+x .peeksym
+a 3
+b 1
+s 4
+l32=.
+a 3
+c 7
+b 5
+f 1f+33
+x .expr
+n 2
+c 15
+n 3
+s 4
+a 3
+x .symbol
+n 1
+b 1
+s 4
+a 3
+c 7
+b 5
+a 3
+c 9
+b 5
+b 3
+f 1f+34
+x .error
+n 2
+n 5
+25976
+n 3
+s 4
+n 7
+l34=.
+x 1f+32
+n 6
+l33=.
+x .gen
+n 2
+c 110
+c 3
+n 3
+s 4
+l31=.
+x 1f+3
+n 6
+l29=.
+x .peeksym
+a 3
+b 1
+s 4
+n 7
+1:l0
+l1
+l2
+l3
+l4
+l5
+l6
+l7
+l8
+l9
+l10
+l11
+l12
+l13
+l14
+l15
+l16
+l17
+l18
+l19
+l20
+l21
+l22
+l23
+l24
+l25
+l26
+l27
+l28
+l29
+l30
+l31
+l32
+l33
+l34
+.pexpr:.+1
+s 2
+x .symbol
+n 1
+c 6
+b 4
+f 1f+0
+x .expr
+n 2
+c 15
+n 3
+s 2
+x .symbol
+n 1
+c 7
+b 4
+f 1f+1
+n 7
+l1=.
+l0=.
+x .error
+n 2
+n 5
+10281
+n 3
+s 2
+n 7
+1:l0
+l1
+.declare:.+1
+s 4
+l0=.
+a 3
+x .symbol
+n 1
+b 1
+c 20
+b 4
+f 1f+1
+a 2
+c 6
+b 4
+f 1f+2
+x .csym
+u 3
+c 6
+b 1
+s 4
+a 3
+x .symbol
+n 1
+b 1
+s 4
+x 1f+3
+n 6
+l2=.
+x .csym
+u 3
+c 5
+b 1
+s 4
+x .csym
+c 1
+n 4
+x .nauto
+b 1
+s 4
+a 3
+x .symbol
+n 1
+b 1
+s 4
+a 2
+c 5
+b 4
+a 3
+c 21
+b 4
+b 3
+f 1f+4
+x .gen
+n 2
+c 121
+x .nauto
+n 3
+s 4
+x .nauto
+x .nauto
+x .cval
+b 12
+b 1
+s 4
+a 3
+x .symbol
+n 1
+b 1
+s 4
+l4=.
+x .nauto
+x .nauto
+c 1
+b 12
+b 1
+s 4
+l3=.
+a 3
+c 9
+b 5
+f 1f+5
+x 1f+6
+n 6
+l5=.
+x 1f+0
+n 6
+l1=.
+l6=.
+a 3
+c 1
+b 4
+a 2
+c 8
+b 5
+b 3
+a 3
+c 7
+b 4
+a 2
+c 8
+b 4
+b 3
+b 2
+f 1f+7
+n 7
+l7=.
+l8=.
+x .error
+n 2
+n 5
+23389
+n 3
+s 4
+n 7
+1:l0
+l1
+l2
+l3
+l4
+l5
+l6
+l7
+l8
+.extdef:.+1
+s 4
+a 2
+x .symbol
+n 1
+b 1
+s 4
+a 2
+c 0
+b 4
+a 2
+c 1
+b 4
+b 2
+f 1f+0
+n 7
+l0=.
+a 2
+c 20
+b 5
+f 1f+1
+x 1f+2
+n 6
+l1=.
+x .csym
+c 0
+n 4
+c 6
+b 1
+s 4
+x .write
+n 2
+c 46
+n 3
+s 4
+x .name
+n 2
+x .csym
+c 2
+n 4
+u 1
+n 3
+s 4
+x .write
+n 2
+c 58
+n 3
+s 4
+a 2
+x .symbol
+n 1
+b 1
+s 4
+a 2
+c 2
+b 4
+a 2
+c 6
+b 4
+b 2
+f 1f+3
+x .write
+n 2
+n 5
+11819
+n 3
+s 4
+x .write
+n 2
+n 5
+12554
+n 3
+s 4
+x .nauto
+c 2
+b 1
+s 4
+a 2
+c 6
+b 4
+f 1f+4
+x .declare
+n 2
+c 8
+n 3
+s 4
+a 2
+x .symbol
+n 1
+b 1
+c 2
+b 5
+f 1f+5
+x 1f+2
+n 6
+l5=.
+l4=.
+l6=.
+a 2
+x .symbol
+n 1
+b 1
+c 19
+b 4
+x .cval
+c 10
+b 7
+b 3
+f 1f+7
+x .declare
+n 2
+x .cval
+n 3
+s 4
+x 1f+6
+n 6
+l7=.
+x .peeksym
+a 2
+b 1
+s 4
+x .gen
+n 2
+c 115
+x .nauto
+n 3
+s 4
+x .stmtlist
+n 1
+s 4
+x .gen
+n 2
+c 110
+c 7
+n 3
+s 4
+n 7
+l3=.
+a 2
+c 41
+b 4
+f 1f+8
+x .symbol
+n 1
+c 21
+b 5
+f 1f+9
+x 1f+2
+n 6
+l9=.
+x .number
+n 2
+x .cval
+u 2
+n 3
+s 4
+x .write
+n 2
+c 10
+n 3
+s 4
+n 7
+l8=.
+a 2
+c 21
+b 4
+f 1f+10
+x .number
+n 2
+x .cval
+n 3
+s 4
+x .write
+n 2
+c 10
+n 3
+s 4
+n 7
+l10=.
+a 2
+c 1
+b 4
+f 1f+11
+x .write
+n 2
+n 5
+12298
+n 3
+s 4
+n 7
+l11=.
+a 2
+c 4
+b 4
+f 1f+12
+a 3
+c 0
+b 1
+s 4
+a 2
+x .symbol
+n 1
+b 1
+c 21
+b 4
+f 1f+13
+a 3
+x .cval
+b 1
+s 4
+a 2
+x .symbol
+n 1
+b 1
+s 4
+l13=.
+a 2
+c 5
+b 5
+f 1f+14
+x 1f+2
+n 6
+l14=.
+x .write
+n 2
+n 5
+11819
+n 3
+s 4
+x .write
+n 2
+n 5
+12554
+n 3
+s 4
+a 2
+x .symbol
+n 1
+b 1
+c 1
+b 4
+f 1f+15
+x 1f+16
+n 6
+l15=.
+l17=.
+a 2
+c 21
+b 4
+a 2
+c 41
+b 4
+b 2
+f 1f+18
+a 2
+c 41
+b 4
+f 1f+19
+x .symbol
+n 1
+c 21
+b 5
+f 1f+20
+x 1f+2
+n 6
+l20=.
+x .cval
+x .cval
+u 2
+b 1
+s 4
+l19=.
+x .number
+n 2
+x .cval
+n 3
+s 4
+x .write
+n 2
+c 10
+n 3
+s 4
+a 3
+a 3
+c 1
+b 13
+b 1
+s 4
+a 2
+x .symbol
+n 1
+b 1
+c 1
+b 4
+f 1f+21
+x 1f+16
+n 6
+l21=.
+a 2
+c 9
+b 5
+f 1f+22
+x 1f+2
+n 6
+x 1f+23
+n 6
+l22=.
+a 2
+x .symbol
+n 1
+b 1
+s 4
+l23=.
+x 1f+17
+n 6
+l18=.
+x 1f+2
+n 6
+l16=.
+a 3
+c 0
+b 9
+f 1f+24
+x .write
+n 2
+n 5
+11837
+n 3
+s 4
+x .write
+n 2
+n 5
+11819
+n 3
+s 4
+x .number
+n 2
+a 3
+n 3
+s 4
+x .write
+n 2
+c 10
+n 3
+s 4
+l24=.
+n 7
+l12=.
+a 2
+c 0
+b 4
+f 1f+25
+n 7
+l25=.
+l2=.
+x .error
+n 2
+n 5
+30840
+n 3
+s 4
+x .stmt
+n 1
+s 4
+n 7
+1:l0
+l1
+l2
+l3
+l4
+l5
+l6
+l7
+l8
+l9
+l10
+l11
+l12
+l13
+l14
+l15
+l16
+l17
+l18
+l19
+l20
+l21
+l22
+l23
+l24
+l25
+.stmtlist:.+1
+s 3
+l0=.
+x .eof
+u 4
+f 1f+1
+a 2
+x .symbol
+n 1
+b 1
+c 3
+b 4
+f 1f+2
+n 7
+l2=.
+x .peeksym
+a 2
+b 1
+s 3
+x .stmt
+n 1
+s 3
+x 1f+0
+n 6
+l1=.
+x .error
+n 2
+n 5
+9257
+n 3
+s 3
+n 7
+1:l0
+l1
+l2
+.stmt:.+1
+s 5
+l0=.
+a 2
+x .symbol
+n 1
+b 1
+s 5
+a 2
+c 0
+b 4
+f 1f+1
+x .error
+n 2
+n 5
+26213
+n 3
+s 5
+n 7
+l1=.
+a 2
+c 1
+b 4
+a 2
+c 3
+b 4
+b 2
+f 1f+2
+n 7
+l2=.
+a 2
+c 2
+b 4
+f 1f+3
+x .stmtlist
+n 1
+s 5
+n 7
+l3=.
+a 2
+c 19
+b 4
+f 1f+4
+x .cval
+c 10
+b 4
+f 1f+5
+x .expr
+n 2
+c 15
+n 3
+s 5
+x .gen
+n 2
+c 110
+c 6
+n 3
+s 5
+x 1f+6
+n 6
+l5=.
+x .cval
+c 11
+b 4
+f 1f+7
+x .peeksym
+x .symbol
+n 1
+b 1
+c 6
+b 4
+f 1f+8
+x .pexpr
+n 1
+s 5
+l8=.
+x .gen
+n 2
+c 110
+c 7
+n 3
+s 5
+x 1f+6
+n 6
+l7=.
+x .cval
+c 12
+b 4
+f 1f+9
+x .pexpr
+n 1
+s 5
+a 3
+x .isn
+b 1
+s 5
+x .isn
+x .isn
+c 1
+b 12
+b 1
+s 5
+x .jumpc
+n 2
+a 3
+n 3
+s 5
+x .stmt
+n 1
+s 5
+a 2
+x .symbol
+n 1
+b 1
+s 5
+a 2
+c 19
+b 4
+x .cval
+c 14
+b 4
+b 3
+f 1f+10
+a 4
+x .isn
+b 1
+s 5
+x .isn
+x .isn
+c 1
+b 12
+b 1
+s 5
+x .jump
+n 2
+a 4
+n 3
+s 5
+x .label
+n 2
+a 3
+n 3
+s 5
+x .stmt
+n 1
+s 5
+x .label
+n 2
+a 4
+n 3
+s 5
+n 7
+l10=.
+x .peeksym
+a 2
+b 1
+s 5
+x .label
+n 2
+a 3
+n 3
+s 5
+n 7
+l9=.
+x .cval
+c 13
+b 4
+f 1f+11
+a 3
+x .isn
+b 1
+s 5
+x .isn
+x .isn
+c 1
+b 12
+b 1
+s 5
+x .label
+n 2
+a 3
+n 3
+s 5
+x .pexpr
+n 1
+s 5
+a 4
+x .isn
+b 1
+s 5
+x .isn
+x .isn
+c 1
+b 12
+b 1
+s 5
+x .jumpc
+n 2
+a 4
+n 3
+s 5
+x .stmt
+n 1
+s 5
+x .jump
+n 2
+a 3
+n 3
+s 5
+x .label
+n 2
+a 4
+n 3
+s 5
+n 7
+l11=.
+x .error
+n 2
+n 5
+29560
+n 3
+s 5
+x 1f+12
+n 6
+l4=.
+a 2
+c 20
+b 4
+x .peekc
+c 58
+b 4
+b 3
+f 1f+13
+x .peekc
+c 0
+b 1
+s 5
+x .csym
+u 3
+u 4
+f 1f+14
+x .csym
+u 3
+c 2
+b 1
+s 5
+x .csym
+c 1
+n 4
+x .isn
+b 1
+s 5
+x .isn
+x .isn
+c 1
+b 12
+b 1
+s 5
+x 1f+15
+n 6
+l14=.
+x .csym
+u 3
+c 2
+b 5
+f 1f+16
+x .error
+n 2
+n 5
+29284
+n 3
+s 5
+x 1f+0
+n 6
+l16=.
+l15=.
+x .label
+n 2
+x .csym
+c 1
+n 4
+n 3
+s 5
+x 1f+0
+n 6
+l13=.
+x .peeksym
+a 2
+b 1
+s 5
+x .expr
+n 2
+c 15
+n 3
+s 5
+x .gen
+n 2
+c 115
+x .nauto
+n 3
+s 5
+l6=.
+a 2
+x .symbol
+n 1
+b 1
+s 5
+a 2
+c 1
+b 4
+f 1f+17
+n 7
+l17=.
+l12=.
+x .error
+n 2
+n 5
+29562
+n 3
+s 5
+x 1f+0
+n 6
+n 7
+1:l0
+l1
+l2
+l3
+l4
+l5
+l6
+l7
+l8
+l9
+l10
+l11
+l12
+l13
+l14
+l15
+l16
+l17
+.blkend:.+1
+s 3
+x .isn
+u 4
+f 1f+0
+n 7
+l0=.
+x .write
+n 2
+n 5
+12602
+n 3
+s 3
+a 2
+c 0
+b 1
+s 3
+l1=.
+a 2
+x .isn
+b 7
+f 1f+2
+x .write
+n 2
+c 108
+n 3
+s 3
+x .number
+n 2
+a 2
+n 3
+s 3
+x .write
+n 2
+c 10
+n 3
+s 3
+a 2
+a 2
+c 1
+b 12
+b 1
+s 3
+x 1f+1
+n 6
+l2=.
+x .isn
+c 0
+b 1
+s 3
+n 7
+1:l0
+l1
+l2
+.gen:.+1
+s 4
+x .write
+n 2
+a 2
+n 3
+s 4
+x .write
+n 2
+c 32
+n 3
+s 4
+x .number
+n 2
+a 3
+n 3
+s 4
+x .write
+n 2
+c 10
+n 3
+s 4
+n 7
+.jumpc:.+1
+s 3
+x .write
+n 2
+n 5
+26144
+n 3
+s 3
+x .write
+n 2
+n 5
+12646
+n 3
+s 3
+x .write
+n 2
+c 43
+n 3
+s 3
+x .number
+n 2
+a 2
+n 3
+s 3
+x .write
+n 2
+c 10
+n 3
+s 3
+n 7
+.jump:.+1
+s 3
+x .write
+n 2
+n 5
+30752
+n 3
+s 3
+x .write
+n 2
+n 5
+12646
+n 3
+s 3
+x .write
+n 2
+c 43
+n 3
+s 3
+x .number
+n 2
+a 2
+n 3
+s 3
+x .gen
+n 2
+c 2670
+c 6
+n 3
+s 3
+n 7
+.label:.+1
+s 3
+x .write
+n 2
+c 108
+n 3
+s 3
+x .number
+n 2
+a 2
+n 3
+s 3
+x .write
+n 2
+n 5
+15662
+n 3
+s 3
+x .write
+n 2
+c 10
+n 3
+s 3
+n 7
+.printn:.+1
+s 3
+a 2
+c 9
+b 9
+f 1f+0
+x .printn
+n 2
+a 2
+c 10
+b 16
+n 3
+s 3
+a 2
+a 2
+c 10
+b 14
+b 1
+s 3
+l0=.
+x .write
+n 2
+a 2
+c 48
+b 12
+n 3
+s 3
+n 7
+1:l0
+.number:.+1
+s 3
+a 2
+c 0
+b 7
+f 1f+0
+x .write
+n 2
+c 45
+n 3
+s 3
+a 2
+a 2
+u 2
+b 1
+s 3
+l0=.
+x .printn
+n 2
+a 2
+n 3
+s 3
+n 7
+1:l0
+.name:.+1
+s 3
+l0=.
+a 2
+u 3
+f 1f+1
+x .write
+n 2
+a 2
+u 3
+n 3
+s 3
+a 2
+a 2
+c 1
+n 4
+u 1
+b 1
+s 3
+x 1f+0
+n 6
+l1=.
+n 7
+1:l0
+l1
+.error:.+1
+s 4
+x .eof
+x .nerror
+c 20
+b 4
+b 2
+f 1f+0
+x .eof
+c 1
+b 1
+s 4
+n 7
+l0=.
+x .nerror
+x .nerror
+c 1
+b 12
+b 1
+s 4
+x .flush
+n 1
+s 4
+a 3
+x .fout
+b 1
+s 4
+x .fout
+c 1
+b 1
+s 4
+x .write
+n 2
+a 2
+n 3
+s 4
+x .write
+n 2
+c 32
+n 3
+s 4
+a 2
+n 5
+29284
+b 4
+a 2
+n 5
+30062
+b 4
+b 2
+f 1f+1
+x .name
+n 2
+x .csym
+c 2
+n 4
+u 1
+n 3
+s 4
+x .write
+n 2
+c 32
+n 3
+s 4
+l1=.
+x .printn
+n 2
+x .line
+n 3
+s 4
+x .write
+n 2
+c 10
+n 3
+s 4
+x .flush
+n 1
+s 4
+x .fout
+a 3
+b 1
+s 4
+n 7
+1:l0
+l1
+.symtab:.+1
+1
+5
+97
+117
+116
+111
+0
+1
+6
+101
+120
+116
+114
+110
+0
+1
+10
+103
+111
+116
+111
+0
+1
+11
+114
+101
+116
+117
+114
+110
+0
+1
+12
+105
+102
+0
+1
+13
+119
+104
+105
+108
+101
+0
+1
+14
+101
+108
+115
+101
+0
+.=.+249
+.ctab:.+1
+0
+127
+127
+127
+0
+127
+127
+127
+127
+126
+126
+127
+127
+127
+127
+127
+127
+127
+127
+127
+127
+127
+127
+127
+127
+127
+127
+127
+127
+127
+127
+127
+126
+34
+122
+127
+127
+44
+47
+121
+6
+7
+42
+40
+9
+41
+127
+43
+124
+124
+124
+124
+124
+124
+124
+124
+124
+124
+8
+1
+63
+80
+65
+90
+127
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+4
+127
+5
+48
+127
+127
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+123
+2
+48
+3
+127
+127
+.symbuf:.+1
+.=.+10
+.peeksym:-1
+.peekc:0
+.eof:0
+.line:1
+.csym:0
+.ns:0
+.cval:0
+.isn:0
+.nerror:0
+.nauto:0

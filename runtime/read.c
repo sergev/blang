@@ -6,7 +6,8 @@
 //
 word_t read()
 {
-    word_t c = 0;
+    char c = 0;
+
     if (syscall(SYS_read, 0, (word_t)&c, 1) == 1) {
         if (c > 0 && c <= 127) {
             return c;
