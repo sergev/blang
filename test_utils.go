@@ -264,7 +264,12 @@ func buildLineDiff(want, got string) string {
 	hunks = diff.PruneContext(hunks, 2)
 
 	var buf strings.Builder
+	var prevNum int
 	for _, hunk := range hunks {
+		if prevNum > 0 && hunk.LineNum > prevNum+1 {
+			buf.WriteString("........\n")
+			break
+		}
 		switch hunk.Operation {
 		case diff.OpUnchanged:
 			buf.WriteString(" " + hunk.Line + "\n")
@@ -273,6 +278,7 @@ func buildLineDiff(want, got string) string {
 		case diff.OpInsert:
 			buf.WriteString("+" + hunk.Line + "\n")
 		}
+		prevNum = hunk.LineNum
 	}
 	return buf.String()
 }
