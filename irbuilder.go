@@ -12,18 +12,18 @@ import (
 
 // Compiler holds the LLVM compilation state
 type Compiler struct {
-	args         *CompileOptions
-	module       *ir.Module
-	builder      *ir.Block
-	currentFn    *ir.Func
-	locals       map[string]value.Value // local variables (alloca)
-	globals      map[string]value.Value // global variables
-	functions    map[string]*ir.Func    // functions
-	strings      []*ir.Global           // string constants
-	stringID     int                    // unique id for string constants
-	labelID      int                    // counter for labels
-	labels       map[string]*ir.Block   // named labels for goto
-	stackAligned bool                   // whether stack alignment has been inserted
+	args      *CompileOptions
+	module    *ir.Module
+	builder   *ir.Block
+	currentFn *ir.Func
+	locals    map[string]value.Value // local variables (alloca)
+	globals   map[string]value.Value // global variables
+	functions map[string]*ir.Func    // functions
+	strings   []*ir.Global           // string constants
+	stringID  int                    // unique id for string constants
+	labelID   int                    // counter for labels
+	labels    map[string]*ir.Block   // named labels for goto
+	autoSize  int64                  // accumulated bytes in all auto allocations so far
 }
 
 // globalName returns the fully qualified global symbol name, applying the
@@ -46,6 +46,7 @@ func NewCompiler(args *CompileOptions) *Compiler {
 		functions: make(map[string]*ir.Func),
 		strings:   make([]*ir.Global, 0),
 		stringID:  0,
+		autoSize:  0,
 	}
 }
 
@@ -266,7 +267,7 @@ func (c *Compiler) StartFunction(fn *ir.Func) {
 	c.locals = make(map[string]value.Value)
 	c.labels = make(map[string]*ir.Block)
 	c.builder = fn.NewBlock("entry")
-	c.stackAligned = false // Reset stack alignment flag for new function
+	c.autoSize = 0 // Reset auto allocation size for new function
 
 	// Allocate space for parameters
 	for _, param := range fn.Params {
@@ -280,18 +281,28 @@ func (c *Compiler) StartFunction(fn *ir.Func) {
 // This ensures the stack is aligned to 16 bytes after all auto variable allocations.
 // Should be called before generating any non-alloca instruction.
 func (c *Compiler) EnsureStackAlignment() {
-	// Only insert alignment once per function
-	if c.stackAligned {
+	// Calculate how many bytes we need to add for 16-byte alignment
+	// We want (autoSize + padding) % 16 == 0
+	// So padding = (16 - (autoSize % 16)) % 16
+	padding := (16 - (c.autoSize % 16)) % 16
+
+	// Only insert alignment if we need padding
+	if padding == 0 {
 		return
 	}
-	c.stackAligned = true
 
-	// Insert alloca with 16-byte alignment
+	// Insert alloca with the calculated padding size
 	// This forces the stack pointer to be aligned to a 16-byte boundary
-	alignAlloca := c.builder.NewAlloca(types.I8)
+	alignType := types.NewArray(uint64(padding), types.I8)
+	alignAlloca := c.builder.NewAlloca(alignType)
 	alignAlloca.Align = 16
-	// Store a dummy value to prevent optimization from removing it
-	c.builder.NewStore(constant.NewInt(types.I8, 0), alignAlloca)
+	// Store dummy values to prevent optimization from removing it
+	for i := uint64(0); i < uint64(padding); i++ {
+		elemPtr := c.builder.NewGetElementPtr(alignType, alignAlloca,
+			constant.NewInt(types.I32, 0),
+			constant.NewInt(types.I32, int64(i)))
+		c.builder.NewStore(constant.NewInt(types.I8, 0), elemPtr)
+	}
 }
 
 // EndFunction finalizes a function
@@ -312,6 +323,8 @@ func (c *Compiler) DeclareLocal(name string) value.Value {
 	// Initialize local variables to 0 (B language semantics)
 	c.builder.NewStore(constant.NewInt(c.WordType(), 0), alloca)
 	c.locals[name] = alloca
+	// Track auto allocation size (i64 = 8 bytes)
+	c.autoSize += 8
 	return alloca
 }
 
@@ -329,6 +342,9 @@ func (c *Compiler) DeclareLocalArray(name string, size int64) value.Value {
 	arraySize := size + 1 // +1 for pointer storage in first element
 	arrayType := types.NewArray(uint64(arraySize), c.WordType())
 	alloca := c.builder.NewAlloca(arrayType)
+
+	// Track auto allocation size (arraySize * 8 bytes per word)
+	c.autoSize += arraySize * 8
 
 	// Get pointer to first data element (skip the pointer storage slot)
 	// This is element [0][1] in the array
