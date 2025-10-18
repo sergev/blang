@@ -349,18 +349,19 @@ func TestCompileErrors(t *testing.T) {
 		},
 		{
 			name:        "auto_after_func",
-			content:     "main() { x(42); } foo() { auto main; main = 123; }",
+			content:     "main() { foo(); } foo() { auto main; main = 123; }",
 			wantErr:     false,                  // allowed
 		},
 		{
 			name:        "extrn_after_func",
-			content:     "main() { x(42); } foo() { extrn main; main = 123; }",
+			content:     "main() { foo(); } foo() { extrn main; main = 123; }",
 			wantErr:     false,                  // allowed by compiler, though cannot run
 		},
 		{
 			name:        "func_after_func",
-			content:     "main() { x(42); } main() { x(123); }",
-			wantErr:     false,                  // allowed by compiler, though cannot link
+			content:     "main() { exit(0); } main() { exit(1); }",
+			wantErr:     true,
+			errContains: "failed to generate executable", // allowed by compiler, though cannot link
 		},
 		// Note: Duplicate identifier detection is not yet implemented in LLVM backend
 		// {
