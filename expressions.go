@@ -740,20 +740,21 @@ func parsePostfix(l *Lexer, c *Compiler) (value.Value, bool, error) {
 				}
 			} else {
 				// Indirect call through function pointer
-				// fn is the address of a variable containing the function address
-				// Since it's marked as lvalue, load it to get the i64 function address
-				fnAddr := c.builder.NewLoad(c.WordType(), fn)
+				// fn is already the loaded function address (loaded on line 682)
+				fnAddr := fn
 
 				// Convert i64 to function pointer
-				// Create variadic function type: i64 (i64, ...)* and specify one fixed
-				// argument when available to avoid fully-variadic calls with zero fixed args.
+				// Create function type that matches the actual arguments being passed
 				var fnType *types.FuncType
 				if len(args) >= 1 {
-					fnType = types.NewFunc(c.WordType(), args[0].Type())
-					fnType.Variadic = true
+					// Create non-variadic function type with the exact number of arguments
+					argTypes := make([]types.Type, len(args))
+					for i, arg := range args {
+						argTypes[i] = arg.Type()
+					}
+					fnType = types.NewFunc(c.WordType(), argTypes...)
 				} else {
 					fnType = types.NewFunc(c.WordType())
-					fnType.Variadic = true
 				}
 				fnPtrType := types.NewPointer(fnType)
 				fnPtr := c.builder.NewIntToPtr(fnAddr, fnPtrType)
@@ -895,7 +896,7 @@ func parsePrimary(l *Lexer, c *Compiler) (value.Value, bool, error) {
 
 			// Check if it's an extrn variable (function pointer) in module globals
 			if g := c.findGlobalByName(name); g != nil {
-				return g, false, nil
+				return g, true, nil
 			}
 
 			// Not found anywhere - auto-declare as external function in current context
