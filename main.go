@@ -5,28 +5,34 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/fatih/color"
 	"github.com/spf13/pflag"
 )
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `Usage: blang [options] file...
+	hdr := color.New(color.FgCyan, color.Bold)
+	cmd := color.New(color.FgGreen, color.Bold)
+	out := color.New(color.FgRed, color.Bold)
+	note := color.New(color.Faint)
 
-blang is a compiler for .b files.
+	hdr.Fprintln(os.Stderr, "Usage: blang [options] file...")
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, "blang is a compiler for .b files.")
+	fmt.Fprintln(os.Stderr)
 
-Options:
-`)
+	hdr.Fprintln(os.Stderr, "Options:")
 	pflag.PrintDefaults()
-	fmt.Fprintf(os.Stderr, `
-Examples:
-  blang hello.b                       # Compile to executable 'hello'
-  blang -c hello.b                    # Compile to object file 'hello.o'
-  blang -S hello.b                    # Compile to assembly 'hello.s'
-  blang -emit-llvm hello.b            # Output LLVM IR 'hello.ll'
-  blang -O2 -g -o optimized hello.b   # Optimized with debug info
-  blang hello.b -o output -O2         # Options can be placed after arguments
-  blang -V                            # Show version information
+	fmt.Fprintln(os.Stderr)
 
-`)
+	hdr.Fprintln(os.Stderr, "Examples:")
+	fmt.Fprintf(os.Stderr, "  %s  %s%s%s\n", cmd.Sprint("blang hello.b"), note.Sprint("                Compile to executable '"), out.Sprint("hello"), note.Sprint("'"))
+	fmt.Fprintf(os.Stderr, "  %s  %s%s%s\n", cmd.Sprint("blang -c hello.b"), note.Sprint("             Compile to object file '"), out.Sprint("hello.o"), note.Sprint("'"))
+	fmt.Fprintf(os.Stderr, "  %s  %s%s%s\n", cmd.Sprint("blang -S hello.b"), note.Sprint("             Compile to assembly '"), out.Sprint("hello.s"), note.Sprint("'"))
+	fmt.Fprintf(os.Stderr, "  %s  %s%s%s\n", cmd.Sprint("blang -emit-llvm hello.b"), note.Sprint("     Output LLVM IR '"), out.Sprint("hello.ll"), note.Sprint("'"))
+	fmt.Fprintf(os.Stderr, "  %s  %s\n", cmd.Sprint("blang -O0 -g -o unopt hello.b"), note.Sprint("Unoptimized with debug info"))
+	fmt.Fprintf(os.Stderr, "  %s  %s\n", cmd.Sprint("blang hello.b -o output -O2"), note.Sprint("  Options can be placed after arguments"))
+	fmt.Fprintf(os.Stderr, "  %s  %s\n", cmd.Sprint("blang -V"), note.Sprint("                     Show version information"))
+	fmt.Fprintf(os.Stderr, "\n")
 	os.Exit(0)
 }
 
@@ -51,26 +57,26 @@ func main() {
 	var libraries []string
 
 	// Output control
-	pflag.StringVarP(&output, "output", "o", "", "place the output into <file>")
-	pflag.BoolVar(&saveTemps, "save-temps", false, "do not delete intermediate files")
-	pflag.BoolVar(&emitLLVM, "emit-llvm", false, "emit LLVM IR instead of executable")
+	pflag.StringVarP(&output, "output", "o", "", "Place the output into <file>")
+	pflag.BoolVar(&saveTemps, "save-temps", false, "Do not delete intermediate files")
+	pflag.BoolVar(&emitLLVM, "emit-llvm", false, "Emit LLVM IR instead of executable")
 
 	// Compilation stages
-	pflag.BoolVarP(&compileOnly, "compile", "c", false, "compile and assemble, but do not link")
-	pflag.BoolVarP(&assemblyOnly, "assemble", "S", false, "compile only; do not assemble or link")
+	pflag.BoolVarP(&compileOnly, "compile", "c", false, "Compile and assemble, but do not link")
+	pflag.BoolVarP(&assemblyOnly, "assemble", "S", false, "Compile only; do not assemble or link")
 
 	// Optimization and debugging
-	pflag.StringVarP(&optimize, "optimize", "O", "0", "optimization level (0-3)")
-	pflag.BoolVarP(&debugInfo, "debug", "g", false, "generate debug information")
-	pflag.BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+	pflag.StringVarP(&optimize, "optimize", "O", "0", "Optimization level (0-3)")
+	pflag.BoolVarP(&debugInfo, "debug", "g", false, "Generate debug information")
+	pflag.BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
 
 	// Paths and libraries
-	pflag.StringSliceVarP(&libraryDirs, "library-dir", "L", []string{}, "add directory to library search path")
-	pflag.StringSliceVarP(&libraries, "library", "l", []string{}, "link with library")
+	pflag.StringSliceVarP(&libraryDirs, "library-dir", "L", []string{}, "Add directory to library search path")
+	pflag.StringSliceVarP(&libraries, "library", "l", []string{}, "Link with library")
 
 	// Help and version
-	pflag.BoolVarP(&showVersion, "version", "V", false, "display compiler version information")
-	pflag.BoolVarP(&showHelp, "help", "h", false, "display this information")
+	pflag.BoolVarP(&showVersion, "version", "V", false, "Display compiler version information")
+	pflag.BoolVarP(&showHelp, "help", "h", false, "Display this information")
 
 	pflag.Usage = usage
 	pflag.Parse()
@@ -92,6 +98,7 @@ func main() {
 	// Check if no arguments at all were provided
 	if len(os.Args) == 1 {
 		fmt.Println("Usage: blang [options] file...")
+		fmt.Println("Use '-h' to see all available options.")
 		os.Exit(1)
 	}
 
