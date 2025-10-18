@@ -318,6 +318,50 @@ func TestCompileErrors(t *testing.T) {
 			wantErr:     true,
 			errContains: "case' outside of 'switch",
 		},
+		{
+			name:        "undef_after_global",
+			content:     "x; main() { x = 42; }",
+			wantErr:     true,
+			errContains: "undefined identifier", // extrn required
+		},
+		{
+			name:        "undef_after_extrn",
+			content:     "main() { extrn x; x = 42; } foo() { x = 123; }",
+			wantErr:     true,
+			errContains: "undefined identifier", // extrn required
+		},
+		{
+			name:        "undef_after_call",
+			content:     "main() { x(42); } foo() { x = 123; }",
+			wantErr:     true,
+			errContains: "undefined identifier", // auto required
+		},
+		{
+			name:        "extrn_after_call",
+			content:     "main() { x(42); } foo() { extrn x; x = 123; }",
+			wantErr:     false,                  // allowed by compiler, though cannot run
+		},
+		{
+			name:        "undef_after_func",
+			content:     "main() { x(42); } foo() { main = 123; }",
+			wantErr:     true,
+			errContains: "undefined identifier", // auto required
+		},
+		{
+			name:        "auto_after_func",
+			content:     "main() { x(42); } foo() { auto main; main = 123; }",
+			wantErr:     false,                  // allowed
+		},
+		{
+			name:        "extrn_after_func",
+			content:     "main() { x(42); } foo() { extrn main; main = 123; }",
+			wantErr:     false,                  // allowed by compiler, though cannot run
+		},
+		{
+			name:        "func_after_func",
+			content:     "main() { x(42); } main() { x(123); }",
+			wantErr:     false,                  // allowed by compiler, though cannot link
+		},
 		// Note: Duplicate identifier detection is not yet implemented in LLVM backend
 		// {
 		// 	name:        "duplicate_identifier",
