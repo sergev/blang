@@ -723,7 +723,21 @@ func parsePostfix(l *Lexer, c *Compiler) (value.Value, bool, error) {
 			var result value.Value
 			if fnDirect, ok := fn.(*ir.Func); ok {
 				// Direct call to known function
-				result = c.builder.NewCall(fnDirect, args...)
+				// If the callee is declared fully variadic with zero fixed params,
+				// specify one fixed argument type at the call site to ensure proper
+				// calling convention on platforms like arm64.
+				if fnDirect.Sig != nil && fnDirect.Sig.Variadic && len(fnDirect.Params) == 0 && len(args) >= 1 {
+					// Build a variadic function type with the first argument as a fixed param
+					firstArgType := args[0].Type()
+					fnType := types.NewFunc(c.WordType(), firstArgType)
+					fnType.Variadic = true
+					fnPtrType := types.NewPointer(fnType)
+					// Bitcast the direct function symbol to the new pointer-to-function type
+					casted := c.builder.NewBitCast(fnDirect, fnPtrType)
+					result = c.builder.NewCall(casted, args...)
+				} else {
+					result = c.builder.NewCall(fnDirect, args...)
+				}
 			} else {
 				// Indirect call through function pointer
 				// fn is the address of a variable containing the function address
@@ -731,9 +745,16 @@ func parsePostfix(l *Lexer, c *Compiler) (value.Value, bool, error) {
 				fnAddr := c.builder.NewLoad(c.WordType(), fn)
 
 				// Convert i64 to function pointer
-				// Create variadic function type: i64 (i64, ...)*
-				fnType := types.NewFunc(c.WordType())
-				fnType.Variadic = true
+				// Create variadic function type: i64 (i64, ...)* and specify one fixed
+				// argument when available to avoid fully-variadic calls with zero fixed args.
+				var fnType *types.FuncType
+				if len(args) >= 1 {
+					fnType = types.NewFunc(c.WordType(), args[0].Type())
+					fnType.Variadic = true
+				} else {
+					fnType = types.NewFunc(c.WordType())
+					fnType.Variadic = true
+				}
 				fnPtrType := types.NewPointer(fnType)
 				fnPtr := c.builder.NewIntToPtr(fnAddr, fnPtrType)
 
