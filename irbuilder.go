@@ -272,6 +272,14 @@ func (c *Compiler) StartFunction(fn *ir.Func) {
 		c.builder.NewStore(param, alloca)
 		c.locals[param.Name()] = alloca
 	}
+
+	// Align stack to 16-byte boundary after allocating auto variables
+	// This ensures proper alignment required by System V ABI (x86_64 and aarch64)
+	// Allocate 16 bytes with 16-byte alignment to adjust stack pointer
+	alignAlloca := c.builder.NewAlloca(types.I8)
+	alignAlloca.Align = 16
+	// Store a dummy value to prevent optimization
+	c.builder.NewStore(constant.NewInt(types.I8, 0), alignAlloca)
 }
 
 // EndFunction finalizes a function
