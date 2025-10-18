@@ -56,6 +56,7 @@ func parseStatementWithSwitch(l *Lexer, c *Compiler, switchID int64, cases *[]in
 		} else {
 			l.UnreadChar(ch)
 			// Expression statement
+			c.EnsureStackAlignment() // Align stack before first executable statement
 			_, err := parseExpression(l, c)
 			if err != nil {
 				return err
@@ -84,20 +85,26 @@ func parseKeywordOrExpressionWithSwitch(l *Lexer, c *Compiler, switchID int64, c
 
 	switch name {
 	case "return":
+		c.EnsureStackAlignment() // Align stack before first executable statement
 		return parseReturn(l, c)
 	case "auto":
-		return parseAuto(l, c)
+		return parseAuto(l, c) // Declaration, not executable - no alignment needed
 	case "extrn":
-		return parseExtrn(l, c)
+		return parseExtrn(l, c) // Declaration, not executable - no alignment needed
 	case "if":
+		c.EnsureStackAlignment() // Align stack before first executable statement
 		return parseIf(l, c)
 	case "while":
+		c.EnsureStackAlignment() // Align stack before first executable statement
 		return parseWhile(l, c)
 	case "switch":
+		c.EnsureStackAlignment() // Align stack before first executable statement
 		return parseSwitch(l, c)
 	case "case":
+		c.EnsureStackAlignment() // Align stack before first executable statement
 		return parseCase(l, c, switchID, cases)
 	case "goto":
+		c.EnsureStackAlignment() // Align stack before first executable statement
 		return parseGoto(l, c)
 	default:
 		// Check if it's a label
@@ -107,6 +114,7 @@ func parseKeywordOrExpressionWithSwitch(l *Lexer, c *Compiler, switchID int64, c
 		}
 		if ch == ':' {
 			// Label - get or create labeled block
+			c.EnsureStackAlignment() // Align stack before first executable statement
 			block := c.GetOrCreateLabel(name)
 
 			// Only create a branch if the current block has no terminator
@@ -122,6 +130,7 @@ func parseKeywordOrExpressionWithSwitch(l *Lexer, c *Compiler, switchID int64, c
 		}
 
 		// Otherwise it's an expression
+		c.EnsureStackAlignment() // Align stack before first executable statement
 		l.UnreadChar(ch)
 		for i := len(name) - 1; i >= 0; i-- {
 			l.UnreadChar(rune(name[i]))

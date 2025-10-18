@@ -12,17 +12,18 @@ import (
 
 // Compiler holds the LLVM compilation state
 type Compiler struct {
-	args      *CompileOptions
-	module    *ir.Module
-	builder   *ir.Block
-	currentFn *ir.Func
-	locals    map[string]value.Value // local variables (alloca)
-	globals   map[string]value.Value // global variables
-	functions map[string]*ir.Func    // functions
-	strings   []*ir.Global           // string constants
-	stringID  int                    // unique id for string constants
-	labelID   int                    // counter for labels
-	labels    map[string]*ir.Block   // named labels for goto
+	args         *CompileOptions
+	module       *ir.Module
+	builder      *ir.Block
+	currentFn    *ir.Func
+	locals       map[string]value.Value // local variables (alloca)
+	globals      map[string]value.Value // global variables
+	functions    map[string]*ir.Func    // functions
+	strings      []*ir.Global           // string constants
+	stringID     int                    // unique id for string constants
+	labelID      int                    // counter for labels
+	labels       map[string]*ir.Block   // named labels for goto
+	stackAligned bool                   // whether stack alignment has been inserted
 }
 
 // globalName returns the fully qualified global symbol name, applying the
@@ -265,6 +266,7 @@ func (c *Compiler) StartFunction(fn *ir.Func) {
 	c.locals = make(map[string]value.Value)
 	c.labels = make(map[string]*ir.Block)
 	c.builder = fn.NewBlock("entry")
+	c.stackAligned = false // Reset stack alignment flag for new function
 
 	// Allocate space for parameters
 	for _, param := range fn.Params {
@@ -272,13 +274,23 @@ func (c *Compiler) StartFunction(fn *ir.Func) {
 		c.builder.NewStore(param, alloca)
 		c.locals[param.Name()] = alloca
 	}
+}
 
-	// Align stack to 16-byte boundary after allocating auto variables
-	// This ensures proper alignment required by System V ABI (x86_64 and aarch64)
-	// Allocate 16 bytes with 16-byte alignment to adjust stack pointer
+// EnsureStackAlignment inserts stack alignment code before the first executable statement.
+// This ensures the stack is aligned to 16 bytes after all auto variable allocations.
+// Should be called before generating any non-alloca instruction.
+func (c *Compiler) EnsureStackAlignment() {
+	// Only insert alignment once per function
+	if c.stackAligned {
+		return
+	}
+	c.stackAligned = true
+
+	// Insert alloca with 16-byte alignment
+	// This forces the stack pointer to be aligned to a 16-byte boundary
 	alignAlloca := c.builder.NewAlloca(types.I8)
 	alignAlloca.Align = 16
-	// Store a dummy value to prevent optimization
+	// Store a dummy value to prevent optimization from removing it
 	c.builder.NewStore(constant.NewInt(types.I8, 0), alignAlloca)
 }
 
