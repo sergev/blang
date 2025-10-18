@@ -3,7 +3,7 @@
 //
 // One or more characters are written on the standard output file.
 //
-void b_write(word_t ch)
+void b_write(word_t ch, ...)
 {
     char buf[sizeof(word_t)];
     char *p = buf;

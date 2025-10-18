@@ -207,9 +207,8 @@ func parseIvalConst(l *Lexer, c *Compiler) (constant.Constant, error) {
 		if err != nil || name == "" {
 			return nil, fmt.Errorf("unexpected end of file, expect ival")
 		}
-		// For now, just return a zero constant for references
 		// TODO: Handle proper global references
-		return constant.NewInt(c.WordType(), 0), nil
+		return nil, fmt.Errorf("initialization with global references is not supported yet")
 	} else if ch == '\'' {
 		val, err := l.Character()
 		if err != nil {
