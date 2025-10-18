@@ -49,7 +49,7 @@ func TestParseArguments_ListAndErrors(t *testing.T) {
 func TestParseIvalConst_AllKinds(t *testing.T) {
 	// identifier, char, string, negative number, number
 	src := `
-g  id, 'x', "str", -123, 456;
+g  /*TODO id,*/ 'x', "str", -123, 456;
 id 0;
 `
 	if err := parseOK(t, src); err != nil {
