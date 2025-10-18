@@ -22,35 +22,35 @@ typedef intptr_t word_t;
 
 // Select output stream: 0-stdout, 1-stderr.
 extern word_t b_fout
-	ALIAS("fout");
+    ALIAS("fout");
 
 //
 // Function declarations.
 //
 void b_exit(void)
-	ALIAS("exit");
-word_t b_char(word_t string, word_t i, ...)
-	ALIAS("char");
-void b_lchar(word_t string, word_t i, word_t chr, ...)
-	ALIAS("lchar");
+    ALIAS("exit");
+word_t b_char(word_t string, /*word_t i,*/ ...)
+    ALIAS("char");
+void b_lchar(word_t string, /*word_t i, word_t chr,*/ ...)
+    ALIAS("lchar");
 word_t b_read(void)
-	ALIAS("read");
-word_t b_nread(word_t file, word_t buffer, word_t count, ...)
-	ALIAS("nread");
+    ALIAS("read");
+word_t b_nread(word_t file, /*word_t buffer, word_t count,*/ ...)
+    ALIAS("nread");
 void b_writeb(word_t c, ...)
-	ALIAS("writeb");
+    ALIAS("writeb");
 void b_write(word_t ch, ...)
-	ALIAS("write");
-word_t b_nwrite(word_t file, word_t buffer, word_t count, ...)
-	ALIAS("nwrite");
+    ALIAS("write");
+word_t b_nwrite(word_t file, /*word_t buffer, word_t count,*/ ...)
+    ALIAS("nwrite");
 void b_printd(word_t n, ...)
-	ALIAS("printd");
+    ALIAS("printd");
 void b_printo(word_t n, ...)
-	ALIAS("printo");
+    ALIAS("printo");
 void b_printf(word_t fmt, ...)
-	ALIAS("printf");
+    ALIAS("printf");
 void b_flush(void)
-	ALIAS("flush");
+    ALIAS("flush");
 
 //
 // Inline functions.

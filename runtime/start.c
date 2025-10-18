@@ -8,7 +8,7 @@ void b_start(void) __asm__("_start"); // assure, that _start is really named _st
 
 void b_start()
 {
-	word_t main(void);
+    word_t main(void);
 
     word_t code = main();
     syscall(SYS_exit, code, 0, 0);

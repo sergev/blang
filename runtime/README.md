@@ -608,24 +608,6 @@ clang program.ll -o program         # Wrong - missing libb.o
 
 ---
 
-## Build Integration
-
-### Makefile Target
-
-```makefile
-libb.o: runtime/libb.c
-	cc -c -ffreestanding runtime/libb.c -o libb.o
-```
-
-### Clean Target
-
-```makefile
-clean:
-	rm -f blang *.o *.ll
-```
-
----
-
 ## Future Enhancements
 
 ### Potential Additions
