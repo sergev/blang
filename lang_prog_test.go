@@ -123,6 +123,14 @@ sign(0) = 0
 (x < y ? x : y) * 2 = 20
 nested: 100
 `},
+		{name: "three_args", code: `
+main() {
+	abc(12, 34, 56);
+}
+abc(a, b, c) {
+	printf("%d %d %d*n", a, b, c);
+}
+`,				wantStdout: "12 34 56\n"},
 	}
 
 	for _, tt := range tests {
