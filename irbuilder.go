@@ -25,6 +25,8 @@ type Compiler struct {
 	labels    map[string]*ir.Block   // named labels for goto
 	// Store original parameter names for variadic functions
 	functionParams map[string][]string // function name -> original parameter names
+	// Cache for function types to avoid duplicate declarations
+	functionTypes map[string]*types.FuncType // signature -> function type
 }
 
 // globalName returns the fully qualified global symbol name, applying the
@@ -48,6 +50,7 @@ func NewCompiler(args *CompileOptions) *Compiler {
 		strings:        make([]*ir.Global, 0),
 		stringID:       0,
 		functionParams: make(map[string][]string),
+		functionTypes:  make(map[string]*types.FuncType),
 	}
 }
 
@@ -262,6 +265,31 @@ func (c *Compiler) GetOrDeclareFunction(name string) *ir.Func {
 	return fn
 }
 
+// GetOrCreateFunctionType returns a cached function type or creates a new one
+func (c *Compiler) GetOrCreateFunctionType(returnType types.Type, argTypes []types.Type, variadic bool) *types.FuncType {
+	// Create a signature string for caching
+	sig := fmt.Sprintf("%v(%v)%v", returnType, argTypes, variadic)
+
+	if fnType, exists := c.functionTypes[sig]; exists {
+		return fnType
+	}
+
+	// Create new function type
+	var fnType *types.FuncType
+	if len(argTypes) > 0 {
+		fnType = types.NewFunc(returnType, argTypes...)
+	} else {
+		fnType = types.NewFunc(returnType)
+	}
+	if variadic {
+		fnType.Variadic = true
+	}
+
+	// Cache it
+	c.functionTypes[sig] = fnType
+	return fnType
+}
+
 // ClearTopLevelContext clears symbol tables that should not persist across
 // top-level declarations while keeping the LLVM module intact.
 func (c *Compiler) ClearTopLevelContext() {
@@ -318,7 +346,7 @@ func (c *Compiler) StartFunction(fn *ir.Func) {
 		vaListAlloca := c.builder.NewAlloca(vaListType)
 
 		// Initialize va_list using llvm.va_start intrinsic
-		vaStartFunc := c.module.NewFunc("llvm.va_start.p0", types.Void, ir.NewParam("", vaListType))
+		vaStartFunc := c.getOrCreateVAStartFunc()
 		c.builder.NewCall(vaStartFunc, vaListAlloca)
 
 		// Extract remaining parameters using va_arg
@@ -337,7 +365,7 @@ func (c *Compiler) StartFunction(fn *ir.Func) {
 		}
 
 		// Clean up va_list using llvm.va_end intrinsic
-		vaEndFunc := c.module.NewFunc("llvm.va_end.p0", types.Void, ir.NewParam("", vaListType))
+		vaEndFunc := c.getOrCreateVAEndFunc()
 		c.builder.NewCall(vaEndFunc, vaListAlloca)
 	}
 }
@@ -479,4 +507,30 @@ func (c *Compiler) GetOrCreateLabel(name string) *ir.Block {
 	block := c.currentFn.NewBlock(name)
 	c.labels[name] = block
 	return block
+}
+
+// getOrCreateVAStartFunc gets or creates the llvm.va_start.p0 intrinsic function
+func (c *Compiler) getOrCreateVAStartFunc() *ir.Func {
+	funcName := "llvm.va_start.p0"
+	// Check if function already exists in module
+	for _, fn := range c.module.Funcs {
+		if fn.Name() == funcName {
+			return fn
+		}
+	}
+	vaListType := types.NewPointer(types.I8)
+	return c.module.NewFunc(funcName, types.Void, ir.NewParam("", vaListType))
+}
+
+// getOrCreateVAEndFunc gets or creates the llvm.va_end.p0 intrinsic function
+func (c *Compiler) getOrCreateVAEndFunc() *ir.Func {
+	funcName := "llvm.va_end.p0"
+	// Check if function already exists in module
+	for _, fn := range c.module.Funcs {
+		if fn.Name() == funcName {
+			return fn
+		}
+	}
+	vaListType := types.NewPointer(types.I8)
+	return c.module.NewFunc(funcName, types.Void, ir.NewParam("", vaListType))
 }

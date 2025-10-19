@@ -745,14 +745,15 @@ func parsePostfix(l *Lexer, c *Compiler) (value.Value, bool, error) {
 
 				// Convert i64 to function pointer
 				// Create function type that matches the actual arguments being passed
+				// For B language functions, they are typically variadic with the first parameter as fixed
+				// Create a single, global variadic function type to avoid va_start declaration conflicts
 				var fnType *types.FuncType
 				if len(args) >= 1 {
-					// Create non-variadic function type with the exact number of arguments
-					argTypes := make([]types.Type, len(args))
-					for i, arg := range args {
-						argTypes[i] = arg.Type()
-					}
-					fnType = types.NewFunc(c.WordType(), argTypes...)
+					// Create variadic function type with the first argument as a fixed parameter
+					// This matches the B language semantics where functions are variadic
+					firstArgType := args[0].Type()
+					fnType = types.NewFunc(c.WordType(), firstArgType)
+					fnType.Variadic = true
 				} else {
 					fnType = types.NewFunc(c.WordType())
 				}
