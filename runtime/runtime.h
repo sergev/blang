@@ -61,3 +61,6 @@ void b_flush(void)
 #ifdef __aarch64__
 #include "aarch64.h"
 #endif
+#ifdef __riscv
+#include "riscv64.h"
+#endif
