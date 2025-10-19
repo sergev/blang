@@ -23,6 +23,8 @@ type Compiler struct {
 	stringID  int                    // unique id for string constants
 	labelID   int                    // counter for labels
 	labels    map[string]*ir.Block   // named labels for goto
+	// Store original parameter names for variadic functions
+	functionParams map[string][]string // function name -> original parameter names
 }
 
 // globalName returns the fully qualified global symbol name, applying the
@@ -38,13 +40,14 @@ func (c *Compiler) globalName(name string) string {
 // NewCompiler creates a new compiler structure
 func NewCompiler(args *CompileOptions) *Compiler {
 	return &Compiler{
-		args:      args,
-		module:    ir.NewModule(),
-		locals:    make(map[string]value.Value),
-		globals:   make(map[string]value.Value),
-		functions: make(map[string]*ir.Func),
-		strings:   make([]*ir.Global, 0),
-		stringID:  0,
+		args:           args,
+		module:         ir.NewModule(),
+		locals:         make(map[string]value.Value),
+		globals:        make(map[string]value.Value),
+		functions:      make(map[string]*ir.Func),
+		strings:        make([]*ir.Global, 0),
+		stringID:       0,
+		functionParams: make(map[string][]string),
 	}
 }
 
@@ -210,13 +213,21 @@ func (c *Compiler) DeclareFunction(name string, paramNames []string) *ir.Func {
 	// Remove any prior function with the same name from the module to enforce no-context
 	c.removeFuncByName(name)
 
-	// All B functions take i64 parameters and return i64
-	params := make([]*ir.Param, len(paramNames))
-	for i, pname := range paramNames {
-		params[i] = ir.NewParam(pname, c.WordType())
+	// Store original parameter names for later use in StartFunction
+	c.functionParams[name] = paramNames
+
+	// B language semantics: functions with parameters are variadic with one fixed parameter
+	var fn *ir.Func
+	if len(paramNames) == 0 {
+		// No parameters: regular function
+		fn = c.module.NewFunc(c.globalName(name), c.WordType())
+	} else {
+		// One or more parameters: variadic with first parameter as fixed
+		firstParam := ir.NewParam(paramNames[0], c.WordType())
+		fn = c.module.NewFunc(c.globalName(name), c.WordType(), firstParam)
+		fn.Sig.Variadic = true
 	}
 
-	fn := c.module.NewFunc(c.globalName(name), c.WordType(), params...)
 	c.functions[name] = fn
 	return fn
 }
@@ -257,6 +268,7 @@ func (c *Compiler) ClearTopLevelContext() {
 	c.globals = make(map[string]value.Value)
 	c.functions = make(map[string]*ir.Func)
 	c.strings = make([]*ir.Global, 0)
+	c.functionParams = make(map[string][]string)
 }
 
 // StartFunction starts building a function body
@@ -266,11 +278,67 @@ func (c *Compiler) StartFunction(fn *ir.Func) {
 	c.labels = make(map[string]*ir.Block)
 	c.builder = fn.NewBlock("entry")
 
-	// Allocate space for parameters
-	for _, param := range fn.Params {
+	// Get the function name to look up original parameters
+	var funcName string
+	for name, f := range c.functions {
+		if f == fn {
+			funcName = name
+			break
+		}
+	}
+
+	// Get original parameter names
+	paramNames, exists := c.functionParams[funcName]
+	if !exists {
+		paramNames = []string{}
+	}
+
+	// Handle parameter allocation based on B language semantics
+	if len(paramNames) == 0 {
+		// No parameters: nothing to do
+		return
+	} else if len(paramNames) == 1 {
+		// Single parameter: store normally (it's the fixed parameter)
+		param := fn.Params[0]
 		alloca := c.builder.NewAlloca(c.WordType())
 		c.builder.NewStore(param, alloca)
-		c.locals[param.Name()] = alloca
+		c.locals[paramNames[0]] = alloca
+	} else {
+		// Multiple parameters: first is fixed, rest extracted via va_arg
+
+		// Store the first parameter normally
+		firstParam := fn.Params[0]
+		alloca := c.builder.NewAlloca(c.WordType())
+		c.builder.NewStore(firstParam, alloca)
+		c.locals[paramNames[0]] = alloca
+
+		// Set up va_list for remaining parameters
+		// Allocate space for va_list (ptr)
+		vaListType := types.NewPointer(types.I8) // ptr type
+		vaListAlloca := c.builder.NewAlloca(vaListType)
+
+		// Initialize va_list using llvm.va_start intrinsic
+		vaStartFunc := c.module.NewFunc("llvm.va_start.p0", types.Void, ir.NewParam("", vaListType))
+		c.builder.NewCall(vaStartFunc, vaListAlloca)
+
+		// Extract remaining parameters using va_arg
+		for i := 1; i < len(paramNames); i++ {
+			paramName := paramNames[i]
+
+			// Allocate space for this parameter
+			paramAlloca := c.builder.NewAlloca(c.WordType())
+
+			// Extract the parameter using va_arg instruction
+			vaArgResult := c.builder.NewVAArg(vaListAlloca, c.WordType())
+
+			// Store the extracted value to the parameter
+			c.builder.NewStore(vaArgResult, paramAlloca)
+			c.locals[paramName] = paramAlloca
+		}
+
+		// Clean up va_list using llvm.va_end intrinsic
+		vaEndFunc := c.module.NewFunc("llvm.va_end.p0", types.Void, ir.NewParam("", vaListType))
+		c.builder.NewCall(vaEndFunc, vaListAlloca)
 	}
 }
 
