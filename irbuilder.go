@@ -341,13 +341,18 @@ func (c *Compiler) StartFunction(fn *ir.Func) {
 		c.locals[paramNames[0]] = alloca
 
 		// Set up va_list for remaining parameters
-		// Allocate space for va_list (ptr)
-		vaListType := types.NewPointer(types.I8) // ptr type
-		vaListAlloca := c.builder.NewAlloca(vaListType)
+		// Allocate sufficiently large opaque buffer to hold platform va_list
+		// Use [48 x i8] which covers common ABIs (x86_64, aarch64)
+		vaArrayType := types.NewArray(48, types.I8)
+		vaArrayAlloca := c.builder.NewAlloca(vaArrayType)
+		// Pointer to first element as i8* for intrinsics and va_arg
+		vaListPtr := c.builder.NewGetElementPtr(vaArrayType, vaArrayAlloca,
+			constant.NewInt(types.I32, 0),
+			constant.NewInt(types.I32, 0))
 
 		// Initialize va_list using llvm.va_start intrinsic
 		vaStartFunc := c.getOrCreateVAStartFunc()
-		c.builder.NewCall(vaStartFunc, vaListAlloca)
+		c.builder.NewCall(vaStartFunc, vaListPtr)
 
 		// Extract remaining parameters using va_arg
 		for i := 1; i < len(paramNames); i++ {
@@ -357,7 +362,7 @@ func (c *Compiler) StartFunction(fn *ir.Func) {
 			paramAlloca := c.builder.NewAlloca(c.WordType())
 
 			// Extract the parameter using va_arg instruction
-			vaArgResult := c.builder.NewVAArg(vaListAlloca, c.WordType())
+			vaArgResult := c.builder.NewVAArg(vaListPtr, c.WordType())
 
 			// Store the extracted value to the parameter
 			c.builder.NewStore(vaArgResult, paramAlloca)
@@ -366,7 +371,7 @@ func (c *Compiler) StartFunction(fn *ir.Func) {
 
 		// Clean up va_list using llvm.va_end intrinsic
 		vaEndFunc := c.getOrCreateVAEndFunc()
-		c.builder.NewCall(vaEndFunc, vaListAlloca)
+		c.builder.NewCall(vaEndFunc, vaListPtr)
 	}
 }
 
