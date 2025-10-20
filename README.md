@@ -48,7 +48,7 @@ make install DESTDIR=/custom/prefix
 ## Features
 
 - **Complete B Language Support**: All B language features implemented
-- **Cross-platform**: Runs natively on Linux (x86_64, aarch64) and macOS (x86_64, aarch64)
+- **Cross-platform**: Runs natively on Linux (x86_64, ARM64, RISC-V) and macOS (x86_64, ARM64)
 - **Clang-like CLI Interface**: Professional command-line options and workflow
 - **Multiple Output Formats**: Executable, object files, assembly, LLVM IR
 - **LLVM IR Backend**: Portable, optimized code generation
