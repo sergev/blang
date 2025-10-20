@@ -151,7 +151,7 @@ func (c *Compiler) DeclareGlobalWithMultipleValues(name string, values []constan
 //   - Accessing name gives you the address of the first word
 //   - Accessing name[i] loads the pointer and indexes into it
 //
-// For large arrays without initializers (size > 10), we use a two-global approach:
+// For large arrays without initializers (size > 1), we use a two-global approach:
 //   - name.data[N] = zeroinitializer (very compact in .ll files!)
 //   - name[1] = [pointer to name.data]
 //
@@ -159,8 +159,13 @@ func (c *Compiler) DeclareGlobalWithMultipleValues(name string, values []constan
 func (c *Compiler) DeclareGlobalArray(name string, size int64, init []constant.Constant) *ir.Global {
 	elemType := c.WordType()
 
+	// Special case: unspecified size with no initializers -> size 1, init with 0
+	if size == 0 && len(init) == 0 {
+		size = 1
+	}
+
 	// For large arrays without initializers, use compact two-global representation
-	if len(init) == 0 && size > 10 {
+	if len(init) == 0 && size > 1 {
 		// Create the data array with zeroinitializer (compact!)
 		dataArrayType := types.NewArray(uint64(size), elemType)
 		dataGlobal := c.module.NewGlobalDef(c.globalName(name)+".data", constant.NewZeroInitializer(dataArrayType))
