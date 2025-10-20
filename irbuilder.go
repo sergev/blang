@@ -519,9 +519,9 @@ func (c *Compiler) GetOrCreateLabel(name string) *ir.Block {
 	return block
 }
 
-// getOrCreateVAStartFunc gets or creates the llvm.va_start.p0 intrinsic function
+// getOrCreateVAStartFunc gets or creates the llvm.va_start intrinsic function
 func (c *Compiler) getOrCreateVAStartFunc() *ir.Func {
-	funcName := "llvm.va_start.p0"
+	funcName := "llvm.va_start"
 	// Check if function already exists in module
 	for _, fn := range c.module.Funcs {
 		if fn.Name() == funcName {
@@ -532,9 +532,9 @@ func (c *Compiler) getOrCreateVAStartFunc() *ir.Func {
 	return c.module.NewFunc(funcName, types.Void, ir.NewParam("", vaListType))
 }
 
-// getOrCreateVAEndFunc gets or creates the llvm.va_end.p0 intrinsic function
+// getOrCreateVAEndFunc gets or creates the llvm.va_end intrinsic function
 func (c *Compiler) getOrCreateVAEndFunc() *ir.Func {
-	funcName := "llvm.va_end.p0"
+	funcName := "llvm.va_end"
 	// Check if function already exists in module
 	for _, fn := range c.module.Funcs {
 		if fn.Name() == funcName {
