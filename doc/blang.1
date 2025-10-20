@@ -1,0 +1,277 @@
+.Dd October 2025
+.Dt BLANG 1
+.Os
+.Sh NAME
+.Nm blang
+.Nd B language compiler
+.Sh SYNOPSIS
+.Nm blang
+.Op Ar options
+.Ar file ...
+.Sh DESCRIPTION
+.Nm blang
+is a compiler for the B programming language.
+The B language is a precursor to C, designed by Ken Thompson and Dennis Ritchie
+at Bell Labs in the early 1970s.
+.Pp
+The compiler accepts B source files (with
+.Pa .b
+extension) and can generate various output formats:
+.Bl -bullet
+.It
+Executable binaries (default)
+.It
+Object files
+.Pq Fl c
+.It
+Assembly source
+.Pq Fl S
+.It
+LLVM IR
+.Pq Fl -emit-llvm
+.El
+.Pp
+The compiler generates LLVM IR that is compiled to native code using
+.Xr clang 1 .
+The compiler requires
+.Xr clang 1
+to be installed for code generation and linking.
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl c , Fl -compile
+Compile and assemble, but do not link.
+Output object files with
+.Pa .o
+extension.
+.It Fl S , Fl -assemble
+Compile only; do not assemble or link.
+Output assembly source files with
+.Pa .s
+extension.
+.It Fl -emit-llvm
+Emit LLVM IR instead of executable.
+Output files have
+.Pa .ll
+extension.
+.It Fl o Ar file , Fl -output Ar file
+Place the output into
+.Ar file .
+.It Fl O Ar level , Fl -optimize Ar level
+Set optimization level.
+.Ar level
+can be 0 (no optimization), 1, 2, or 3.
+Default is 1.
+.It Fl g , Fl -debug
+Generate debug information.
+.It Fl v , Fl -verbose
+Verbose output showing compilation steps.
+.It Fl L Ar dir , Fl -library-dir Ar dir
+Add directory to library search path.
+.It Fl l Ar lib , Fl -library Ar lib
+Link with library
+.Ar lib .
+.It Fl -save-temps
+Do not delete intermediate files.
+.It Fl V , Fl -version
+Display compiler version information.
+.It Fl h , Fl -help
+Display help information.
+.El
+.Sh OUTPUT FORMATS
+.Bl -tag -width Ds
+.It Executable Binary
+Default output format.
+Creates a runnable program by compiling B source to LLVM IR,
+then using clang to generate native code and link with the runtime library.
+.It Object File
+.Pq Fl c
+Generates relocatable object files that can be linked later.
+Useful for building libraries or multi-file projects.
+.It Assembly Source
+.Pq Fl S
+Outputs human-readable assembly code for the target architecture.
+Useful for debugging and understanding code generation.
+.It LLVM IR
+.Pq Fl -emit-llvm
+Outputs LLVM Intermediate Representation.
+This is the internal representation used by the compiler
+and can be further processed by LLVM tools.
+.El
+.Sh RUNTIME LIBRARY
+The B runtime library (libb) provides essential I/O operations and system functions.
+All functions are prefixed with
+.Ql b.
+to avoid conflicts with system libraries.
+.Bl -tag -width Ds
+.It Fn write ch
+Write multi-character constant.
+Characters are packed in big-endian format.
+.It Fn writeb c
+Write single byte to output.
+.It Fn printf fmt ...
+Formatted output function supporting:
+.Bl -bullet
+.It
+.Ql %d
+- decimal numbers
+.It
+.Ql %o
+- octal numbers
+.It
+.Ql %c
+- single characters
+.It
+.Ql %s
+- null-terminated strings
+.It
+.Ql %%
+- literal percent sign
+.El
+.It Fn printd n
+Print decimal number recursively.
+.It Fn printo n
+Print octal number using bit-shifting.
+.It Fn read
+Read character from standard input.
+Returns ASCII characters only; returns 4 (ETX) on EOF.
+.It Fn nread fd buf n
+Read
+.Ar n
+bytes from file descriptor
+.Ar fd
+into buffer
+.Ar buf .
+.It Fn nwrite fd buf n
+Write
+.Ar n
+bytes from buffer
+.Ar buf
+to file descriptor
+.Ar fd .
+.It Fn char s i
+Get i-th character from string
+.Ar s .
+.It Fn lchar s i c
+Set i-th character in string
+.Ar s
+to character
+.Ar c .
+.It Fn exit
+Terminate process with exit code 0.
+.It Fn flush
+Force any buffered output to be written immediately.
+.El
+.Pp
+The global variable
+.Va fout
+controls output destination:
+.Bl -bullet
+.It
+0 - stdout (file descriptor 1)
+.It
+1 - stderr (file descriptor 2)
+.El
+.Sh EXAMPLES
+Compile a simple B program:
+.Bd -literal -offset indent
+/* Print numbers 1 to 100, with FizzBuzz rules */
+n 100;
+
+main() {
+    extrn n;
+    auto i;
+
+    while (i < n) {
+        i = i + 1;
+        if (0 == i % 15) {
+            write('Fizz');
+            write('Buzz');
+        } else if (0 == i % 3)
+            write('Fizz');
+        else if (0 == i % 5)
+            write('Buzz');
+        else
+            printf("%d", i);
+        write('*n');
+    }
+}
+.Ed
+.Pp
+Compile to executable:
+.Bd -literal -offset indent
+blang fizzbuzz.b
+.Ed
+.Pp
+Compile to object file:
+.Bd -literal -offset indent
+blang -c fizzbuzz.b
+.Ed
+.Pp
+Compile to assembly:
+.Bd -literal -offset indent
+blang -S fizzbuzz.b
+.Ed
+.Pp
+Compile to LLVM IR:
+.Bd -literal -offset indent
+blang --emit-llvm fizzbuzz.b
+.Ed
+.Pp
+Additional examples are available in
+.Pa /usr/share/doc/blang/ :
+.Bl -bullet
+.It
+.Pa hello.b
+- Simple hello world program
+.It
+.Pa fibonacci.b
+- Fibonacci sequence calculation
+.It
+.Pa helloworld.b
+- Extended hello world example
+.It
+.Pa showcase.b
+- Demonstrates various B language features
+.El
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev HOME
+Used to locate user library directory
+.Pa ~/.local/lib .
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /usr/share/doc/blang/
+Example B programs
+.It Pa ~/.local/lib/
+User library directory
+.It Pa /usr/local/lib/
+System library directory
+.It Pa /usr/lib/
+System library directory
+.El
+.Sh DIAGNOSTICS
+The compiler exits with status 0 on success, 1 on compilation errors.
+Error messages are printed to stderr with the format:
+.Bd -literal -offset indent
+blang: error: description
+.Ed
+.Sh SEE ALSO
+.Xr clang 1
+.Sh HISTORY
+The B language was created by Ken Thompson and Dennis Ritchie at Bell Labs
+in the early 1970s as a simplified version of BCPL for the PDP-7 and PDP-11
+computers. This compiler is a modern implementation for contemporary architectures.
+.Sh AUTHORS
+.Nm blang
+was written by Serge Vakulenko.
+.Sh ACKNOWLEDGMENTS
+Thanks to Ken Thompson for creating the B language, Robert Swierczek for
+restoring the original B language sources for PDP-7, and Spydr6 for the
+BCause compiler project that inspired this implementation.
+.Sh LICENSE
+This software is freely distributed under the MIT License.
+There is NO warranty.
+.Sh BUGS
+The compiler currently supports only ASCII input and output.
+Non-ASCII characters in source files or I/O operations may not work correctly.
