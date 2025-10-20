@@ -10,8 +10,7 @@ main() {
     extrn n;
     auto i;
 
-    while (i < n) {
-        i = i + 1;
+    while (i++ < n) {
         if (0 == i % 15) {
             write('Fizz');
             write('Buzz');

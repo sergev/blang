@@ -64,13 +64,12 @@ test_arrays() {
     sum = 0;
     i = 0;
     while (i < 5) {
-        sum = sum + arr[i];
-        i++;
+        sum =+ arr[i++];
     }
 
     /* Access via pointer */
     ptr = arr;
-    sum = sum + ptr[2];  /* Add arr[2] again */
+    sum =+ ptr[2];  /* Add arr[2] again */
 
     return(sum);  /* 10+20+30+40+50+30 = 180 */
 }
