@@ -65,14 +65,14 @@ The `blang` compiler provides a clang-like command-line interface with comprehen
 # Generate executable
 blang hello.b -o hello
 
-# Generate LLVM IR
-blang -emit-llvm hello.b -o hello.ll
-
 # Generate object file
 blang -c hello.b -o hello.o
 
 # Generate assembly
 blang -S hello.b -o hello.s
+
+# Generate LLVM IR
+blang --emit-llvm hello.b -o hello.ll
 ```
 
 ### Compiler Options
@@ -82,7 +82,7 @@ blang -S hello.b -o hello.s
 | `-o <file>` | Place output into `<file>` |
 | `-c` | Compile and assemble, but do not link |
 | `-S` | Compile only; do not assemble or link |
-| `-emit-llvm` | Emit LLVM IR instead of executable |
+| `--emit-llvm` | Emit LLVM IR instead of executable |
 
 ### Optimization and Debugging
 
@@ -103,7 +103,7 @@ blang -S hello.b -o hello.s
 
 | Option | Description |
 |--------|-------------|
-| `-save-temps` | Do not delete intermediate files |
+| `--save-temps` | Do not delete intermediate files |
 | `-h`, `--help` | Display help information |
 | `-V`, `--version` | Display version information |
 
@@ -119,16 +119,14 @@ blang -v hello.b
 # Multiple library directories and libraries
 blang hello.b -L/usr/lib -L/usr/local/lib -lpthread -lmath
 
-# Options after arguments (flexible ordering)
-blang hello.b -O2 -v
-
 # All flags combined
-blang -v -O3 -g -save-temps hello.b
+blang -v -O3 -g --save-temps hello.b
 ```
 
 ## Example Programs
 
 - `examples/hello.b` - Hello world using write()
+- `examples/helloworld.b` - Hello world using printf()
 - `examples/fibonacci.b` - Fibonacci calculator
 - `examples/fizzbuzz.b` - FizzBuzz 1-100
 - `examples/e-2.b` - E-2 constant calculation
@@ -140,17 +138,14 @@ blang -v -O3 -g -save-temps hello.b
 # Run all tests
 make test
 
-# Run CLI-specific tests
-go test -v -run TestCLI
-
 # Run specific test categories
 go test -v -run TestCLIBasicOptions
-go test -v -run TestCLIOutputFormats
 ```
 
 ## Documentation
 
 - [CLI Usage Guide](doc/CLI.md) - Comprehensive command-line interface guide
+- [B Language Runtime Library](runtime/README.md) - I/O functions, string functions, system functions
 - [B Language Reference](https://github.com/sergev/blang/raw/refs/heads/main/doc/bref.pdf) - Original manual by S.C.Johnson
 - [B Tutorial](https://github.com/sergev/blang/raw/refs/heads/main/doc/btut.pdf) - A tutorial introduction by B.W.Kernighan
 - [Users' Reference to B](https://github.com/sergev/blang/raw/refs/heads/main/doc/kbman.pdf) - Ken Thompson's guide
