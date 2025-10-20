@@ -1,0 +1,15 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	$(MAKE) all
+
+override_dh_auto_install:
+	$(MAKE) install DESTDIR=debian/blang
+
+override_dh_auto_clean:
+	$(MAKE) clean

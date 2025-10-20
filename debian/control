@@ -1,0 +1,28 @@
+Source: blang
+Section: devel
+Priority: optional
+Maintainer: Serge Vakulenko <serge@vakulenko.org>
+Build-Depends: debhelper (>= 13), golang-go (>= 1.21), make, clang | gcc
+Standards-Version: 4.6.2
+Homepage: https://github.com/sergev/blang
+
+Package: blang
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libc6, clang
+Description: B programming language compiler
+ A modern B programming language compiler written in Go with LLVM IR backend
+ and clang-like command-line interface.
+ .
+ The B programming language was developed by Ken Thompson and Dennis Ritchie
+ at Bell Labs in 1969 as the predecessor to C.
+ .
+ Features:
+  * Complete B Language Support: All B language features implemented
+  * Cross-platform: Runs natively on Linux (x86_64, ARM64, RISC-V) and macOS
+  * Clang-like CLI Interface: Professional command-line options and workflow
+  * Multiple Output Formats: Executable, object files, assembly, LLVM IR
+  * LLVM IR Backend: Portable, optimized code generation
+  * Comprehensive Testing: 225 tests across 8 organized test files
+  * Modern Go Implementation: Clean, maintainable codebase
+ .
+ The compiler includes the B runtime library (libb.a) and example programs.

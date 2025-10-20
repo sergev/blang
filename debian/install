@@ -1,0 +1,4 @@
+blang usr/bin
+runtime/libb.a usr/lib
+doc/blang.1 usr/share/man/man1
+examples/*.b usr/share/doc/blang

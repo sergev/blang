@@ -4,6 +4,7 @@ blang
 *.o
 *.a
 *.ll
+*.deb
 hello
 oldtests
 .cursor
