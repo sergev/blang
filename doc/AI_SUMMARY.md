@@ -7,11 +7,11 @@ Overview
 
 Build and Test
 - Make targets (top-level `Makefile`): `all` (go build + runtime), `install`, `uninstall`, `clean`, `test` (gotestsum), `cover`, `bench`.
-- Examples `Makefile`: demonstrates CLI flags and outputs (`-emit-llvm`, `-c`, `-S`, `-O`, `-g`, `-v`, `-L`, `-l`).
+- Examples `Makefile`: demonstrates CLI flags and outputs (`--emit-llvm`, `-c`, `-S`, `-O`, `-g`, `-v`, `-L`, `-l`).
 - README notes: 221 tests, ~76% coverage.
 
 CLI (main.go)
-- Flags: `-o`, `--save-temps`, `-emit-llvm`, `-c`, `-S`, `-O{0..3}`, `-g`, `-v`, `-L <dir>`, `-l <lib>`, `-V`, `-h`.
+- Flags: `-o`, `--save-temps`, `--emit-llvm`, `-c`, `-S`, `-O{0..3}`, `-g`, `-v`, `-L <dir>`, `-l <lib>`, `-V`, `-h`.
 - Validates inputs (.b, .ll, .s, .o, .a), constructs `CompileOptions`, assembles default library search paths, then calls `Compile`.
 
 Compiler Orchestration (driver.go)
@@ -77,5 +77,3 @@ Quick Pointers
 - Frontend: `lexer.go`, `parser_decls.go`, `parser_stmt.go`, `expressions.go`.
 - IR state/helpers: `irbuilder.go`.
 - Runtime: `runtime/` (linked via `-lb`, add `-L` to its folder when invoking `blang`).
-
-

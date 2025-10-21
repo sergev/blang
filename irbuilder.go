@@ -356,7 +356,7 @@ func (c *Compiler) StartFunction(fn *ir.Func) {
 			constant.NewInt(types.I32, 0))
 
 		// Initialize va_list using llvm.va_start intrinsic
-		vaStartFunc := c.getOrCreateVAStartFunc()
+		vaStartFunc := c.getOrCreateFunc("llvm.va_start")
 		c.builder.NewCall(vaStartFunc, vaListPtr)
 
 		// Extract remaining parameters using va_arg
@@ -375,7 +375,7 @@ func (c *Compiler) StartFunction(fn *ir.Func) {
 		}
 
 		// Clean up va_list using llvm.va_end intrinsic
-		vaEndFunc := c.getOrCreateVAEndFunc()
+		vaEndFunc := c.getOrCreateFunc("llvm.va_end")
 		c.builder.NewCall(vaEndFunc, vaListPtr)
 	}
 }
@@ -519,22 +519,8 @@ func (c *Compiler) GetOrCreateLabel(name string) *ir.Block {
 	return block
 }
 
-// getOrCreateVAStartFunc gets or creates the llvm.va_start intrinsic function
-func (c *Compiler) getOrCreateVAStartFunc() *ir.Func {
-	funcName := "llvm.va_start"
-	// Check if function already exists in module
-	for _, fn := range c.module.Funcs {
-		if fn.Name() == funcName {
-			return fn
-		}
-	}
-	vaListType := types.NewPointer(types.I8)
-	return c.module.NewFunc(funcName, types.Void, ir.NewParam("", vaListType))
-}
-
-// getOrCreateVAEndFunc gets or creates the llvm.va_end intrinsic function
-func (c *Compiler) getOrCreateVAEndFunc() *ir.Func {
-	funcName := "llvm.va_end"
+// Get or create an intrinsic function by name
+func (c *Compiler) getOrCreateFunc(funcName string) *ir.Func {
 	// Check if function already exists in module
 	for _, fn := range c.module.Funcs {
 		if fn.Name() == funcName {

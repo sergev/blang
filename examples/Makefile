@@ -27,7 +27,7 @@ hello-debug: hello.b ../blang
 
 # Generate LLVM IR
 hello.ll: hello.b ../blang
-	../blang -emit-llvm hello.b
+	../blang --emit-llvm hello.b
 
 # Generate object file
 hello.o: hello.b ../blang

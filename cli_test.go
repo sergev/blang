@@ -529,11 +529,11 @@ func TestCLISaveTemps(t *testing.T) {
 			tempFile := outputFile + ".tmp.ll"
 			if _, err := os.Stat(tempFile); tt.expectTempFile {
 				if os.IsNotExist(err) {
-					t.Errorf("Expected temporary file %s to exist when -save-temps is used", tempFile)
+					t.Errorf("Expected temporary file %s to exist when --save-temps is used", tempFile)
 				}
 			} else {
 				if !os.IsNotExist(err) {
-					t.Errorf("Expected temporary file %s to be cleaned up when -save-temps is not used", tempFile)
+					t.Errorf("Expected temporary file %s to be cleaned up when --save-temps is not used", tempFile)
 				}
 			}
 		})

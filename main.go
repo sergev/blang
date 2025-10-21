@@ -28,7 +28,7 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "  %s  %s%s%s\n", cmd.Sprint("blang hello.b"), note.Sprint("                Compile to executable '"), out.Sprint("hello"), note.Sprint("'"))
 	fmt.Fprintf(os.Stderr, "  %s  %s%s%s\n", cmd.Sprint("blang -c hello.b"), note.Sprint("             Compile to object file '"), out.Sprint("hello.o"), note.Sprint("'"))
 	fmt.Fprintf(os.Stderr, "  %s  %s%s%s\n", cmd.Sprint("blang -S hello.b"), note.Sprint("             Compile to assembly '"), out.Sprint("hello.s"), note.Sprint("'"))
-	fmt.Fprintf(os.Stderr, "  %s  %s%s%s\n", cmd.Sprint("blang -emit-llvm hello.b"), note.Sprint("     Output LLVM IR '"), out.Sprint("hello.ll"), note.Sprint("'"))
+	fmt.Fprintf(os.Stderr, "  %s  %s%s%s\n", cmd.Sprint("blang --emit-llvm hello.b"), note.Sprint("    Output LLVM IR '"), out.Sprint("hello.ll"), note.Sprint("'"))
 	fmt.Fprintf(os.Stderr, "  %s  %s\n", cmd.Sprint("blang -O0 -g -o unopt hello.b"), note.Sprint("Unoptimized with debug info"))
 	fmt.Fprintf(os.Stderr, "  %s  %s\n", cmd.Sprint("blang hello.b -o output -O2"), note.Sprint("  Options can be placed after arguments"))
 	fmt.Fprintf(os.Stderr, "  %s  %s\n", cmd.Sprint("blang -V"), note.Sprint("                     Show version information"))

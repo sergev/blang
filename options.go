@@ -11,10 +11,10 @@ import (
 type OutputType int
 
 const (
-	OutputExecutable OutputType = iota // default - executable
+	OutputExecutable OutputType = iota // default: executable
 	OutputObject                       // -c: object file
 	OutputAssembly                     // -S: assembly file
-	OutputIR                           // -emit-llvm: LLVM IR
+	OutputIR                           // --emit-llvm: LLVM IR
 )
 
 // CompileOptions holds the compiler state
