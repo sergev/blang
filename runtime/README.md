@@ -48,8 +48,8 @@ The B runtime library provides essential I/O operations for B language programs.
 
 | Function | Description |
 |----------|-------------|
-| `printd(n)` | Print decimal number (recursive) |
-| `printo(n)` | Print octal number (bit-shifting) |
+| `printd(n)` | Print decimal number, possibly negative |
+| `printo(n)` | Print octal number, unsigned |
 
 ## Global Variables
 

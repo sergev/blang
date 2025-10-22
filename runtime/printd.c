@@ -2,19 +2,27 @@
 
 //
 // The following function will print a decimal number, possibly negative.
-// This routine uses the fact that in the ANSCII character set,
-// the digits O to 9 have sequential code values.
 //
 void b_printd(word_t n, ...)
 {
-    word_t a;
+    uintptr_t value = (uintptr_t)n;
+    int negative = n < 0;
+    char buf[2 + sizeof(word_t) * 3];
+    char *end = buf + sizeof(buf);
+    char *p = end;
 
-    if (n < 0) {
-        b_write('-');
-        n = -n;
+    if (negative) {
+        value = 1 + ~value; // avoid overflow on MIN
     }
 
-    if ((a = n / 10))
-        b_printd(a);
-    b_write(n % 10 + '0');
+    do {
+        *--p = '0' + (char)(value % 10);
+        value /= 10;
+    } while (value != 0);
+
+    if (negative) {
+        *--p = '-';
+    }
+
+    b_nwrite(b_fout + 1, (word_t)p, (word_t)(end - p));
 }
