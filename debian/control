@@ -1,14 +1,14 @@
 Source: blang
 Section: devel
 Priority: optional
-Maintainer: Serge Vakulenko <serge@vakulenko.org>
-Build-Depends: debhelper (>= 13), golang-go (>= 1.21), make, clang | gcc
+Maintainer: Serge Vakulenko <serge.vakulenko@gmail.com>
+Build-Depends: debhelper (>= 13), golang-go (>= 1.21), make (>= 4.0), clang | gcc (>= 4:9.0)
 Standards-Version: 4.6.2
 Homepage: https://github.com/sergev/blang
 
 Package: blang
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libc6, clang
+Depends: ${shlibs:Depends}, ${misc:Depends}, clang
 Description: B programming language compiler
  A modern B programming language compiler written in Go with LLVM IR backend
  and clang-like command-line interface.

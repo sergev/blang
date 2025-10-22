@@ -9,3 +9,10 @@ hello
 oldtests
 .cursor
 .vscode
+*.build
+*.buildinfo
+*.changes
+*.tar.gz
+*.xz
+*.dsc
+debian-source

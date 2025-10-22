@@ -4,7 +4,7 @@
 PROG    = blang
 DESTDIR	= $(HOME)/.local
 
-.PHONY: all install uninstall clean test cover bench gotestsum
+.PHONY: all install uninstall clean test cover bench gotestsum source
 
 all:
 	go build
@@ -25,7 +25,8 @@ uninstall:
 	$(MAKE) -C runtime $@
 
 clean:
-	rm -f ${PROG} *.o *.ll
+	rm -f *.o *.ll ${PROG}
+	rm -f ${PROG}_*.deb ${PROG}_*.gz ${PROG}_*.xz ${PROG}_*.dsc ${PROG}_*.build ${PROG}_*.buildinfo ${PROG}_*.changes
 	$(MAKE) -C runtime $@
 
 #
@@ -47,27 +48,54 @@ gotestsum:
 bench:
 	go test -bench=BenchmarkCompile -benchmem
 
+# Debian-specific variables (only evaluated for deb/source targets)
+deb source: VERSION    = $(shell dpkg-parsechangelog -S Version)
+deb source: UPSTREAM   = $(shell dpkg-parsechangelog --show-field Version | cut -d- -f1)
+deb source: MAINTAINER = $(shell dpkg-parsechangelog --show-field Maintainer)
+deb source: ARCH       = $(shell dpkg --print-architecture)
+
 #
 # Build Debian package
 #
 deb: all
 	@echo "Building Debian package..."
+	@rm -rf debian-pkg
 	@mkdir -p debian-pkg/DEBIAN
 	@mkdir -p debian-pkg/usr/bin
 	@mkdir -p debian-pkg/usr/lib
 	@mkdir -p debian-pkg/usr/share/man/man1
-	@mkdir -p debian-pkg/usr/share/doc/blang
+	@mkdir -p debian-pkg/usr/share/doc/$(PROG)
 	@$(MAKE) install DESTDIR=debian-pkg
-	@echo "Package: blang" > debian-pkg/DEBIAN/control
-	@echo "Version: 0.1-1" >> debian-pkg/DEBIAN/control
-	@echo "Architecture: amd64" >> debian-pkg/DEBIAN/control
-	@echo "Maintainer: Serge Vakulenko <serge@vakulenko.org>" >> debian-pkg/DEBIAN/control
+	@echo "Package: $(PROG)" > debian-pkg/DEBIAN/control
+	@echo "Version: $(VERSION)" >> debian-pkg/DEBIAN/control
+	@echo "Architecture: $(ARCH)" >> debian-pkg/DEBIAN/control
+	@echo "Maintainer: $(MAINTAINER)" >> debian-pkg/DEBIAN/control
 	@echo "Depends: libc6, clang" >> debian-pkg/DEBIAN/control
-	@echo "Description: B programming language compiler" >> debian-pkg/DEBIAN/control
+	@echo "Description: Compiler for the B programming language" >> debian-pkg/DEBIAN/control
 	@echo " A modern B programming language compiler written in Go with LLVM IR backend" >> debian-pkg/DEBIAN/control
 	@echo " and clang-like command-line interface." >> debian-pkg/DEBIAN/control
 	@cp debian/copyright debian-pkg/DEBIAN/
-	@if [ -f debian-pkg/usr/share/man/man1/blang.1 ]; then gzip -9 debian-pkg/usr/share/man/man1/blang.1; fi
-	@dpkg-deb --build debian-pkg blang_0.1-1_amd64.deb
+	@if [ -f debian-pkg/usr/share/man/man1/$(PROG).1 ]; then gzip -9 debian-pkg/usr/share/man/man1/$(PROG).1; fi
+	@dpkg-deb --build debian-pkg $(PROG)_$(VERSION)_amd64.deb
 	@rm -rf debian-pkg
-	@echo "Package created: blang_0.1-1_amd64.deb"
+	@echo "Package created:"
+	@dpkg-deb -c $(PROG)_*.deb
+
+#
+# Build Debian source package
+#
+source:
+	@echo "Building Debian source package..."
+	@rm -rf debian-source
+	@mkdir -p debian-source
+	@echo "Copying files from manifest..."
+	tar cfT - debian/manifest | tar xf - -C debian-source
+	@echo "Creating upstream tarball..."
+	@cd debian-source && tar --transform "s,^\.,$(PROG)-$(UPSTREAM)," -czf ../$(PROG)_$(UPSTREAM).orig.tar.gz .
+	@echo "Building source package..."
+	cd debian-source && debuild -S -sa
+	@echo "Running lintian checks..."
+	lintian $(PROG)_$(VERSION).dsc
+	@rm -rf debian-source
+	@echo "Source package created:"
+	@ls -lh $(PROG)_*-*.dsc $(PROG)_*.orig.tar.gz $(PROG)_*.debian.tar.xz

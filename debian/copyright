@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: blang
-Upstream-Contact: Serge Vakulenko <serge@vakulenko.org>
+Upstream-Contact: Serge Vakulenko <serge.vakulenko@gmail.com>
 Source: https://github.com/sergev/blang
 
 Files: *

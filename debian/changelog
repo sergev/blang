@@ -1,4 +1,4 @@
-blang (0.1-1) unstable; urgency=low
+blang (0.1-1) UNRELEASED; urgency=low
 
   * Initial release of blang B language compiler
   * Complete B language implementation with LLVM IR backend
@@ -6,4 +6,4 @@ blang (0.1-1) unstable; urgency=low
   * Supports multiple output formats (executable, object, assembly, LLVM IR)
   * Cross-platform support for Linux and macOS
 
- -- Serge Vakulenko <serge@vakulenko.org>  Mon, 13 Jan 2025 12:00:00 +0000
+ -- Serge Vakulenko <serge.vakulenko@gmail.com>  Mon, 13 Jan 2025 12:00:00 +0000
