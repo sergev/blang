@@ -324,22 +324,23 @@ func TestCompileErrors(t *testing.T) {
 			wantErr:     true,
 			errContains: "undefined identifier", // extrn required
 		},
-/*		{
+		{
 			name:        "undef_after_extrn",
 			content:     "main() { extrn x; x = 42; } foo() { x = 123; }",
 			wantErr:     true,
 			errContains: "undefined identifier", // extrn required
 		},
 		{
+			name:        "extrn_after_call",
+			content:     "main() { x(42); } foo() { extrn x; x = 123; }",
+			wantErr:     true,
+			errContains: "function redeclared as variable",
+		},
+/*		{
 			name:        "undef_after_call",
 			content:     "main() { x(42); } foo() { x = 123; }",
 			wantErr:     true,
 			errContains: "undefined identifier", // auto required
-		},
-		{
-			name:        "extrn_after_call",
-			content:     "main() { x(42); } foo() { extrn x; x = 123; }",
-			wantErr:     false,                  // allowed by compiler, though cannot run
 		},
 		{
 			name:        "undef_after_func",
