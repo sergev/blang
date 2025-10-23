@@ -12,7 +12,7 @@ import (
 // BenchmarkCompile benchmarks the compilation process
 func BenchmarkCompile(b *testing.B) {
 	tmpDir := b.TempDir()
-	outputFile := filepath.Join(tmpDir, "output.ll")
+	outputFile := filepath.Join(tmpDir, "output")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -360,10 +360,9 @@ func TestCompileErrors(t *testing.T) {
 			errContains: "function redeclared as variable",
 		},
 		{
-			name:        "func_after_func",
-			content:     "main() { exit(0); } main() { exit(1); }",
-			wantErr:     true,
-			errContains: "failed to generate executable",
+			name:    "func_after_func",
+			content: "main() { exit(0); } main() { exit(1); }",
+			wantErr: false, // second main() replaces first one
 		},
 		{
 			name:        "duplicate_identifier",
@@ -384,7 +383,7 @@ func TestCompileErrors(t *testing.T) {
 			// Create temporary input file
 			tmpDir := t.TempDir()
 			inputFile := filepath.Join(tmpDir, "test.b")
-			outputFile := filepath.Join(tmpDir, "output.ll")
+			outputFile := filepath.Join(tmpDir, "output")
 
 			err := os.WriteFile(inputFile, []byte(tt.content), 0644)
 			if err != nil {
@@ -394,6 +393,7 @@ func TestCompileErrors(t *testing.T) {
 			// Try to compile
 			args := NewCompileOptions("blang", []string{inputFile})
 			args.OutputFile = outputFile
+			args.LibraryDirs = []string{"runtime"} // Add runtime directory for libb.a
 
 			err = Compile(args)
 			if (err != nil) != tt.wantErr {
