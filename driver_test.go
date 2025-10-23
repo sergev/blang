@@ -349,9 +349,9 @@ func TestCompileErrors(t *testing.T) {
 			errContains: "undefined identifier", // auto required
 		},
 		{
-			name:        "auto_after_func",
-			content:     "main() { foo(); } foo() { auto main; main = 123; }",
-			wantErr:     false,                  // allowed
+			name:    "auto_after_func",
+			content: "main() { foo(); } foo() { auto main; main = 123; }",
+			wantErr: false, // allowed
 		},
 		{
 			name:        "extrn_after_func",
@@ -365,13 +365,18 @@ func TestCompileErrors(t *testing.T) {
 			wantErr:     true,
 			errContains: "failed to generate executable",
 		},
-		// Note: Duplicate identifier detection is not yet implemented in LLVM backend
-		// {
-		// 	name:        "duplicate_identifier",
-		// 	content:     "main() { auto x, x; }",
-		// 	wantErr:     true,
-		// 	errContains: "already defined",
-		// },
+		{
+			name:        "duplicate_identifier",
+			content:     "main() { auto x, x; }",
+			wantErr:     true,
+			errContains: "already defined",
+		},
+		{
+			name:        "duplicate_identifier_across_auto",
+			content:     "main() { auto x; auto x; }",
+			wantErr:     true,
+			errContains: "already defined",
+		},
 	}
 
 	for _, tt := range tests {

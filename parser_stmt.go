@@ -186,12 +186,24 @@ func parseAuto(l *Lexer, c *Compiler) error {
 		size int64 // -1 for scalar, >= 0 for array
 	}
 	var decls []autoDecl
+	// Track duplicates within the same auto statement
+	seen := make(map[string]struct{})
 
 	for {
 		name, err := l.Identifier()
 		if err != nil || name == "" {
 			return fmt.Errorf("expect identifier after 'auto'")
 		}
+
+		// Duplicate identifier detection: within the same auto statement
+		if _, exists := seen[name]; exists {
+			return fmt.Errorf("identifier '%s' already defined in this scope", name)
+		}
+		// Also check against already-declared locals in this function
+		if _, exists := c.locals[name]; exists {
+			return fmt.Errorf("identifier '%s' already defined in this scope", name)
+		}
+		seen[name] = struct{}{}
 
 		if err := l.Whitespace(); err != nil {
 			return err
