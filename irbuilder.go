@@ -27,6 +27,8 @@ type Compiler struct {
 	functionParams map[string][]string // function name -> original parameter names
 	// Cache for function types to avoid duplicate declarations
 	functionTypes map[string]*types.FuncType // signature -> function type
+	// Names that have been used as functions (call sites), for cross-decl collision checks
+	usedAsFunction map[string]bool
 }
 
 // globalName returns the fully qualified global symbol name, applying the
@@ -51,6 +53,7 @@ func NewCompiler(args *CompileOptions) *Compiler {
 		stringID:       0,
 		functionParams: make(map[string][]string),
 		functionTypes:  make(map[string]*types.FuncType),
+		usedAsFunction: make(map[string]bool),
 	}
 }
 
@@ -260,13 +263,15 @@ func (c *Compiler) GetOrDeclareFunction(name string) *ir.Func {
 		return nil
 	}
 
-	// Enforce no-context: remove any prior function of the same name from the module
+	// Enforce no-context: remove any prior transient function of the same name from the module
 	c.removeFuncByName(name)
 
 	// Auto-declare as external variadic function in current context
 	fn := c.module.NewFunc(c.globalName(name), c.WordType())
 	fn.Sig.Variadic = true
 	c.functions[name] = fn
+	// Remember name was used as function
+	c.usedAsFunction[name] = true
 	return fn
 }
 
@@ -298,6 +303,7 @@ func (c *Compiler) GetOrCreateFunctionType(returnType types.Type, argTypes []typ
 // ClearTopLevelContext clears symbol tables that should not persist across
 // top-level declarations while keeping the LLVM module intact.
 func (c *Compiler) ClearTopLevelContext() {
+	// Reset per-declaration-context symbol tables
 	c.globals = make(map[string]value.Value)
 	c.functions = make(map[string]*ir.Func)
 	c.strings = make([]*ir.Global, 0)
@@ -440,11 +446,6 @@ func (c *Compiler) GetAddress(name string) (value.Value, bool) {
 	// Check locals first
 	if val, ok := c.locals[name]; ok {
 		return val, true
-	}
-
-	// Check module functions
-	if fn := c.findFuncByName(name); fn != nil {
-		return fn, true
 	}
 
 	// Check globals visible in CURRENT context only (e.g., via 'extrn')

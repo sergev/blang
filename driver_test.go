@@ -336,7 +336,7 @@ func TestCompileErrors(t *testing.T) {
 			wantErr:     true,
 			errContains: "function redeclared as variable",
 		},
-/*		{
+		{
 			name:        "undef_after_call",
 			content:     "main() { x(42); } foo() { x = 123; }",
 			wantErr:     true,
@@ -356,15 +356,15 @@ func TestCompileErrors(t *testing.T) {
 		{
 			name:        "extrn_after_func",
 			content:     "main() { foo(); } foo() { extrn main; main = 123; }",
-			wantErr:     false,                  // allowed by compiler, though cannot run
+			wantErr:     true,
+			errContains: "function redeclared as variable",
 		},
 		{
 			name:        "func_after_func",
 			content:     "main() { exit(0); } main() { exit(1); }",
 			wantErr:     true,
-			errContains: "failed to generate executable", // allowed by compiler, though cannot link
+			errContains: "failed to generate executable",
 		},
-*/
 		// Note: Duplicate identifier detection is not yet implemented in LLVM backend
 		// {
 		// 	name:        "duplicate_identifier",

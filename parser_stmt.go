@@ -298,7 +298,7 @@ func parseExtrn(l *Lexer, c *Compiler) error {
 		var g *ir.Global
 		if existing := c.findGlobalByName(name); existing != nil {
 			g = existing
-		} else if c.findFuncByName(name) == nil {
+		} else if c.findFuncByName(name) == nil && !c.usedAsFunction[name] {
 			g = c.module.NewGlobalDef(c.globalName(name), constant.NewInt(c.WordType(), 0))
 		} else {
 			return fmt.Errorf("function redeclared as variable")

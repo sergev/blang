@@ -908,22 +908,37 @@ func parsePrimary(l *Lexer, c *Compiler) (value.Value, bool, error) {
 			return fn, false, nil
 		}
 
-		// Not a call - get the variable address
+		// Not a call - get the variable address first
 		addr, found := c.GetAddress(name)
-		if !found {
-			return nil, false, fmt.Errorf("undefined identifier '%s'", name)
+		if found {
+			// It's a variable known in current context; return as lvalue
+			return addr, true, nil
 		}
 
-		// Check if it's a function
-		if fn, ok := addr.(*ir.Func); ok {
-			// Function used as value (not called) - return its address as i64
-			// This allows: func_ptr = add; (storing function address)
+		// If the next non-whitespace character is '=', this identifier is on the
+		// left side of an assignment. Since it's not a variable, report undefined.
+		if err := l.Whitespace(); err != nil {
+			return nil, false, err
+		}
+		nextCh, err2 := l.ReadChar()
+		if err2 == nil {
+			l.UnreadChar(nextCh)
+			if nextCh == '=' {
+				return nil, false, fmt.Errorf("undefined identifier '%s'", name)
+			}
+		}
+
+		// Otherwise, allow using a function symbol as a value (address)
+		// if such function is known or can be auto-declared
+		if fn := c.findFuncByName(name); fn != nil {
 			fnPtr := c.builder.NewPtrToInt(fn, c.WordType())
 			return fnPtr, false, nil
 		}
-
-		// It's a variable - return as lvalue
-		return addr, true, nil
+		if fn := c.GetOrDeclareFunction(name); fn != nil {
+			fnPtr := c.builder.NewPtrToInt(fn, c.WordType())
+			return fnPtr, false, nil
+		}
+		return nil, false, fmt.Errorf("undefined identifier '%s'", name)
 
 	default:
 		return nil, false, fmt.Errorf("unexpected character '%c', expect expression", ch)
