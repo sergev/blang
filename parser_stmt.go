@@ -291,10 +291,21 @@ func parseExtrn(l *Lexer, c *Compiler) error {
 			return fmt.Errorf("expect identifier after 'extrn'")
 		}
 
-		// extrn declares a reference in the current declaration context only
-		// Add a zero-initialized global to the module if not already present
-		if c.findGlobalByName(name) == nil && c.findFuncByName(name) == nil {
-			c.module.NewGlobalDef(c.globalName(name), constant.NewInt(c.WordType(), 0))
+
+		// extrn declares a reference in the CURRENT declaration context only.
+		// Ensure a module-level global exists (to share storage across functions),
+		// but expose it to the current function via the per-context symbol table
+		// (c.globals) so other functions do not implicitly see it.
+		var g *ir.Global
+		if existing := c.findGlobalByName(name); existing != nil {
+			g = existing
+		} else if c.findFuncByName(name) == nil {
+			g = c.module.NewGlobalDef(c.globalName(name), constant.NewInt(c.WordType(), 0))
+		} else {
+			// Name collides with a function; keep g nil so we only record extrn when it's a variable
+		}
+		if g != nil {
+			c.globals[name] = g
 		}
 
 		if err := l.Whitespace(); err != nil {

@@ -890,14 +890,14 @@ func parsePrimary(l *Lexer, c *Compiler) (value.Value, bool, error) {
 
 		// If it's a call, handle both direct and indirect calls
 		if isCall {
-			// Check module for a declared function
+			// Check for a declared function in module
 			if fn := c.findFuncByName(name); fn != nil {
 				return fn, false, nil
 			}
 
-			// Check if it's an extrn variable (function pointer) in module globals
-			if g := c.findGlobalByName(name); g != nil {
-				return g, true, nil
+			// Check extrn variable in CURRENT context only
+			if gVal, ok := c.globals[name]; ok {
+				return gVal, true, nil
 			}
 
 			// Not found anywhere - auto-declare as external function in current context

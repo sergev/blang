@@ -262,17 +262,17 @@ nerror;
 nauto;
 
 main() {
+  extrn ns, symtab, symbuf, csym;
   ns = &symtab[51];
   symbuf[0] = 'm'; symbuf[1] = 'a'; symbuf[2] = 'i'; symbuf[3] = 'n'; symbuf[4] = 0;
   csym = lookup();
   name(&csym[2]);
-  write(':');
   write('*n');
 }
 `
 
 	got := compileLinkRunFromCode(t, "transient_lookup_name", code)
-	want := "main:\n"
+	want := "main\n"
 	if got != want {
 		t.Fatalf("unexpected output: got %q, want %q", got, want)
 	}
@@ -550,10 +550,10 @@ nerror;
 nauto;
 
 main() {
+  extrn ns, symtab, csym;
   ns = &symtab[51];
   symbol();
   name(&csym[2]);
-  write(':');
   write('*n');
 }
 `
@@ -572,7 +572,7 @@ main() {
 		t.Fatalf("failed to run program: %v", err)
 	}
 	got := string(out)
-	want := "main:\n"
+	want := "main\n"
 	if got != want {
 		t.Fatalf("unexpected output: got %q, want %q", got, want)
 	}

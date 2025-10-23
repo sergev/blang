@@ -256,7 +256,7 @@ func (c *Compiler) GetOrDeclareFunction(name string) *ir.Func {
 	}
 
 	// If declared as extrn variable in current context, treat as function pointer variable
-	if c.findGlobalByName(name) != nil {
+	if _, ok := c.globals[name]; ok {
 		return nil
 	}
 
@@ -447,16 +447,20 @@ func (c *Compiler) GetAddress(name string) (value.Value, bool) {
 		return fn, true
 	}
 
-	// Check module globals
-	if irGlobal := c.findGlobalByName(name); irGlobal != nil {
-		// If the global is an array type (scalar with multiple values)
-		if arrayType, ok := irGlobal.ContentType.(*types.ArrayType); ok {
-			firstElem := c.builder.NewGetElementPtr(arrayType, irGlobal,
-				constant.NewInt(types.I32, 0),
-				constant.NewInt(types.I32, 0))
-			return firstElem, true
+	// Check globals visible in CURRENT context only (e.g., via 'extrn')
+	if v, ok := c.globals[name]; ok {
+		if irGlobal, ok2 := v.(*ir.Global); ok2 {
+			// If the global is an array type (scalar with multiple values)
+			if arrayType, ok3 := irGlobal.ContentType.(*types.ArrayType); ok3 {
+				firstElem := c.builder.NewGetElementPtr(arrayType, irGlobal,
+					constant.NewInt(types.I32, 0),
+					constant.NewInt(types.I32, 0))
+				return firstElem, true
+			}
+			return irGlobal, true
 		}
-		return irGlobal, true
+		// Fallback: return as found value
+		return v, true
 	}
 
 	return nil, false
