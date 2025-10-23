@@ -76,7 +76,7 @@ deb: all
 	@echo " and clang-like command-line interface." >> debian-pkg/DEBIAN/control
 	@cp debian/copyright debian-pkg/DEBIAN/
 	@if [ -f debian-pkg/usr/share/man/man1/$(PROG).1 ]; then gzip -9 debian-pkg/usr/share/man/man1/$(PROG).1; fi
-	@dpkg-deb --build debian-pkg $(PROG)_$(VERSION)_amd64.deb
+	@dpkg-deb --build --root-owner-group debian-pkg $(PROG)_$(VERSION)_$(ARCH).deb
 	@rm -rf debian-pkg
 	@echo "Package created:"
 	@dpkg-deb -c $(PROG)_*.deb
