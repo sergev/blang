@@ -1,49 +1,40 @@
 #
 # Runtime library
 #
-LIB     = libb.a
-DESTDIR	= $(HOME)/.local
-CFLAGS  = -O -Wall -ffreestanding
-OBJS    = char.o \
-          exit.o \
-          flush.o \
-          lchar.o \
-          nread.o \
-          nwrite.o \
-          printd.o \
-          printf.o \
-          printo.o \
-          read.o \
-          start.o \
-          write.o \
-          writeb.o
+CC          ?= gcc
+AR          ?= ar
+INSTALL     ?= install
+LIB         = libb.a
+DESTDIR     = $(HOME)/.local
+CFLAGS      = -O2 -Wall -Wextra -ffreestanding
+BUILD_DIR   = build
+OBJ_DIR     = $(BUILD_DIR)/objs
+LIB_DIR     = $(BUILD_DIR)/lib
+TARGET      = $(LIB_DIR)/$(LIB)
 
-all: $(LIB)
+SRCS        := $(wildcard *.c)
+OBJS        := $(patsubst %.c,$(OBJ_DIR)/%.o,$(SRCS))
+DEPS        := $(wildcard *.h)
+
+.PHONY: all install uninstall clean
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS) | $(LIB_DIR)
+	$(AR) rcs $@ $(OBJS)
+
+$(OBJ_DIR)/%.o: %.c $(DEPS) | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJ_DIR) $(LIB_DIR):
+	@mkdir -p $@
 
 install: all
-	@install -d $(DESTDIR)/lib
-	install -m 444 $(LIB) $(DESTDIR)/lib/$(LIB)
+	@$(INSTALL) -d $(DESTDIR)/lib
+	@$(INSTALL) -m 444 $(TARGET) $(DESTDIR)/lib/$(LIB)
 
 uninstall:
-	rm -f $(DESTDIR)/lib/$(LIB)
+	@rm -f $(DESTDIR)/lib/$(LIB)
 
 clean:
-	rm -rf *.o *.a
-
-$(LIB): $(OBJS)
-	@rm -f $@
-	ar cr $@ $(OBJS)
-###
-char.o: char.c *.h
-exit.o: exit.c *.h
-flush.o: flush.c *.h
-lchar.o: lchar.c *.h
-nread.o: nread.c *.h
-nwrite.o: nwrite.c *.h
-printd.o: printd.c *.h
-printf.o: printf.c *.h
-printo.o: printo.c *.h
-read.o: read.c *.h
-start.o: start.c *.h
-write.o: write.c *.h
-writeb.o: writeb.c *.h
+	@rm -rf $(BUILD_DIR)
