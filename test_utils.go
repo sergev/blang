@@ -32,8 +32,8 @@ var _ = []interface{}{
 // ensureLibbOrSkip skips the test if runtime object file is missing.
 func ensureLibbOrSkip(t testing.TB) {
 	t.Helper()
-	if _, err := os.Stat("runtime/libb.a"); err != nil {
-		t.Skip("runtime/libb.a not found, run 'make' first")
+	if _, err := os.Stat("runtime/build/lib/libb.a"); err != nil {
+		t.Skip("runtime/build/lib/libb.a not found, run 'make' first")
 	}
 }
 
@@ -79,7 +79,7 @@ func compileToLL(t testing.TB, input string, llOut string) {
 // linkWithClang links an LLVM IR file with B library into an executable.
 func linkWithClang(t testing.TB, llFile, exeFile string) {
 	t.Helper()
-	cmd := exec.Command("clang", llFile, "runtime/libb.a", "-o", exeFile)
+	cmd := exec.Command("clang", llFile, "runtime/build/lib/libb.a", "-o", exeFile)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("Linking failed: %v\nOutput: %s", err, out)
 	}

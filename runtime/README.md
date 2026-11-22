@@ -60,7 +60,7 @@ The B runtime library provides essential I/O operations for B language programs.
 ## Compilation
 
 ```bash
-make libb.a
+make            # builds build/lib/libb.a
 ```
 
 ## Linking

@@ -393,7 +393,7 @@ func TestCompileErrors(t *testing.T) {
 			// Try to compile
 			args := NewCompileOptions("blang", []string{inputFile})
 			args.OutputFile = outputFile
-			args.LibraryDirs = []string{"runtime"} // Add runtime directory for libb.a
+			args.LibraryDirs = []string{"runtime/build/lib"} // Directory of libb.a
 
 			err = Compile(args)
 			if (err != nil) != tt.wantErr {

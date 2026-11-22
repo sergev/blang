@@ -14,7 +14,7 @@ install: all
 	@install -d $(DESTDIR)/usr/bin
 	install -m 555 ${PROG} $(DESTDIR)/usr/bin/${PROG}
 	@install -d $(DESTDIR)/usr/lib
-	install -m 644 runtime/libb.a $(DESTDIR)/usr/lib/libb.a
+	install -m 644 runtime/build/lib/libb.a $(DESTDIR)/usr/lib/libb.a
 	@install -d $(DESTDIR)/usr/share/man/man1
 	install -m 644 doc/blang.1 $(DESTDIR)/usr/share/man/man1/blang.1
 	@install -d $(DESTDIR)/usr/share/doc/blang

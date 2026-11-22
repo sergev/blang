@@ -6,7 +6,7 @@
 //
 word_t b_read()
 {
-    char c = 0;
+    unsigned char c = 0;
 
     if (syscall(SYS_read, 0, (word_t)&c, 1) == 1) {
         if (c > 0 && c <= 127) {
